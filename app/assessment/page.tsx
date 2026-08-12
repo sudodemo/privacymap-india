@@ -16,12 +16,10 @@ export default function AssessmentPage() {
   }, [industryId]);
 
   const processes = useMemo(() => {
-    if (businessTypeId !== "EDU-SCH") return [];
+  if (businessTypeId !== "EDU-SCH") return [];
 
-    return kb.processes.filter(
-      (item) => item.business_type_id === businessTypeId
-    );
-  }, [businessTypeId]);
+  return kb.processes;
+}, [businessTypeId]);
 
   const entryPoints = useMemo(() => {
     if (businessTypeId !== "EDU-SCH") return [];
