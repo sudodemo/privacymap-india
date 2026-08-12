@@ -20,13 +20,13 @@ export type RiskResult = {
   overallLevel: RiskLevel;
   findings: RiskFinding[];
   categoryScores: RiskCategoryScore[];
-
-  /*
-   * Kept for compatibility with the earlier risk-engine structure.
-   */
-  factors: string[];
-  recommendations: string[];
 };
+
+/*
+ * ---------------------------------------------------------
+ * INPUT TYPES
+ * ---------------------------------------------------------
+ */
 
 type EntryPoint = {
   id: string;
@@ -41,16 +41,6 @@ type Field = {
   custom?: boolean;
 };
 
-/*
- * ---------------------------------------------------------
- * PRIVACY RISK INPUT
- * ---------------------------------------------------------
- *
- * IMPORTANT:
- * These property names intentionally match the current
- * app/assessment/page.tsx file.
- */
-
 export type PrivacyRiskInput = {
   selectedEntryPoints: string[];
   customEntryPoints: EntryPoint[];
@@ -58,70 +48,77 @@ export type PrivacyRiskInput = {
   selectedFields: string[];
   customFields: Field[];
 
-  collectorRoles: string[];
-  dataSubjectTypes: string[];
+  /*
+   * STEP 6
+   */
+  collectorRoles?: string[];
+  dataSubjectTypes?: string[];
 
-  collectionFormats: string[];
+  collectionFormats?: string[];
 
-  storageLocations: string[];
-  storageEnvironments: string[];
+  storageLocations?: string[];
+  storageEnvironments?: string[];
 
-  encryptionStatuses: string[];
+  encryptionStatuses?: string[];
 
-  accessRoles: string[];
+  accessRoles?: string[];
 
-  sharingStatuses: string[];
+  sharingStatuses?: string[];
 
-  retentionPeriods: string[];
+  retentionPeriods?: string[];
 
-  deletionMethods: string[];
+  deletionMethods?: string[];
 
-  privacyNotices: string[];
+  privacyNotices?: string[];
 
-  consentStatuses: string[];
+  consentStatuses?: string[];
 
-  parentalConsentStatuses: string[];
+  parentalConsentStatuses?: string[];
 
-  crossBorderTransfers: string[];
+  crossBorderTransfers?: string[];
 };
 
 /*
  * ---------------------------------------------------------
- * HELPERS
+ * HELPER FUNCTIONS
  * ---------------------------------------------------------
  */
+
+function valuesOrEmpty(values?: string[]): string[] {
+  return Array.isArray(values) ? values : [];
+}
 
 function containsValue(
   values: string[] | undefined,
   search: string
 ): boolean {
-  if (!values || values.length === 0) {
-    return false;
-  }
+  const safeValues = valuesOrEmpty(values);
 
-  return values.some((value) =>
+  return safeValues.some((value) =>
     value.toLowerCase().includes(search.toLowerCase())
   );
 }
 
-function hasAny(
-  values: string[] | undefined,
-  searches: string[]
-): boolean {
-  return searches.some((search) =>
-    containsValue(values, search)
-  );
+function addFinding(
+  findings: RiskFinding[],
+  id: string,
+  category: string,
+  title: string,
+  level: RiskLevel,
+  explanation: string,
+  recommendation: string
+) {
+  findings.push({
+    id,
+    category,
+    title,
+    level,
+    explanation,
+    recommendation,
+  });
 }
 
-function uniqueStrings(values: string[]): string[] {
-  return Array.from(new Set(values));
-}
-
-function clampScore(score: number): number {
-  return Math.max(0, Math.min(score, 100));
-}
-
-function getRiskLevel(score: number): RiskLevel {
+function levelFromScore(score: number): RiskLevel {
   if (score >= 75) {
     return "Critical";
   }
@@ -137,1079 +134,966 @@ function getRiskLevel(score: number): RiskLevel {
   return "Low";
 }
 
-function addFinding(
-  findings: RiskFinding[],
-  factors: string[],
-  recommendations: string[],
-  finding: RiskFinding
-): void {
-  findings.push(finding);
-
-  factors.push(finding.explanation);
-  recommendations.push(finding.recommendation);
+function categoryLevel(score: number): RiskLevel {
+  return levelFromScore(score);
 }
 
 /*
  * ---------------------------------------------------------
- * MAIN PRIVACY RISK ENGINE
+ * PRIVACY RISK ENGINE
  * ---------------------------------------------------------
  */
 
 export function calculatePrivacyRisk(
   input: PrivacyRiskInput
 ): RiskResult {
-  let score = 0;
+  let overallScore = 0;
 
   const findings: RiskFinding[] = [];
-  const factors: string[] = [];
-  const recommendations: string[] = [];
 
   /*
    * -------------------------------------------------------
-   * 1. DATA ENTRY POINT COMPLEXITY
+   * NORMALISE INPUT
    * -------------------------------------------------------
    */
+
+  const collectorRoles = valuesOrEmpty(input.collectorRoles);
+  const dataSubjectTypes = valuesOrEmpty(input.dataSubjectTypes);
+  const collectionFormats = valuesOrEmpty(input.collectionFormats);
+
+  const storageLocations = valuesOrEmpty(input.storageLocations);
+  const storageEnvironments = valuesOrEmpty(
+    input.storageEnvironments
+  );
+
+  const encryptionStatuses = valuesOrEmpty(
+    input.encryptionStatuses
+  );
+
+  const accessRoles = valuesOrEmpty(input.accessRoles);
+
+  const sharingStatuses = valuesOrEmpty(
+    input.sharingStatuses
+  );
+
+  const retentionPeriods = valuesOrEmpty(
+    input.retentionPeriods
+  );
+
+  const deletionMethods = valuesOrEmpty(
+    input.deletionMethods
+  );
+
+  const privacyNotices = valuesOrEmpty(
+    input.privacyNotices
+  );
+
+  const consentStatuses = valuesOrEmpty(
+    input.consentStatuses
+  );
+
+  const parentalConsentStatuses = valuesOrEmpty(
+    input.parentalConsentStatuses
+  );
+
+  const crossBorderTransfers = valuesOrEmpty(
+    input.crossBorderTransfers
+  );
 
   const totalEntryPoints =
     input.selectedEntryPoints.length +
     input.customEntryPoints.length;
 
-  if (totalEntryPoints >= 4) {
-    score += 10;
-
-    addFinding(
-      findings,
-      factors,
-      recommendations,
-      {
-        id: "ENTRY-001",
-        category: "Data Collection",
-        title: "Multiple personal-data entry points",
-        level: "Medium",
-        explanation:
-          "Personal data enters the organisation through multiple collection channels. This increases the possibility of inconsistent privacy notices, uncontrolled collection and incomplete data-flow mapping.",
-        recommendation:
-          "Maintain a consolidated inventory of every personal-data entry point and document the purpose, owner and controls for each channel."
-      }
-    );
-  } else if (totalEntryPoints >= 2) {
-    score += 5;
-
-    addFinding(
-      findings,
-      factors,
-      recommendations,
-      {
-        id: "ENTRY-002",
-        category: "Data Collection",
-        title: "More than one data entry point",
-        level: "Low",
-        explanation:
-          "Personal data is collected through more than one entry point.",
-        recommendation:
-          "Ensure all collection channels are included in the privacy and data-flow inventory."
-      }
-    );
-  }
-
-  /*
-   * -------------------------------------------------------
-   * 2. NUMBER OF PERSONAL DATA FIELDS
-   * -------------------------------------------------------
-   */
-
   const totalFields =
     input.selectedFields.length +
     input.customFields.length;
 
-  if (totalFields >= 10) {
-    score += 10;
+  /*
+   * -------------------------------------------------------
+   * CATEGORY 1
+   * DATA COLLECTION COMPLEXITY
+   * -------------------------------------------------------
+   */
 
+  let collectionScore = 0;
+
+  if (totalEntryPoints >= 4) {
+    collectionScore += 60;
+  } else if (totalEntryPoints >= 2) {
+    collectionScore += 35;
+  } else if (totalEntryPoints === 1) {
+    collectionScore += 15;
+  }
+
+  if (collectionFormats.length >= 4) {
+    collectionScore += 25;
+  } else if (collectionFormats.length >= 2) {
+    collectionScore += 15;
+  }
+
+  if (collectorRoles.length >= 4) {
+    collectionScore += 15;
+  } else if (collectorRoles.length >= 2) {
+    collectionScore += 8;
+  }
+
+  collectionScore = Math.min(collectionScore, 100);
+
+  overallScore += Math.round(collectionScore * 0.12);
+
+  if (totalEntryPoints >= 2) {
     addFinding(
       findings,
-      factors,
-      recommendations,
-      {
-        id: "DATA-001",
-        category: "Data Minimisation",
-        title: "Large number of personal-data fields",
-        level: "Medium",
-        explanation:
-          "The assessed process collects a relatively large number of personal-data fields.",
-        recommendation:
-          "Review every field for necessity, proportionality, purpose and retention requirements."
-      }
+      "COLLECTION-MULTIPLE-ENTRY",
+      "Data Collection",
+      "Multiple personal-data collection channels",
+      collectionScore >= 60 ? "High" : "Medium",
+      "Personal data enters the organisation through multiple channels. Different collection channels can create inconsistent privacy notices, controls, ownership and retention practices.",
+      "Maintain a consolidated inventory of all personal-data entry points and ensure appropriate privacy controls exist for each channel."
     );
-  } else if (totalFields >= 5) {
-    score += 5;
+  }
 
+  if (collectionFormats.length >= 2) {
     addFinding(
       findings,
-      factors,
-      recommendations,
-      {
-        id: "DATA-002",
-        category: "Data Minimisation",
-        title: "Multiple categories of personal data",
-        level: "Low",
-        explanation:
-          "The assessed process collects multiple categories of personal data.",
-        recommendation:
-          "Confirm that every collected field has a defined business purpose."
-      }
+      "COLLECTION-MULTIPLE-FORMATS",
+      "Data Collection",
+      "Multiple collection formats are used",
+      collectionFormats.length >= 4 ? "High" : "Medium",
+      "The process uses multiple collection formats such as web forms, Google Forms, email, paper, verbal collection or spreadsheets.",
+      "Document the data flow for each collection format and ensure consistent privacy, security and retention controls."
     );
   }
 
   /*
    * -------------------------------------------------------
-   * 3. STUDENT / CHILD DATA
+   * CATEGORY 2
+   * DATA VOLUME / DATA MINIMISATION
    * -------------------------------------------------------
    */
+
+  let dataVolumeScore = 0;
+
+  if (totalFields >= 15) {
+    dataVolumeScore = 100;
+  } else if (totalFields >= 10) {
+    dataVolumeScore = 75;
+  } else if (totalFields >= 5) {
+    dataVolumeScore = 45;
+  } else if (totalFields > 0) {
+    dataVolumeScore = 20;
+  }
+
+  overallScore += Math.round(dataVolumeScore * 0.10);
+
+  if (totalFields >= 10) {
+    addFinding(
+      findings,
+      "DATA-VOLUME",
+      "Data Minimisation",
+      "Large number of personal-data fields",
+      totalFields >= 15 ? "High" : "Medium",
+      "The assessed process collects a relatively large number of personal-data fields.",
+      "Review each field for necessity, purpose, proportionality and retention requirements."
+    );
+  }
+
+  /*
+   * -------------------------------------------------------
+   * CATEGORY 3
+   * CHILD / STUDENT DATA
+   * -------------------------------------------------------
+   */
+
+  let childDataScore = 0;
 
   const involvesStudentOrChild =
-    hasAny(input.dataSubjectTypes, [
-      "student",
-      "child",
-      "minor"
-    ]);
+    containsValue(dataSubjectTypes, "student") ||
+    containsValue(dataSubjectTypes, "child") ||
+    containsValue(dataSubjectTypes, "minor");
 
   if (involvesStudentOrChild) {
-    score += 15;
+    childDataScore = 60;
+
+    overallScore += 9;
 
     addFinding(
       findings,
-      factors,
-      recommendations,
-      {
-        id: "CHILD-001",
-        category: "Children's Data",
-        title: "Student or child personal data",
-        level: "High",
-        explanation:
-          "The processing involves student, child or minor-related personal data. Such processing requires stronger privacy governance and appropriate controls.",
-        recommendation:
-          "Review child-data requirements, parent/guardian involvement, transparency and access controls."
-      }
+      "CHILD-DATA",
+      "Data Subjects",
+      "Student or child-related personal data",
+      "High",
+      "The processing involves students, children or minors. Such processing requires additional attention to transparency, parental or guardian involvement and appropriate safeguards.",
+      "Review child-data processing requirements and ensure appropriate parent/guardian controls and age-appropriate privacy information."
     );
   }
 
   /*
    * -------------------------------------------------------
-   * 4. PARENT / GUARDIAN DATA
+   * CATEGORY 4
+   * MULTIPLE PEOPLE / ROLES
    * -------------------------------------------------------
    */
 
-  const involvesParent =
-    hasAny(input.dataSubjectTypes, [
-      "parent",
-      "guardian"
-    ]);
+  let roleScore = 0;
 
-  if (involvesParent) {
-    score += 5;
+  if (collectorRoles.length >= 4) {
+    roleScore = 75;
+  } else if (collectorRoles.length >= 2) {
+    roleScore = 45;
+  } else if (collectorRoles.length === 1) {
+    roleScore = 20;
+  }
+
+  if (collectorRoles.length >= 3) {
+    overallScore += 5;
 
     addFinding(
       findings,
-      factors,
-      recommendations,
-      {
-        id: "SUBJECT-001",
-        category: "Data Subjects",
-        title: "Parent or guardian personal data",
-        level: "Low",
-        explanation:
-          "The process also involves personal data relating to parents or guardians.",
-        recommendation:
-          "Ensure parent/guardian information is included in the data inventory, privacy notice and retention schedule."
-      }
+      "MULTIPLE-COLLECTOR-ROLES",
+      "Access & Responsibility",
+      "Multiple organisational roles collect personal data",
+      "Medium",
+      "Several organisational roles may collect personal data. This increases the possibility of inconsistent handling and unclear accountability.",
+      "Define responsibilities and role-based access for each data-collection role."
     );
   }
 
   /*
    * -------------------------------------------------------
-   * 5. MULTIPLE DATA-COLLECTOR ROLES
+   * CATEGORY 5
+   * PHYSICAL / DIGITAL / HYBRID COLLECTION
    * -------------------------------------------------------
    */
 
-  if (input.collectorRoles.length >= 3) {
-    score += 5;
-
-    addFinding(
-      findings,
-      factors,
-      recommendations,
-      {
-        id: "COLLECTOR-001",
-        category: "Access & Accountability",
-        title: "Multiple personnel collect personal data",
-        level: "Medium",
-        explanation:
-          "Multiple employee or organisational roles may collect personal data.",
-        recommendation:
-          "Define responsibilities and role-based permissions for each data-collection role."
-      }
-    );
-  }
-
-  /*
-   * -------------------------------------------------------
-   * 6. THIRD-PARTY DATA COLLECTION
-   * -------------------------------------------------------
-   */
-
-  if (
-    hasAny(input.collectorRoles, [
-      "third-party",
-      "service provider"
-    ])
-  ) {
-    score += 10;
-
-    addFinding(
-      findings,
-      factors,
-      recommendations,
-      {
-        id: "COLLECTOR-002",
-        category: "Third Parties",
-        title: "Third party may collect personal data",
-        level: "Medium",
-        explanation:
-          "A third-party service provider may participate directly in collecting personal data.",
-        recommendation:
-          "Identify the third party, define its role and review contractual privacy and security obligations."
-      }
-    );
-  }
-
-  /*
-   * -------------------------------------------------------
-   * 7. PHYSICAL / PAPER COLLECTION
-   * -------------------------------------------------------
-   */
+  let physicalHandlingScore = 0;
 
   const physicalCollection =
-    hasAny(input.collectionFormats, [
-      "paper",
-      "physical",
-      "in person",
-      "verbal"
-    ]);
-
-  if (physicalCollection) {
-    score += 5;
-
-    addFinding(
-      findings,
-      factors,
-      recommendations,
-      {
-        id: "COLLECTION-001",
-        category: "Data Collection",
-        title: "Physical or paper-based data collection",
-        level: "Medium",
-        explanation:
-          "Personal data may be collected through physical forms or in-person processes.",
-        recommendation:
-          "Review physical security, access, transportation, scanning, copying and secure disposal of paper records."
-      }
-    );
-  }
-
-  /*
-   * -------------------------------------------------------
-   * 8. DIGITAL COLLECTION
-   * -------------------------------------------------------
-   */
+    containsValue(collectionFormats, "paper") ||
+    containsValue(collectionFormats, "physical") ||
+    containsValue(collectionFormats, "in person");
 
   const digitalCollection =
-    hasAny(input.collectionFormats, [
-      "website",
-      "google form",
-      "mobile",
-      "school app",
-      "whatsapp",
-      "email",
-      "excel",
-      "spreadsheet"
-    ]);
+    containsValue(collectionFormats, "website") ||
+    containsValue(collectionFormats, "google form") ||
+    containsValue(collectionFormats, "mobile") ||
+    containsValue(collectionFormats, "email") ||
+    containsValue(collectionFormats, "excel") ||
+    containsValue(collectionFormats, "spreadsheet");
 
-  /*
-   * -------------------------------------------------------
-   * 9. PHYSICAL + DIGITAL HYBRID COLLECTION
-   * -------------------------------------------------------
-   */
+  if (physicalCollection) {
+    physicalHandlingScore += 50;
+
+    overallScore += 5;
+
+    addFinding(
+      findings,
+      "PHYSICAL-COLLECTION",
+      "Physical Records",
+      "Physical or paper-based collection",
+      "Medium",
+      "Personal data may be collected through paper, physical forms or in-person processes.",
+      "Review physical security, transportation, access, scanning, retention and secure disposal of paper records."
+    );
+  }
 
   if (physicalCollection && digitalCollection) {
-    score += 10;
+    physicalHandlingScore += 50;
+
+    overallScore += 5;
 
     addFinding(
       findings,
-      factors,
-      recommendations,
-      {
-        id: "COLLECTION-002",
-        category: "Data Flow",
-        title: "Hybrid physical and digital collection",
-        level: "High",
-        explanation:
-          "The process uses both physical and digital collection methods. Personal data may move between paper records, spreadsheets, email, forms or other systems.",
-        recommendation:
-          "Document the complete data flow from initial collection through scanning, transcription, upload, sharing, storage and eventual disposal."
-      }
+      "HYBRID-COLLECTION",
+      "Data Flow",
+      "Hybrid physical and digital collection",
+      "High",
+      "The process uses both physical and digital collection methods. Data may move between paper records and digital systems.",
+      "Map the complete lifecycle from physical collection through scanning, digitisation, storage and eventual disposal."
+    );
+  }
+
+  physicalHandlingScore = Math.min(
+    physicalHandlingScore,
+    100
+  );
+
+  /*
+   * -------------------------------------------------------
+   * CATEGORY 6
+   * STORAGE ENVIRONMENT
+   * -------------------------------------------------------
+   */
+
+  let storageScore = 0;
+
+  if (storageEnvironments.length >= 3) {
+    storageScore = 90;
+  } else if (storageEnvironments.length >= 2) {
+    storageScore = 65;
+  } else if (storageEnvironments.length === 1) {
+    storageScore = 30;
+  }
+
+  if (storageEnvironments.length >= 2) {
+    overallScore += 8;
+
+    addFinding(
+      findings,
+      "MULTIPLE-STORAGE-ENVIRONMENTS",
+      "Storage",
+      "Personal data is stored across multiple environments",
+      "High",
+      "Personal data may exist across cloud, on-premises, employee devices, mobile devices or physical storage.",
+      "Create a data-flow map covering every storage environment and the movement of data between them."
     );
   }
 
   /*
    * -------------------------------------------------------
-   * 10. MULTIPLE STORAGE LOCATIONS
+   * CATEGORY 7
+   * PHYSICAL STORAGE
    * -------------------------------------------------------
    */
 
-  if (input.storageLocations.length >= 3) {
-    score += 10;
+  if (
+    containsValue(storageEnvironments, "physical") ||
+    containsValue(storageLocations, "paper") ||
+    containsValue(storageLocations, "physical")
+  ) {
+    storageScore = Math.max(storageScore, 60);
+
+    overallScore += 5;
 
     addFinding(
       findings,
-      factors,
-      recommendations,
-      {
-        id: "STORAGE-001",
-        category: "Data Storage",
-        title: "Personal data stored in multiple locations",
-        level: "Medium",
-        explanation:
-          "Personal data may be stored across several systems, applications, devices or physical locations.",
-        recommendation:
-          "Create a data-storage inventory identifying each system, owner, purpose, location and retention period."
-      }
-    );
-  } else if (input.storageLocations.length >= 2) {
-    score += 5;
-
-    addFinding(
-      findings,
-      factors,
-      recommendations,
-      {
-        id: "STORAGE-002",
-        category: "Data Storage",
-        title: "Multiple storage locations",
-        level: "Low",
-        explanation:
-          "Personal data may be stored in more than one location.",
-        recommendation:
-          "Ensure all storage locations are documented in the data-flow inventory."
-      }
+      "PHYSICAL-STORAGE",
+      "Physical Records",
+      "Physical records contain personal data",
+      "Medium",
+      "Paper files or other physical records may contain personal information.",
+      "Review physical access controls, secure storage, retention, movement and secure disposal of physical records."
     );
   }
 
   /*
    * -------------------------------------------------------
-   * 11. MULTIPLE STORAGE ENVIRONMENTS
+   * CATEGORY 8
+   * HYBRID STORAGE
    * -------------------------------------------------------
    */
 
-  if (input.storageEnvironments.length >= 2) {
-    score += 8;
+  const hybridStorage =
+    storageEnvironments.some(
+      (value) =>
+        value.toLowerCase().includes("physical")
+    ) &&
+    storageEnvironments.some(
+      (value) =>
+        value.toLowerCase().includes("cloud") ||
+        value.toLowerCase().includes("on-premises") ||
+        value.toLowerCase().includes("device")
+    );
+
+  if (hybridStorage) {
+    storageScore = 90;
+
+    overallScore += 8;
 
     addFinding(
       findings,
-      factors,
-      recommendations,
-      {
-        id: "STORAGE-003",
-        category: "Data Storage",
-        title: "Multiple storage environments",
-        level: "Medium",
-        explanation:
-          "Personal data may be stored across multiple environments such as cloud, on-premises, employee devices or physical records.",
-        recommendation:
-          "Map movement of personal data between physical, employee-device, cloud, third-party and on-premises environments."
-      }
+      "HYBRID-STORAGE",
+      "Storage",
+      "Hybrid physical and digital storage",
+      "High",
+      "Personal data may be stored in both physical and digital environments.",
+      "Map the transition between paper records and digital systems, including scanning, uploading and eventual disposal."
     );
   }
 
   /*
    * -------------------------------------------------------
-   * 12. PHYSICAL STORAGE
+   * CATEGORY 9
+   * UNKNOWN STORAGE
    * -------------------------------------------------------
    */
 
-  const physicalStorage =
-    hasAny(input.storageEnvironments, [
-      "physical"
-    ]) ||
-    hasAny(input.storageLocations, [
-      "paper",
-      "physical record",
-      "physical"
-    ]);
+  if (
+    containsValue(storageLocations, "unknown") ||
+    containsValue(storageEnvironments, "unknown")
+  ) {
+    storageScore = Math.max(storageScore, 80);
 
-  if (physicalStorage) {
-    score += 5;
+    overallScore += 10;
 
     addFinding(
       findings,
-      factors,
-      recommendations,
-      {
-        id: "STORAGE-004",
-        category: "Physical Records",
-        title: "Physical records contain personal data",
-        level: "Medium",
-        explanation:
-          "Physical records may contain personal data and therefore require controls equivalent to other sensitive information repositories.",
-        recommendation:
-          "Review physical access controls, secure storage, visitor access, retention and secure destruction."
-      }
+      "UNKNOWN-STORAGE",
+      "Storage",
+      "Storage location is unknown",
+      "High",
+      "The organisation does not have sufficient visibility into where personal data is stored.",
+      "Identify all systems, applications, devices, cloud platforms and physical locations where personal data is stored."
     );
   }
 
   /*
    * -------------------------------------------------------
-   * 13. HYBRID PHYSICAL + DIGITAL STORAGE
+   * CATEGORY 10
+   * ENCRYPTION
    * -------------------------------------------------------
    */
 
-  const hasCloudOrDigitalStorage =
-    hasAny(input.storageEnvironments, [
-      "cloud",
-      "on-premises",
-      "employee device",
-      "mobile device",
-      "third-party hosted"
-    ]) ||
-    hasAny(input.storageLocations, [
-      "school management",
-      "student information",
-      "crm",
-      "google drive",
-      "microsoft",
-      "sharepoint",
-      "excel",
-      "spreadsheet",
-      "email",
-      "whatsapp",
-      "computer",
-      "third-party"
-    ]);
+  let securityScore = 0;
 
-  if (physicalStorage && hasCloudOrDigitalStorage) {
-    score += 10;
+  if (
+    containsValue(encryptionStatuses, "clear text") ||
+    containsValue(encryptionStatuses, "not encrypted")
+  ) {
+    securityScore = 100;
+
+    overallScore += 20;
 
     addFinding(
       findings,
-      factors,
-      recommendations,
-      {
-        id: "STORAGE-005",
-        category: "Data Flow",
-        title: "Hybrid physical and digital storage",
-        level: "High",
-        explanation:
-          "Personal data may exist simultaneously in physical records and digital systems. This creates additional risks around scanning, duplication, reconciliation, retention and deletion.",
-        recommendation:
-          "Map the lifecycle between paper and digital records and ensure retention and deletion requirements apply consistently to both."
-      }
+      "NO-ENCRYPTION",
+      "Security",
+      "Personal data may not be encrypted",
+      "Critical",
+      "Personal data may be stored or transmitted without adequate encryption.",
+      "Evaluate encryption controls for personal data at rest and in transit and remediate inappropriate clear-text storage or transmission."
+    );
+  } else if (
+    containsValue(encryptionStatuses, "unknown")
+  ) {
+    securityScore = 70;
+
+    overallScore += 10;
+
+    addFinding(
+      findings,
+      "UNKNOWN-ENCRYPTION",
+      "Security",
+      "Encryption status is unknown",
+      "High",
+      "The organisation has not established whether personal data is adequately encrypted.",
+      "Confirm encryption controls for data at rest and in transit."
+    );
+  } else if (
+    containsValue(
+      encryptionStatuses,
+      "in transit only"
+    ) ||
+    containsValue(
+      encryptionStatuses,
+      "at rest only"
+    )
+  ) {
+    securityScore = 55;
+
+    overallScore += 8;
+
+    addFinding(
+      findings,
+      "PARTIAL-ENCRYPTION",
+      "Security",
+      "Encryption coverage may be incomplete",
+      "Medium",
+      "The selected encryption option indicates that protection may exist only for part of the data lifecycle.",
+      "Assess encryption requirements for both data at rest and data in transit."
+    );
+  } else if (
+    containsValue(
+      encryptionStatuses,
+      "at rest and in transit"
+    )
+  ) {
+    securityScore = 15;
+  }
+
+  /*
+   * -------------------------------------------------------
+   * CATEGORY 11
+   * ACCESS CONTROL
+   * -------------------------------------------------------
+   */
+
+  let accessScore = 0;
+
+  if (accessRoles.length === 0) {
+    accessScore = 75;
+
+    overallScore += 8;
+
+    addFinding(
+      findings,
+      "ACCESS-NOT-DEFINED",
+      "Access Control",
+      "Data access roles are not defined",
+      "High",
+      "No access roles have been identified for the assessed personal data.",
+      "Define role-based access and periodically review who can access personal data."
+    );
+  } else if (accessRoles.length >= 5) {
+    accessScore = 65;
+
+    overallScore += 5;
+
+    addFinding(
+      findings,
+      "BROAD-ACCESS",
+      "Access Control",
+      "Personal data may be accessible to many roles",
+      "Medium",
+      "A relatively broad set of organisational roles may have access to personal data.",
+      "Apply least privilege and review whether each role genuinely requires access."
+    );
+  } else {
+    accessScore = 25;
+  }
+
+  if (
+    containsValue(accessRoles, "third-party") ||
+    containsValue(accessRoles, "service provider")
+  ) {
+    accessScore = Math.max(accessScore, 60);
+
+    overallScore += 5;
+
+    addFinding(
+      findings,
+      "THIRD-PARTY-ACCESS",
+      "Third-Party Risk",
+      "Third parties may have access to personal data",
+      "Medium",
+      "External service providers may have access to personal data.",
+      "Maintain a processor/vendor inventory and review contractual privacy and security obligations."
     );
   }
 
   /*
    * -------------------------------------------------------
-   * 14. UNKNOWN STORAGE
+   * CATEGORY 12
+   * DATA SHARING
    * -------------------------------------------------------
    */
 
+  let sharingScore = 0;
+
   if (
-    hasAny(input.storageLocations, [
-      "unknown"
-    ]) ||
-    hasAny(input.storageEnvironments, [
-      "unknown"
-    ])
+    containsValue(
+      sharingStatuses,
+      "multiple third parties"
+    )
   ) {
-    score += 10;
+    sharingScore = 100;
+
+    overallScore += 15;
 
     addFinding(
       findings,
-      factors,
-      recommendations,
-      {
-        id: "STORAGE-006",
-        category: "Data Governance",
-        title: "Storage location is unknown",
-        level: "High",
-        explanation:
-          "The location or environment where personal data is stored is not fully known.",
-        recommendation:
-          "Identify all systems, applications, devices, cloud services and physical locations where personal data is stored."
-      }
+      "MULTIPLE-THIRD-PARTY-SHARING",
+      "Third-Party Risk",
+      "Personal data may be shared with multiple third parties",
+      "High",
+      "The assessed process may disclose personal data to multiple external parties.",
+      "Maintain a complete recipient and processor inventory and assess contractual and security controls."
     );
+  } else if (
+    containsValue(
+      sharingStatuses,
+      "service provider"
+    )
+  ) {
+    sharingScore = 65;
+
+    overallScore += 10;
+
+    addFinding(
+      findings,
+      "SERVICE-PROVIDER-SHARING",
+      "Third-Party Risk",
+      "Personal data may be shared with service providers",
+      "Medium",
+      "Personal data may be processed by external service providers.",
+      "Identify service providers and verify appropriate privacy, security and contractual controls."
+    );
+  } else if (
+    containsValue(sharingStatuses, "unknown")
+  ) {
+    sharingScore = 70;
+
+    overallScore += 8;
+
+    addFinding(
+      findings,
+      "UNKNOWN-SHARING",
+      "Third-Party Risk",
+      "Data-sharing arrangements are unknown",
+      "High",
+      "The organisation has not established who receives or accesses the personal data.",
+      "Identify all internal and external recipients of personal data."
+    );
+  } else {
+    sharingScore = 10;
   }
 
   /*
    * -------------------------------------------------------
-   * 15. ENCRYPTION
+   * CATEGORY 13
+   * RETENTION
    * -------------------------------------------------------
    */
 
+  let retentionScore = 0;
+
   if (
-    hasAny(input.encryptionStatuses, [
-      "clear text",
-      "not encrypted"
-    ])
+    containsValue(retentionPeriods, "indefinitely") ||
+    containsValue(
+      retentionPeriods,
+      "no defined retention"
+    )
   ) {
-    score += 25;
+    retentionScore = 100;
+
+    overallScore += 15;
 
     addFinding(
       findings,
-      factors,
-      recommendations,
-      {
-        id: "SECURITY-001",
-        category: "Security",
-        title: "Personal data may not be encrypted",
-        level: "Critical",
-        explanation:
-          "Personal data may be stored or transmitted without adequate encryption.",
-        recommendation:
-          "Evaluate encryption controls for personal data at rest and in transit and remediate unprotected repositories."
-      }
+      "INDEFINITE-RETENTION",
+      "Retention",
+      "Personal data may be retained indefinitely",
+      "High",
+      "The process may not have a defined retention period.",
+      "Define retention periods based on business, legal and regulatory requirements."
     );
-  }
-
-  if (
-    hasAny(input.encryptionStatuses, [
-      "unknown"
-    ])
+  } else if (
+    containsValue(retentionPeriods, "more than 5 years")
   ) {
-    score += 10;
+    retentionScore = 70;
+
+    overallScore += 8;
 
     addFinding(
       findings,
-      factors,
-      recommendations,
-      {
-        id: "SECURITY-002",
-        category: "Security",
-        title: "Encryption status is unknown",
-        level: "High",
-        explanation:
-          "The organisation has not established whether personal data is adequately encrypted.",
-        recommendation:
-          "Confirm encryption requirements and implementation for each storage and transmission mechanism."
-      }
+      "LONG-RETENTION",
+      "Retention",
+      "Long personal-data retention period",
+      "Medium",
+      "Personal data may be retained for an extended period.",
+      "Validate whether the retention period is necessary and document the justification."
     );
+  } else if (
+    containsValue(retentionPeriods, "unknown")
+  ) {
+    retentionScore = 75;
+
+    overallScore += 8;
+
+    addFinding(
+      findings,
+      "UNKNOWN-RETENTION",
+      "Retention",
+      "Data-retention period is unknown",
+      "High",
+      "The organisation has not established how long the personal data is retained.",
+      "Document retention periods for each category of personal data."
+    );
+  } else {
+    retentionScore = 20;
   }
 
   /*
    * -------------------------------------------------------
-   * 16. ACCESS CONTROL
+   * CATEGORY 14
+   * DELETION
    * -------------------------------------------------------
    */
 
-  if (input.accessRoles.length === 0) {
-    score += 8;
-
-    addFinding(
-      findings,
-      factors,
-      recommendations,
-      {
-        id: "ACCESS-001",
-        category: "Access Control",
-        title: "Access roles are not defined",
-        level: "High",
-        explanation:
-          "No personnel or organisational roles have been identified as having access to the personal data.",
-        recommendation:
-          "Define authorised access roles and implement role-based access controls."
-      }
-    );
-  }
+  let deletionScore = 0;
 
   if (
-    hasAny(input.accessRoles, [
-      "unknown"
-    ])
+    containsValue(
+      deletionMethods,
+      "no defined deletion"
+    ) ||
+    containsValue(deletionMethods, "unknown")
   ) {
-    score += 8;
+    deletionScore = 80;
+
+    overallScore += 10;
 
     addFinding(
       findings,
-      factors,
-      recommendations,
-      {
-        id: "ACCESS-002",
-        category: "Access Control",
-        title: "Data access is unknown",
-        level: "High",
-        explanation:
-          "The organisation does not have a clear understanding of who can access the personal data.",
-        recommendation:
-          "Identify all users, roles and third parties with access and periodically review permissions."
-      }
+      "DELETION-NOT-DEFINED",
+      "Deletion & Disposal",
+      "Personal-data deletion process is not defined",
+      "High",
+      "The organisation may not have a documented process for deleting personal data.",
+      "Define secure deletion and disposal procedures for both digital and physical records."
     );
-  }
-
-  if (input.accessRoles.length >= 5) {
-    score += 5;
-
-    addFinding(
-      findings,
-      factors,
-      recommendations,
-      {
-        id: "ACCESS-003",
-        category: "Access Control",
-        title: "Large number of access roles",
-        level: "Medium",
-        explanation:
-          "Multiple organisational roles may have access to the assessed personal data.",
-        recommendation:
-          "Apply least privilege and periodically review whether each role genuinely requires access."
-      }
-    );
+  } else if (
+    containsValue(deletionMethods, "manual deletion")
+  ) {
+    deletionScore = 45;
+  } else {
+    deletionScore = 20;
   }
 
   /*
    * -------------------------------------------------------
-   * 17. THIRD-PARTY SHARING
+   * CATEGORY 15
+   * PRIVACY NOTICE
    * -------------------------------------------------------
    */
 
-  if (
-    hasAny(input.sharingStatuses, [
-      "service provider",
-      "third parties",
-      "external"
-    ])
-  ) {
-    score += 15;
+  let noticeScore = 0;
+
+  if (containsValue(privacyNotices, "no")) {
+    noticeScore = 100;
+
+    overallScore += 12;
 
     addFinding(
       findings,
-      factors,
-      recommendations,
-      {
-        id: "SHARING-001",
-        category: "Third Parties",
-        title: "Personal data shared externally",
-        level: "High",
-        explanation:
-          "Personal data may be shared with external service providers or third parties.",
-        recommendation:
-          "Maintain a processor/service-provider inventory and review contractual privacy, security and data-processing obligations."
-      }
+      "NO-PRIVACY-NOTICE",
+      "Transparency",
+      "Privacy notice may not be provided",
+      "High",
+      "The assessment indicates that a privacy notice may not be provided to data subjects.",
+      "Review and provide appropriate privacy information at or before collection."
     );
-  }
-
-  if (
-    hasAny(input.sharingStatuses, [
-      "unknown"
-    ])
+  } else if (
+    containsValue(privacyNotices, "partially")
   ) {
-    score += 8;
+    noticeScore = 65;
+
+    overallScore += 8;
 
     addFinding(
       findings,
-      factors,
-      recommendations,
-      {
-        id: "SHARING-002",
-        category: "Data Sharing",
-        title: "Data-sharing arrangements are unknown",
-        level: "High",
-        explanation:
-          "The organisation has not established all recipients of the personal data.",
-        recommendation:
-          "Identify all internal and external recipients of personal data."
-      }
+      "PARTIAL-PRIVACY-NOTICE",
+      "Transparency",
+      "Privacy notice coverage may be incomplete",
+      "Medium",
+      "Privacy notice coverage may differ across collection channels.",
+      "Ensure appropriate privacy information is presented consistently across all collection channels."
     );
+  } else if (
+    containsValue(privacyNotices, "unknown")
+  ) {
+    noticeScore = 70;
+
+    overallScore += 7;
+
+    addFinding(
+      findings,
+      "UNKNOWN-PRIVACY-NOTICE",
+      "Transparency",
+      "Privacy-notice status is unknown",
+      "High",
+      "The organisation has not established whether appropriate privacy information is provided.",
+      "Confirm privacy-notice coverage for every collection channel."
+    );
+  } else {
+    noticeScore = 15;
   }
 
   /*
    * -------------------------------------------------------
-   * 18. RETENTION
+   * CATEGORY 16
+   * CONSENT / LAWFUL BASIS
    * -------------------------------------------------------
    */
 
-  if (
-    hasAny(input.retentionPeriods, [
-      "indefinitely",
-      "no defined"
-    ])
-  ) {
-    score += 15;
+  let consentScore = 0;
+
+  if (containsValue(consentStatuses, "no")) {
+    consentScore = 90;
+
+    overallScore += 12;
 
     addFinding(
       findings,
-      factors,
-      recommendations,
-      {
-        id: "RETENTION-001",
-        category: "Retention",
-        title: "Undefined or indefinite retention",
-        level: "High",
-        explanation:
-          "The organisation may retain personal data indefinitely or without a defined retention period.",
-        recommendation:
-          "Define retention periods based on business, legal and regulatory requirements and document them in the retention schedule."
-      }
+      "CONSENT-NOT-OBTAINED",
+      "Lawful Basis",
+      "Consent may not be obtained",
+      "High",
+      "The assessment indicates that consent may not be obtained where it may be expected.",
+      "Validate the applicable lawful basis and document the organisation's basis for processing."
     );
-  }
-
-  if (
-    hasAny(input.retentionPeriods, [
-      "unknown"
-    ])
+  } else if (
+    containsValue(consentStatuses, "partially")
   ) {
-    score += 8;
+    consentScore = 60;
+
+    overallScore += 7;
 
     addFinding(
       findings,
-      factors,
-      recommendations,
-      {
-        id: "RETENTION-002",
-        category: "Retention",
-        title: "Retention period is unknown",
-        level: "High",
-        explanation:
-          "The retention period for the personal data has not been established.",
-        recommendation:
-          "Document how long each category of personal data is retained and why."
-      }
+      "PARTIAL-CONSENT",
+      "Lawful Basis",
+      "Consent or lawful-basis coverage may be incomplete",
+      "Medium",
+      "The organisation may not have consistently documented the basis for processing.",
+      "Document the purpose and applicable lawful basis for each processing activity."
     );
+  } else if (
+    containsValue(consentStatuses, "unknown")
+  ) {
+    consentScore = 65;
+
+    overallScore += 8;
+
+    addFinding(
+      findings,
+      "UNKNOWN-LAWFUL-BASIS",
+      "Lawful Basis",
+      "Lawful basis is unknown",
+      "High",
+      "The organisation has not established the applicable lawful basis for the processing.",
+      "Document the purpose and lawful basis for each processing activity."
+    );
+  } else {
+    consentScore = 15;
   }
 
   /*
    * -------------------------------------------------------
-   * 19. DELETION
+   * CATEGORY 17
+   * PARENT / GUARDIAN CONTROLS
    * -------------------------------------------------------
    */
 
-  if (
-    hasAny(input.deletionMethods, [
-      "no defined",
-      "unknown"
-    ])
-  ) {
-    score += 10;
-
-    addFinding(
-      findings,
-      factors,
-      recommendations,
-      {
-        id: "DELETION-001",
-        category: "Data Lifecycle",
-        title: "Personal-data deletion process is not defined",
-        level: "High",
-        explanation:
-          "There may be no clearly defined process for deleting or securely disposing of personal data.",
-        recommendation:
-          "Define secure deletion and disposal procedures for both digital and physical records."
-      }
-    );
-  }
-
-  /*
-   * -------------------------------------------------------
-   * 20. PRIVACY NOTICE
-   * -------------------------------------------------------
-   */
-
-  if (
-    hasAny(input.privacyNotices, [
-      "no",
-      "partially"
-    ])
-  ) {
-    score += 12;
-
-    addFinding(
-      findings,
-      factors,
-      recommendations,
-      {
-        id: "NOTICE-001",
-        category: "Transparency",
-        title: "Privacy-notice coverage may be incomplete",
-        level: "High",
-        explanation:
-          "Privacy notices may not be consistently provided at the point of personal-data collection.",
-        recommendation:
-          "Review privacy notices across every collection channel, including paper forms, websites, Google Forms, email and verbal collection."
-      }
-    );
-  }
-
-  if (
-    hasAny(input.privacyNotices, [
-      "unknown"
-    ])
-  ) {
-    score += 7;
-
-    addFinding(
-      findings,
-      factors,
-      recommendations,
-      {
-        id: "NOTICE-002",
-        category: "Transparency",
-        title: "Privacy-notice status is unknown",
-        level: "High",
-        explanation:
-          "It is not clear whether appropriate privacy notices are provided to data subjects.",
-        recommendation:
-          "Confirm privacy-notice coverage for every personal-data collection point."
-      }
-    );
-  }
-
-  /*
-   * -------------------------------------------------------
-   * 21. CONSENT / LAWFUL BASIS
-   * -------------------------------------------------------
-   */
-
-  if (
-    hasAny(input.consentStatuses, [
-      "no"
-    ])
-  ) {
-    score += 15;
-
-    addFinding(
-      findings,
-      factors,
-      recommendations,
-      {
-        id: "LEGAL-001",
-        category: "Lawful Processing",
-        title: "Consent or lawful-basis controls may be incomplete",
-        level: "High",
-        explanation:
-          "Consent may not be obtained where the organisation expects it to be required, or the processing basis may not be adequately documented.",
-        recommendation:
-          "Validate the applicable legal basis for each processing activity and document the basis."
-      }
-    );
-  }
-
-  if (
-    hasAny(input.consentStatuses, [
-      "unknown"
-    ])
-  ) {
-    score += 8;
-
-    addFinding(
-      findings,
-      factors,
-      recommendations,
-      {
-        id: "LEGAL-002",
-        category: "Lawful Processing",
-        title: "Lawful-basis status is unknown",
-        level: "High",
-        explanation:
-          "The organisation has not established the consent or other lawful basis applicable to the processing.",
-        recommendation:
-          "Document the purpose and applicable legal basis for each personal-data processing activity."
-      }
-    );
-  }
-
-  /*
-   * -------------------------------------------------------
-   * 22. PARENT / GUARDIAN CONTROLS
-   * -------------------------------------------------------
-   */
+  let parentalScore = 0;
 
   if (involvesStudentOrChild) {
     if (
-      hasAny(input.parentalConsentStatuses, [
-        "no",
+      containsValue(
+        parentalConsentStatuses,
+        "no"
+      )
+    ) {
+      parentalScore = 100;
+
+      overallScore += 20;
+
+      addFinding(
+        findings,
+        "PARENTAL-CONTROL-MISSING",
+        "Child Data",
+        "Parent or guardian controls may be inadequate",
+        "Critical",
+        "Student or child-related processing is indicated but parent/guardian involvement may not be adequately addressed.",
+        "Review applicable requirements for parent/guardian involvement and implement appropriate controls."
+      );
+    } else if (
+      containsValue(
+        parentalConsentStatuses,
         "partially"
-      ])
+      )
     ) {
-      score += 20;
+      parentalScore = 65;
+
+      overallScore += 12;
 
       addFinding(
         findings,
-        factors,
-        recommendations,
-        {
-          id: "CHILD-002",
-          category: "Children's Data",
-          title: "Parent/guardian controls may be incomplete",
-          level: "Critical",
-          explanation:
-            "Child-related processing may not have adequate parent/guardian involvement or controls.",
-          recommendation:
-            "Review parent/guardian requirements and implement appropriate controls for child-related personal data."
-        }
+        "PARENTAL-CONTROL-PARTIAL",
+        "Child Data",
+        "Parent or guardian controls may be incomplete",
+        "High",
+        "Parent or guardian involvement appears to be only partially addressed.",
+        "Review the end-to-end process for obtaining, recording and validating parent/guardian involvement."
       );
-    }
-
-    if (
-      hasAny(input.parentalConsentStatuses, [
+    } else if (
+      containsValue(
+        parentalConsentStatuses,
         "unknown"
-      ])
+      )
     ) {
-      score += 10;
+      parentalScore = 70;
+
+      overallScore += 10;
 
       addFinding(
         findings,
-        factors,
-        recommendations,
-        {
-          id: "CHILD-003",
-          category: "Children's Data",
-          title: "Parent/guardian requirements are unknown",
-          level: "High",
-          explanation:
-            "The organisation has not established how parent/guardian requirements are handled for child-related personal data.",
-          recommendation:
-            "Confirm and document how parent/guardian involvement is addressed."
-        }
+        "PARENTAL-CONTROL-UNKNOWN",
+        "Child Data",
+        "Parent or guardian controls are unknown",
+        "High",
+        "The assessment does not establish how parent/guardian requirements are addressed.",
+        "Confirm how parent/guardian requirements are handled for child-related personal data."
       );
+    } else {
+      parentalScore = 20;
     }
   }
 
   /*
    * -------------------------------------------------------
-   * 23. CROSS-BORDER TRANSFER
+   * CATEGORY 18
+   * CROSS-BORDER TRANSFER
+   * -------------------------------------------------------
+   */
+
+  let crossBorderScore = 0;
+
+  if (
+    containsValue(crossBorderTransfers, "yes")
+  ) {
+    crossBorderScore = 70;
+
+    overallScore += 10;
+
+    addFinding(
+      findings,
+      "CROSS-BORDER",
+      "Data Transfer",
+      "Personal data may be transferred outside India",
+      "High",
+      "The assessment indicates that personal data may be transferred outside India.",
+      "Identify countries, cloud services, SaaS platforms and processors involved in cross-border processing and assess applicable requirements."
+    );
+  } else if (
+    containsValue(crossBorderTransfers, "unknown")
+  ) {
+    crossBorderScore = 60;
+
+    overallScore += 5;
+
+    addFinding(
+      findings,
+      "CROSS-BORDER-UNKNOWN",
+      "Data Transfer",
+      "Cross-border transfer status is unknown",
+      "Medium",
+      "The organisation has not established whether personal data is transferred outside India.",
+      "Review cloud services, SaaS platforms and third-party processors to determine data locations and transfer paths."
+    );
+  } else {
+    crossBorderScore = 10;
+  }
+
+  /*
+   * -------------------------------------------------------
+   * UNKNOWN / INCOMPLETE RESPONSES
    * -------------------------------------------------------
    */
 
   if (
-    hasAny(input.crossBorderTransfers, [
-      "yes"
-    ])
+    collectionFormats.length === 0
   ) {
-    score += 10;
+    overallScore += 5;
 
     addFinding(
       findings,
-      factors,
-      recommendations,
-      {
-        id: "TRANSFER-001",
-        category: "Data Transfer",
-        title: "Potential cross-border personal-data transfer",
-        level: "High",
-        explanation:
-          "Personal data may be transferred outside India through cloud services, SaaS applications, service providers or other processing arrangements.",
-        recommendation:
-          "Identify countries, cloud services and processors involved and assess applicable transfer, contractual and security requirements."
-      }
-    );
-  }
-
-  if (
-    hasAny(input.crossBorderTransfers, [
-      "unknown"
-    ])
-  ) {
-    score += 5;
-
-    addFinding(
-      findings,
-      factors,
-      recommendations,
-      {
-        id: "TRANSFER-002",
-        category: "Data Transfer",
-        title: "Cross-border transfer status is unknown",
-        level: "Medium",
-        explanation:
-          "The organisation has not established whether personal data is transferred outside India.",
-        recommendation:
-          "Determine whether cloud services, SaaS platforms or processors transfer or remotely access personal data outside India."
-      }
-    );
-  }
-
-  /*
-   * -------------------------------------------------------
-   * 24. UNKNOWN COLLECTION METHOD
-   * -------------------------------------------------------
-   */
-
-  if (input.collectionFormats.length === 0) {
-    score += 5;
-
-    addFinding(
-      findings,
-      factors,
-      recommendations,
-      {
-        id: "COLLECTION-003",
-        category: "Data Collection",
-        title: "Collection method is not documented",
-        level: "Medium",
-        explanation:
-          "The method used to collect personal data has not been documented.",
-        recommendation:
-          "Document the collection method for every personal-data entry point."
-      }
-    );
-  }
-
-  /*
-   * -------------------------------------------------------
-   * 25. UNKNOWN DATA SUBJECT
-   * -------------------------------------------------------
-   */
-
-  if (input.dataSubjectTypes.length === 0) {
-    score += 5;
-
-    addFinding(
-      findings,
-      factors,
-      recommendations,
-      {
-        id: "SUBJECT-002",
-        category: "Data Governance",
-        title: "Data subjects are not identified",
-        level: "Medium",
-        explanation:
-          "The organisation has not identified who the personal data relates to.",
-        recommendation:
-          "Identify all relevant data-subject categories, such as students, parents, employees and visitors."
-      }
-    );
-  }
-
-  /*
-   * -------------------------------------------------------
-   * 26. UNKNOWN STORAGE / ACCESS / SECURITY
-   * -------------------------------------------------------
-   */
-
-  if (input.storageLocations.length === 0) {
-    score += 5;
-
-    addFinding(
-      findings,
-      factors,
-      recommendations,
-      {
-        id: "STORAGE-007",
-        category: "Data Governance",
-        title: "Storage location is not documented",
-        level: "Medium",
-        explanation:
-          "No storage location has been identified for the assessed personal data.",
-        recommendation:
-          "Identify all physical and digital locations where the personal data is stored."
-      }
+      "COLLECTION-METHOD-UNKNOWN",
+      "Data Collection",
+      "Collection method has not been documented",
+      "Medium",
+      "No collection format has been selected for the assessed process.",
+      "Document how personal data is collected at every identified entry point."
     );
   }
 
@@ -1219,64 +1103,107 @@ export function calculatePrivacyRisk(
    * -------------------------------------------------------
    */
 
-  score = clampScore(score);
+  overallScore = Math.min(
+    Math.round(overallScore),
+    100
+  );
 
-  const overallLevel = getRiskLevel(score);
+  /*
+   * -------------------------------------------------------
+   * OVERALL LEVEL
+   * -------------------------------------------------------
+   */
+
+  const overallLevel =
+    levelFromScore(overallScore);
 
   /*
    * -------------------------------------------------------
    * CATEGORY SCORES
    * -------------------------------------------------------
-   *
-   * These are intentionally derived from findings rather
-   * than creating a second independent risk engine.
    */
 
-  const categoryNames = uniqueStrings(
-    findings.map((finding) => finding.category)
-  );
-
-  const categoryScores: RiskCategoryScore[] =
-    categoryNames.map((category) => {
-      const categoryFindings = findings.filter(
-        (finding) =>
-          finding.category === category
-      );
-
-      let categoryScore = 0;
-
-      categoryFindings.forEach((finding) => {
-        switch (finding.level) {
-          case "Critical":
-            categoryScore += 40;
-            break;
-
-          case "High":
-            categoryScore += 30;
-            break;
-
-          case "Medium":
-            categoryScore += 20;
-            break;
-
-          case "Low":
-            categoryScore += 10;
-            break;
-        }
-      });
-
-      categoryScore = clampScore(categoryScore);
-
-      return {
-        category,
-        score: categoryScore,
-        level: getRiskLevel(categoryScore)
-      };
-    });
+  const categoryScores: RiskCategoryScore[] = [
+    {
+      category: "Data Collection",
+      score: collectionScore,
+      level: categoryLevel(collectionScore),
+    },
+    {
+      category: "Data Minimisation",
+      score: dataVolumeScore,
+      level: categoryLevel(dataVolumeScore),
+    },
+    {
+      category: "Data Subjects",
+      score: childDataScore,
+      level: categoryLevel(childDataScore),
+    },
+    {
+      category: "Access & Responsibility",
+      score: roleScore,
+      level: categoryLevel(roleScore),
+    },
+    {
+      category: "Physical / Hybrid Handling",
+      score: physicalHandlingScore,
+      level: categoryLevel(physicalHandlingScore),
+    },
+    {
+      category: "Storage",
+      score: storageScore,
+      level: categoryLevel(storageScore),
+    },
+    {
+      category: "Security",
+      score: securityScore,
+      level: categoryLevel(securityScore),
+    },
+    {
+      category: "Access Control",
+      score: accessScore,
+      level: categoryLevel(accessScore),
+    },
+    {
+      category: "Third-Party Sharing",
+      score: sharingScore,
+      level: categoryLevel(sharingScore),
+    },
+    {
+      category: "Retention",
+      score: retentionScore,
+      level: categoryLevel(retentionScore),
+    },
+    {
+      category: "Deletion & Disposal",
+      score: deletionScore,
+      level: categoryLevel(deletionScore),
+    },
+    {
+      category: "Transparency",
+      score: noticeScore,
+      level: categoryLevel(noticeScore),
+    },
+    {
+      category: "Lawful Basis",
+      score: consentScore,
+      level: categoryLevel(consentScore),
+    },
+    {
+      category: "Child Data",
+      score: parentalScore,
+      level: categoryLevel(parentalScore),
+    },
+    {
+      category: "Data Transfer",
+      score: crossBorderScore,
+      level: categoryLevel(crossBorderScore),
+    },
+  ];
 
   /*
    * -------------------------------------------------------
-   * DEDUPLICATE
+   * REMOVE DUPLICATE FINDINGS
    * -------------------------------------------------------
    */
 
@@ -1284,31 +1211,15 @@ export function calculatePrivacyRisk(
     new Map(
       findings.map((finding) => [
         finding.id,
-        finding
+        finding,
       ])
     ).values()
   );
 
-  const uniqueFactors = uniqueStrings(
-    factors
-  );
-
-  const uniqueRecommendations =
-    uniqueStrings(recommendations);
-
-  /*
-   * -------------------------------------------------------
-   * RESULT
-   * -------------------------------------------------------
-   */
-
   return {
-    score,
+    score: overallScore,
     overallLevel,
     findings: uniqueFindings,
     categoryScores,
-
-    factors: uniqueFactors,
-    recommendations: uniqueRecommendations
   };
 }
