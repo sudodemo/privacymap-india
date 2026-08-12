@@ -1,2112 +1,1719 @@
-"use client";
+export type RiskLevel =
+  | "Low"
+  | "Medium"
+  | "High"
+  | "Critical";
 
-import { useMemo, useState } from "react";
-import {
-  getBusinessTypes,
-  getSchoolEntryPoints,
-  kb,
-} from "../../lib/kb";
+export type RiskFinding = {
+  id: string;
+  category: string;
+  title: string;
+  level: RiskLevel;
+  explanation: string;
+  recommendation: string;
+};
 
-import {
-  calculatePrivacyRisk,
-  type RiskLevel,
-  type RiskResult,
-} from "../../lib/privacyRisk";
+export type RiskCategoryScore = {
+  category: string;
+  score: number;
+  level: RiskLevel;
+};
 
-export default function AssessmentPage() {
-  const [industryId, setIndustryId] = useState("");
-  const [businessTypeId, setBusinessTypeId] = useState("");
-  const [processId, setProcessId] = useState("");
+/*
+ * ---------------------------------------------------------
+ * STEP 8
+ * RISK TREATMENT & ACTION PLAN TYPES
+ * ---------------------------------------------------------
+ */
 
-  const [selectedEntryPoints, setSelectedEntryPoints] =
-    useState<string[]>([]);
+export type TreatmentType =
+  | "Mitigate"
+  | "Avoid"
+  | "Transfer"
+  | "Accept";
 
-  const [customEntryPoint, setCustomEntryPoint] =
-    useState("");
+export type ActionPriority =
+  | "P1"
+  | "P2"
+  | "P3"
+  | "P4";
 
-  const [customEntryPoints, setCustomEntryPoints] =
-    useState<
-      {
-        id: string;
-        name: string;
-        collection_method: string;
-        custom: boolean;
-      }[]
-    >([]);
+export type ActionStatus =
+  | "Open"
+  | "In Progress"
+  | "Completed";
 
-  const [selectedFields, setSelectedFields] =
-    useState<string[]>([]);
+export type RiskTreatmentAction = {
+  id: string;
+  findingId: string;
 
-  const [customField, setCustomField] =
-    useState("");
+  category: string;
+  riskTitle: string;
+  riskLevel: RiskLevel;
 
-  const [customFields, setCustomFields] =
-    useState<
-      {
-        id: string;
-        name: string;
-        custom: boolean;
-      }[]
-    >([]);
+  treatment: TreatmentType;
+  priority: ActionPriority;
+
+  action: string;
+
+  suggestedOwner: string;
+  targetTimeline: string;
+
+  status: ActionStatus;
+
+  evidenceRequired: string;
+};
+
+export type RiskResult = {
+  score: number;
+  overallLevel: RiskLevel;
+
+  findings: RiskFinding[];
+
+  categoryScores: RiskCategoryScore[];
 
   /*
-   * STEP 6
-   * Multiple selections are intentionally supported.
+   * STEP 8
+   *
+   * Automatically generated treatment
+   * and remediation actions.
+   */
+  treatmentPlan: RiskTreatmentAction[];
+
+  /*
+   * Kept for compatibility with earlier versions.
+   */
+  level: RiskLevel;
+  factors: string[];
+  recommendations: string[];
+};
+
+/*
+ * ---------------------------------------------------------
+ * INPUT TYPES
+ * ---------------------------------------------------------
+ */
+
+type EntryPoint = {
+  id: string;
+  name: string;
+  collection_method?: string;
+  custom?: boolean;
+};
+
+type Field = {
+  id: string;
+  name: string;
+  custom?: boolean;
+};
+
+/*
+ * IMPORTANT
+ *
+ * These property names intentionally match the current
+ * app/assessment/page.tsx file.
+ *
+ * Some fields are optional so this file remains compatible
+ * with earlier versions of the assessment engine.
+ */
+export type PrivacyRiskInput = {
+  selectedEntryPoints: string[];
+  customEntryPoints: EntryPoint[];
+
+  selectedFields: string[];
+  customFields: Field[];
+
+  collectorRoles?: string[];
+  dataSubjectTypes?: string[];
+
+  collectionFormats?: string[];
+
+  storageLocations?: string[];
+  storageEnvironments?: string[];
+
+  encryptionStatuses?: string[];
+
+  accessRoles?: string[];
+
+  sharingStatuses?: string[];
+
+  retentionPeriods?: string[];
+
+  deletionMethods?: string[];
+
+  privacyNotices?: string[];
+
+  consentStatuses?: string[];
+
+  parentalConsentStatuses?: string[];
+
+  crossBorderTransfers?: string[];
+};
+
+/*
+ * ---------------------------------------------------------
+ * HELPERS
+ * ---------------------------------------------------------
+ */
+
+function values(
+  value: string[] | undefined
+): string[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function containsValue(
+  list: string[] | undefined,
+  search: string
+): boolean {
+  const source = values(list);
+
+  return source.some((item) =>
+    item.toLowerCase().includes(search.toLowerCase())
+  );
+}
+
+function uniqueStrings(
+  items: string[]
+): string[] {
+  return Array.from(new Set(items));
+}
+
+function riskLevelFromScore(
+  score: number
+): RiskLevel {
+  if (score >= 75) {
+    return "Critical";
+  }
+
+  if (score >= 50) {
+    return "High";
+  }
+
+  if (score >= 25) {
+    return "Medium";
+  }
+
+  return "Low";
+}
+
+/*
+ * ---------------------------------------------------------
+ * ADD FINDING
+ * ---------------------------------------------------------
+ */
+
+function addFinding(
+  findings: RiskFinding[],
+  category: string,
+  title: string,
+  level: RiskLevel,
+  explanation: string,
+  recommendation: string
+) {
+  findings.push({
+    id: `${category}-${title}`
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-"),
+
+    category,
+    title,
+    level,
+    explanation,
+    recommendation,
+  });
+}
+
+/*
+ * ---------------------------------------------------------
+ * STEP 8
+ *
+ * RISK TREATMENT HELPERS
+ * ---------------------------------------------------------
+ */
+
+/*
+ * Determines the default treatment strategy.
+ *
+ * Current PrivacyMap philosophy:
+ *
+ * Critical / High / Medium
+ *     -> Mitigate
+ *
+ * Low
+ *     -> Accept / Monitor
+ *
+ * This is intentionally conservative.
+ */
+function getTreatmentType(
+  finding: RiskFinding
+): TreatmentType {
+
+  if (finding.level === "Low") {
+    return "Accept";
+  }
+
+  return "Mitigate";
+}
+
+/*
+ * Determines remediation priority.
+ *
+ * P1 = Critical
+ * P2 = High
+ * P3 = Medium
+ * P4 = Low
+ */
+function getActionPriority(
+  level: RiskLevel
+): ActionPriority {
+
+  switch (level) {
+
+    case "Critical":
+      return "P1";
+
+    case "High":
+      return "P2";
+
+    case "Medium":
+      return "P3";
+
+    case "Low":
+      return "P4";
+  }
+}
+
+/*
+ * Suggests the most appropriate owner based
+ * on the privacy-risk category.
+ */
+function getSuggestedOwner(
+  category: string
+): string {
+
+  switch (category) {
+
+    case "Security":
+      return "IT / Information Security";
+
+    case "Access Control":
+      return "IT / Information Security";
+
+    case "Children's Data":
+      return "Privacy / Management";
+
+    case "Third Parties":
+      return "Privacy / Vendor Management";
+
+    case "Retention":
+      return "Privacy / Records Management";
+
+    case "Deletion":
+      return "Privacy / Records Management";
+
+    case "Transparency":
+      return "Privacy / Legal";
+
+    case "Lawful Basis":
+      return "Privacy / Legal";
+
+    case "Data Collection":
+      return "Business Process Owner";
+
+    case "Data Minimisation":
+      return "Business Process Owner";
+
+    case "Data Storage":
+      return "IT / Business Process Owner";
+
+    case "Physical Security":
+      return "Business Process Owner / Facilities";
+
+    case "Data Lifecycle":
+      return "IT / Business Process Owner";
+
+    case "Cross-Border Processing":
+      return "Privacy / Legal / IT";
+
+    case "Data Inventory":
+      return "Privacy / Data Governance";
+
+    case "Data Governance":
+      return "Privacy / Data Governance";
+
+    default:
+      return "Privacy / Business Owner";
+  }
+}
+
+/*
+ * Determines a suggested remediation timeline.
+ */
+function getTargetTimeline(
+  level: RiskLevel
+): string {
+
+  switch (level) {
+
+    case "Critical":
+      return "Immediate / within 30 days";
+
+    case "High":
+      return "Within 30 days";
+
+    case "Medium":
+      return "Within 60 days";
+
+    case "Low":
+      return "Within 90 days";
+  }
+}
+
+/*
+ * Determines the type of evidence that should
+ * demonstrate remediation / closure.
+ */
+function getEvidenceRequired(
+  finding: RiskFinding
+): string {
+
+  switch (finding.category) {
+
+    case "Security":
+      return "Encryption configuration, security standard or system evidence";
+
+    case "Access Control":
+      return "Role matrix, access review or access-control configuration";
+
+    case "Children's Data":
+      return "Child-data procedure and parent/guardian control evidence";
+
+    case "Third Parties":
+      return "Third-party inventory, contract/DPA and vendor assessment";
+
+    case "Retention":
+      return "Approved retention schedule and retention policy";
+
+    case "Deletion":
+      return "Deletion procedure, disposal record or system deletion evidence";
+
+    case "Transparency":
+      return "Approved privacy notice and collection-channel evidence";
+
+    case "Lawful Basis":
+      return "Documented processing purpose and lawful-basis assessment";
+
+    case "Data Collection":
+      return "Data-flow inventory and collection-channel documentation";
+
+    case "Data Minimisation":
+      return "Data-field inventory and necessity/minimisation review";
+
+    case "Data Storage":
+      return "Data-flow diagram and storage inventory";
+
+    case "Physical Security":
+      return "Physical-security controls and secure-disposal evidence";
+
+    case "Data Lifecycle":
+      return "Data-flow diagram covering collection, storage, use, retention and disposal";
+
+    case "Cross-Border Processing":
+      return "Transfer inventory, destination countries and processor/subprocessor details";
+
+    case "Data Inventory":
+      return "Complete personal-data inventory";
+
+    case "Data Governance":
+      return "Data-subject and processing inventory";
+
+    default:
+      return "Documented control implementation and supporting evidence";
+  }
+}
+
+/*
+ * ---------------------------------------------------------
+ * STEP 8
+ *
+ * BUILD RISK TREATMENT PLAN
+ * ---------------------------------------------------------
+ */
+
+function buildTreatmentPlan(
+  findings: RiskFinding[]
+): RiskTreatmentAction[] {
+
+  return findings.map((finding) => {
+
+    const treatment =
+      getTreatmentType(finding);
+
+    const priority =
+      getActionPriority(finding.level);
+
+    return {
+      id: `ACTION-${finding.id}`,
+
+      findingId: finding.id,
+
+      category: finding.category,
+
+      riskTitle: finding.title,
+
+      riskLevel: finding.level,
+
+      treatment,
+
+      priority,
+
+      action: finding.recommendation,
+
+      suggestedOwner:
+        getSuggestedOwner(
+          finding.category
+        ),
+
+      targetTimeline:
+        getTargetTimeline(
+          finding.level
+        ),
+
+      status: "Open",
+
+      evidenceRequired:
+        getEvidenceRequired(
+          finding
+        ),
+    };
+  });
+}
+
+/*
+ * ---------------------------------------------------------
+ * MAIN PRIVACY RISK ENGINE
+ * ---------------------------------------------------------
+ */
+
+export function calculatePrivacyRisk(
+  input: PrivacyRiskInput
+): RiskResult {
+
+  let score = 0;
+
+  const findings: RiskFinding[] = [];
+
+  const factors: string[] = [];
+
+  const recommendations: string[] = [];
+
+  /*
+   * -------------------------------------------------------
+   * NORMALISE INPUT
+   * -------------------------------------------------------
    */
 
-  const [collectorRoles, setCollectorRoles] =
-    useState<string[]>([]);
+  const collectorRoles =
+    values(input.collectorRoles);
 
-  const [dataSubjectTypes, setDataSubjectTypes] =
-    useState<string[]>([]);
+  const dataSubjectTypes =
+    values(input.dataSubjectTypes);
 
-  const [collectionFormats, setCollectionFormats] =
-    useState<string[]>([]);
+  const collectionFormats =
+    values(input.collectionFormats);
 
-  const [storageLocations, setStorageLocations] =
-    useState<string[]>([]);
+  const storageLocations =
+    values(input.storageLocations);
 
-  const [storageEnvironments, setStorageEnvironments] =
-    useState<string[]>([]);
+  const storageEnvironments =
+    values(input.storageEnvironments);
 
-  const [encryptionStatuses, setEncryptionStatuses] =
-    useState<string[]>([]);
+  const encryptionStatuses =
+    values(input.encryptionStatuses);
 
-  const [accessRoles, setAccessRoles] =
-    useState<string[]>([]);
+  const accessRoles =
+    values(input.accessRoles);
 
-  const [sharingStatuses, setSharingStatuses] =
-    useState<string[]>([]);
+  const sharingStatuses =
+    values(input.sharingStatuses);
 
-  const [retentionPeriods, setRetentionPeriods] =
-    useState<string[]>([]);
+  const retentionPeriods =
+    values(input.retentionPeriods);
 
-  const [deletionMethods, setDeletionMethods] =
-    useState<string[]>([]);
+  const deletionMethods =
+    values(input.deletionMethods);
 
-  const [privacyNotices, setPrivacyNotices] =
-    useState<string[]>([]);
+  const privacyNotices =
+    values(input.privacyNotices);
 
-  const [consentStatuses, setConsentStatuses] =
-    useState<string[]>([]);
+  const consentStatuses =
+    values(input.consentStatuses);
 
-  const [parentalConsentStatuses, setParentalConsentStatuses] =
-    useState<string[]>([]);
+  const parentalConsentStatuses =
+    values(input.parentalConsentStatuses);
 
-  const [crossBorderTransfers, setCrossBorderTransfers] =
-    useState<string[]>([]);
+  const crossBorderTransfers =
+    values(input.crossBorderTransfers);
 
-  const [riskResult, setRiskResult] =
-    useState<RiskResult | null>(null);
+  /*
+   * -------------------------------------------------------
+   * 1. MULTIPLE DATA ENTRY POINTS
+   * -------------------------------------------------------
+   */
 
-  function toggleArrayValue(
-    value: string,
-    setter: React.Dispatch<React.SetStateAction<string[]>>
+  const totalEntryPoints =
+    input.selectedEntryPoints.length +
+    input.customEntryPoints.length;
+
+  if (totalEntryPoints >= 4) {
+
+    score += 10;
+
+    factors.push(
+      "Personal data enters the organisation through multiple collection channels."
+    );
+
+    recommendations.push(
+      "Maintain a consolidated inventory of all personal-data entry points."
+    );
+
+    addFinding(
+      findings,
+      "Data Collection",
+      "Multiple personal-data entry points",
+      "Medium",
+      "Personal data is entering the organisation through several channels. Multiple entry points can make data-flow visibility and control more difficult.",
+      "Maintain a complete inventory of all collection channels and document how information moves from each channel into downstream systems."
+    );
+
+  } else if (totalEntryPoints >= 2) {
+
+    score += 5;
+
+    factors.push(
+      "Personal data is collected through more than one entry point."
+    );
+
+    recommendations.push(
+      "Ensure all collection channels are included in the privacy and data-flow inventory."
+    );
+  }
+
+  /*
+   * -------------------------------------------------------
+   * 2. PERSONAL DATA VOLUME
+   * -------------------------------------------------------
+   */
+
+  const totalFields =
+    input.selectedFields.length +
+    input.customFields.length;
+
+  if (totalFields >= 10) {
+
+    score += 10;
+
+    factors.push(
+      "The assessed process collects a relatively large number of personal-data fields."
+    );
+
+    recommendations.push(
+      "Review each field for necessity, proportionality and purpose."
+    );
+
+    addFinding(
+      findings,
+      "Data Minimisation",
+      "Large number of personal-data fields",
+      "Medium",
+      "The process appears to collect a significant number of personal-data fields.",
+      "Review each field against the purpose of processing and remove information that is not necessary."
+    );
+
+  } else if (totalFields >= 5) {
+
+    score += 5;
+
+    factors.push(
+      "The assessed process collects multiple categories of personal data."
+    );
+  }
+
+  /*
+   * -------------------------------------------------------
+   * 3. DATA SUBJECTS
+   * -------------------------------------------------------
+   */
+
+  const involvesStudent =
+    containsValue(
+      dataSubjectTypes,
+      "student"
+    );
+
+  const involvesChild =
+    containsValue(
+      dataSubjectTypes,
+      "child"
+    );
+
+  const involvesMinor =
+    containsValue(
+      dataSubjectTypes,
+      "minor"
+    );
+
+  if (
+    involvesStudent ||
+    involvesChild ||
+    involvesMinor
   ) {
-    setter((current) =>
-      current.includes(value)
-        ? current.filter((item) => item !== value)
-        : [...current, value]
+
+    score += 15;
+
+    factors.push(
+      "The processing involves student, child or minor-related personal data."
+    );
+
+    recommendations.push(
+      "Review child-data processing requirements and parent/guardian controls."
+    );
+
+    addFinding(
+      findings,
+      "Children's Data",
+      "Student or child personal data is processed",
+      "High",
+      "The assessment indicates that student, child or minor-related personal data is processed.",
+      "Apply appropriate safeguards for children's data and verify parent/guardian requirements where applicable."
     );
   }
 
-  function toggleEntryPoint(id: string) {
-    setSelectedEntryPoints((current) =>
-      current.includes(id)
-        ? current.filter((item) => item !== id)
-        : [...current, id]
+  /*
+   * -------------------------------------------------------
+   * 4. MULTIPLE COLLECTOR ROLES
+   * -------------------------------------------------------
+   */
+
+  if (collectorRoles.length >= 3) {
+
+    score += 5;
+
+    factors.push(
+      "Multiple employee or organisational roles may collect the personal data."
+    );
+
+    recommendations.push(
+      "Define role-based access and responsibilities for each data-collection role."
+    );
+
+    addFinding(
+      findings,
+      "Access Governance",
+      "Multiple personnel collect personal data",
+      "Medium",
+      "Several organisational roles may be involved in collecting personal data.",
+      "Clearly define responsibilities and ensure each role has access only to the information required for its duties."
     );
   }
 
-  function addCustomEntryPoint() {
-    const name = customEntryPoint.trim();
+  /*
+   * -------------------------------------------------------
+   * 5. PHYSICAL / PAPER COLLECTION
+   * -------------------------------------------------------
+   */
 
-    if (!name) return;
-
-    const newEntryPoint = {
-      id: `CUSTOM-${Date.now()}`,
-      name,
-      collection_method: "Custom",
-      custom: true,
-    };
-
-    setCustomEntryPoints((current) => [
-      ...current,
-      newEntryPoint,
-    ]);
-
-    setCustomEntryPoint("");
-  }
-
-  function removeCustomEntryPoint(id: string) {
-    setCustomEntryPoints((current) =>
-      current.filter((item) => item.id !== id)
-    );
-  }
-
-  function toggleField(id: string) {
-    setSelectedFields((current) =>
-      current.includes(id)
-        ? current.filter((item) => item !== id)
-        : [...current, id]
-    );
-  }
-
-  function addCustomField() {
-    const name = customField.trim();
-
-    if (!name) return;
-
-    const newField = {
-      id: `CUSTOM-FIELD-${Date.now()}`,
-      name,
-      custom: true,
-    };
-
-    setCustomFields((current) => [
-      ...current,
-      newField,
-    ]);
-
-    setCustomField("");
-  }
-
-  function removeCustomField(id: string) {
-    setCustomFields((current) =>
-      current.filter((item) => item.id !== id)
-    );
-  }
-
-  const businessTypes = useMemo(() => {
-    if (!industryId) return [];
-
-    return getBusinessTypes(industryId).filter(
-      (item) => item.status === "active"
-    );
-  }, [industryId]);
-
-  const processes = useMemo(() => {
-    if (businessTypeId !== "EDU-SCH") return [];
-
-    return kb.processes;
-  }, [businessTypeId]);
-
-  const entryPoints = useMemo(() => {
-    if (businessTypeId !== "EDU-SCH") return [];
-
-    return getSchoolEntryPoints(
-      processId || undefined
-    );
-  }, [businessTypeId, processId]);
-
-  function resetAssessment() {
-    setBusinessTypeId("");
-    setProcessId("");
-
-    setSelectedEntryPoints([]);
-    setCustomEntryPoints([]);
-    setCustomEntryPoint("");
-
-    setSelectedFields([]);
-    setCustomFields([]);
-    setCustomField("");
-
-    setCollectorRoles([]);
-    setDataSubjectTypes([]);
-    setCollectionFormats([]);
-    setStorageLocations([]);
-    setStorageEnvironments([]);
-    setEncryptionStatuses([]);
-    setAccessRoles([]);
-    setSharingStatuses([]);
-    setRetentionPeriods([]);
-    setDeletionMethods([]);
-    setPrivacyNotices([]);
-    setConsentStatuses([]);
-    setParentalConsentStatuses([]);
-    setCrossBorderTransfers([]);
-
-    setRiskResult(null);
-  }
-
-  function resetFromBusinessType() {
-    setProcessId("");
-
-    setSelectedEntryPoints([]);
-    setCustomEntryPoints([]);
-    setCustomEntryPoint("");
-
-    setSelectedFields([]);
-    setCustomFields([]);
-    setCustomField("");
-
-    setCollectorRoles([]);
-    setDataSubjectTypes([]);
-    setCollectionFormats([]);
-    setStorageLocations([]);
-    setStorageEnvironments([]);
-    setEncryptionStatuses([]);
-    setAccessRoles([]);
-    setSharingStatuses([]);
-    setRetentionPeriods([]);
-    setDeletionMethods([]);
-    setPrivacyNotices([]);
-    setConsentStatuses([]);
-    setParentalConsentStatuses([]);
-    setCrossBorderTransfers([]);
-
-    setRiskResult(null);
-  }
-
-  function resetFromProcess() {
-    setSelectedEntryPoints([]);
-    setCustomEntryPoints([]);
-    setCustomEntryPoint("");
-
-    setSelectedFields([]);
-    setCustomFields([]);
-    setCustomField("");
-
-    setCollectorRoles([]);
-    setDataSubjectTypes([]);
-    setCollectionFormats([]);
-    setStorageLocations([]);
-    setStorageEnvironments([]);
-    setEncryptionStatuses([]);
-    setAccessRoles([]);
-    setSharingStatuses([]);
-    setRetentionPeriods([]);
-    setDeletionMethods([]);
-    setPrivacyNotices([]);
-    setConsentStatuses([]);
-    setParentalConsentStatuses([]);
-    setCrossBorderTransfers([]);
-
-    setRiskResult(null);
-  }
-
-  function runPrivacyRiskAssessment() {
-    const result = calculatePrivacyRisk({
-      selectedEntryPoints,
-      customEntryPoints,
-
-      selectedFields,
-      customFields,
-
+  if (
+    containsValue(
       collectionFormats,
+      "paper"
+    ) ||
+    containsValue(
+      collectionFormats,
+      "physical"
+    ) ||
+    containsValue(
+      collectionFormats,
+      "in person"
+    )
+  ) {
 
-      storageLocations,
+    score += 5;
+
+    factors.push(
+      "Personal data may be collected through physical or paper-based processes."
+    );
+
+    recommendations.push(
+      "Review physical security, access, transportation, scanning and secure disposal of paper records."
+    );
+
+    addFinding(
+      findings,
+      "Physical Records",
+      "Physical or paper-based collection",
+      "Medium",
+      "Personal data may enter the organisation through paper forms or physical collection.",
+      "Define controls for physical handling, transportation, storage, scanning, access and secure disposal."
+    );
+  }
+
+  /*
+   * -------------------------------------------------------
+   * 6. DIGITAL COLLECTION CHANNELS
+   * -------------------------------------------------------
+   */
+
+  const digitalCollectionCount =
+    collectionFormats.filter(
+      (item) =>
+        !/paper|physical|verbal|in person/i.test(
+          item
+        )
+    ).length;
+
+  if (digitalCollectionCount >= 3) {
+
+    score += 5;
+
+    factors.push(
+      "Personal data may be collected through multiple digital channels."
+    );
+
+    recommendations.push(
+      "Ensure digital collection channels are consistently governed and included in the data-flow inventory."
+    );
+  }
+
+  /*
+   * -------------------------------------------------------
+   * 7. MULTIPLE STORAGE ENVIRONMENTS
+   * -------------------------------------------------------
+   */
+
+  if (
+    storageEnvironments.length >= 2
+  ) {
+
+    score += 8;
+
+    factors.push(
+      "Personal data may be stored across multiple environments."
+    );
+
+    recommendations.push(
+      "Map movement of personal data between physical, employee-device, cloud and on-premises environments."
+    );
+
+    addFinding(
+      findings,
+      "Data Storage",
+      "Multiple storage environments",
+      "High",
+      "The selected options indicate that personal data may exist across multiple storage environments.",
+      "Create a data-flow map covering physical records, cloud systems, employee devices and on-premises systems."
+    );
+  }
+
+  /*
+   * -------------------------------------------------------
+   * 8. PHYSICAL STORAGE
+   * -------------------------------------------------------
+   */
+
+  if (
+    containsValue(
       storageEnvironments,
+      "physical"
+    ) ||
+    containsValue(
+      storageLocations,
+      "physical"
+    ) ||
+    containsValue(
+      storageLocations,
+      "paper"
+    )
+  ) {
 
+    score += 5;
+
+    factors.push(
+      "Physical records may contain personal data."
+    );
+
+    recommendations.push(
+      "Review physical access controls, secure storage, retention and secure disposal."
+    );
+
+    addFinding(
+      findings,
+      "Physical Security",
+      "Physical personal-data records",
+      "Medium",
+      "The process may involve physical records containing personal information.",
+      "Use controlled physical storage, access restrictions, record tracking and secure disposal."
+    );
+  }
+
+  /*
+   * -------------------------------------------------------
+   * 9. HYBRID STORAGE
+   * -------------------------------------------------------
+   */
+
+  const explicitHybrid =
+    containsValue(
+      storageEnvironments,
+      "hybrid"
+    );
+
+  const physicalStorage =
+    containsValue(
+      storageEnvironments,
+      "physical"
+    );
+
+  const digitalStorage =
+    containsValue(
+      storageEnvironments,
+      "cloud"
+    ) ||
+    containsValue(
+      storageEnvironments,
+      "on-premises"
+    ) ||
+    containsValue(
+      storageEnvironments,
+      "employee device"
+    ) ||
+    containsValue(
+      storageEnvironments,
+      "mobile device"
+    ) ||
+    containsValue(
+      storageEnvironments,
+      "third-party"
+    );
+
+  if (
+    explicitHybrid ||
+    (physicalStorage && digitalStorage)
+  ) {
+
+    score += 8;
+
+    factors.push(
+      "The process may involve both physical and digital storage."
+    );
+
+    recommendations.push(
+      "Map the transition between paper records and digital systems, including scanning and uploading."
+    );
+
+    addFinding(
+      findings,
+      "Data Lifecycle",
+      "Hybrid physical and digital storage",
+      "High",
+      "The process may maintain both physical and digital copies of personal data.",
+      "Document the complete lifecycle from physical collection through scanning, upload, digital processing, retention and final disposal."
+    );
+  }
+
+  /*
+   * -------------------------------------------------------
+   * 10. UNKNOWN STORAGE
+   * -------------------------------------------------------
+   */
+
+  if (
+    containsValue(
+      storageLocations,
+      "unknown"
+    ) ||
+    containsValue(
+      storageEnvironments,
+      "unknown"
+    )
+  ) {
+
+    score += 10;
+
+    factors.push(
+      "The storage location or environment of personal data is unknown."
+    );
+
+    recommendations.push(
+      "Identify all systems, applications, devices and physical locations where personal data is stored."
+    );
+
+    addFinding(
+      findings,
+      "Data Inventory",
+      "Unknown storage location",
+      "High",
+      "The organisation does not have complete visibility of where personal data is stored.",
+      "Identify all systems, applications, devices, cloud services and physical locations containing personal data."
+    );
+  }
+
+  /*
+   * -------------------------------------------------------
+   * 11. ENCRYPTION
+   * -------------------------------------------------------
+   */
+
+  if (
+    containsValue(
       encryptionStatuses,
+      "clear text"
+    ) ||
+    containsValue(
+      encryptionStatuses,
+      "not encrypted"
+    )
+  ) {
 
+    score += 25;
+
+    factors.push(
+      "Personal data may be stored or transmitted without adequate encryption."
+    );
+
+    recommendations.push(
+      "Evaluate encryption controls for personal data at rest and in transit."
+    );
+
+    addFinding(
+      findings,
+      "Security",
+      "Personal data may not be encrypted",
+      "Critical",
+      "The assessment indicates that personal data may be stored or transmitted without adequate encryption.",
+      "Review encryption requirements for data at rest and in transit and implement appropriate technical controls."
+    );
+  }
+
+  if (
+    containsValue(
+      encryptionStatuses,
+      "unknown"
+    )
+  ) {
+
+    score += 10;
+
+    factors.push(
+      "Encryption status is unknown."
+    );
+
+    recommendations.push(
+      "Confirm whether personal data is encrypted at rest and in transit."
+    );
+
+    addFinding(
+      findings,
+      "Security",
+      "Encryption status is unknown",
+      "High",
+      "The organisation has not established whether stored or transmitted personal data is adequately encrypted.",
+      "Confirm encryption controls for each system and storage location processing personal data."
+    );
+  }
+
+  /*
+   * -------------------------------------------------------
+   * 12. ACCESS CONTROL
+   * -------------------------------------------------------
+   */
+
+  if (
+    accessRoles.length === 0 ||
+    containsValue(
       accessRoles,
+      "unknown"
+    )
+  ) {
 
+    score += 8;
+
+    factors.push(
+      "Access roles for personal data are not clearly defined."
+    );
+
+    recommendations.push(
+      "Define role-based access to personal data and periodically review access."
+    );
+
+    addFinding(
+      findings,
+      "Access Control",
+      "Access roles are not clearly defined",
+      "High",
+      "The assessment does not establish who is authorised to access the personal data.",
+      "Define role-based access and conduct periodic access reviews."
+    );
+  }
+
+  /*
+   * -------------------------------------------------------
+   * 13. THIRD-PARTY SHARING
+   * -------------------------------------------------------
+   */
+
+  if (
+    containsValue(
       sharingStatuses,
+      "service provider"
+    ) ||
+    containsValue(
+      sharingStatuses,
+      "third parties"
+    ) ||
+    containsValue(
+      sharingStatuses,
+      "external"
+    )
+  ) {
 
+    score += 15;
+
+    factors.push(
+      "Personal data may be shared with external service providers or third parties."
+    );
+
+    recommendations.push(
+      "Maintain a processor/service-provider inventory and review contractual privacy and security obligations."
+    );
+
+    addFinding(
+      findings,
+      "Third Parties",
+      "Personal data shared with third parties",
+      "High",
+      "The process may involve external service providers or other third parties receiving personal data.",
+      "Maintain a third-party inventory and assess contractual, privacy and security obligations."
+    );
+  }
+
+  if (
+    containsValue(
+      sharingStatuses,
+      "unknown"
+    )
+  ) {
+
+    score += 8;
+
+    factors.push(
+      "Data-sharing arrangements are unknown."
+    );
+
+    recommendations.push(
+      "Identify all internal and external recipients of personal data."
+    );
+
+    addFinding(
+      findings,
+      "Third Parties",
+      "Data-sharing arrangements are unknown",
+      "High",
+      "The organisation does not have complete visibility into who receives the personal data.",
+      "Identify all recipients and document the purpose and basis for each sharing arrangement."
+    );
+  }
+
+  /*
+   * -------------------------------------------------------
+   * 14. RETENTION
+   * -------------------------------------------------------
+   */
+
+  if (
+    containsValue(
       retentionPeriods,
+      "indefinitely"
+    ) ||
+    containsValue(
+      retentionPeriods,
+      "no defined"
+    )
+  ) {
 
+    score += 15;
+
+    factors.push(
+      "The organisation may not have a defined retention period."
+    );
+
+    recommendations.push(
+      "Define retention periods based on business, legal and regulatory requirements."
+    );
+
+    addFinding(
+      findings,
+      "Retention",
+      "Undefined or indefinite retention",
+      "High",
+      "The assessment indicates that personal data may be retained indefinitely or without a defined retention period.",
+      "Define retention periods for each personal-data category and establish review and disposal triggers."
+    );
+  }
+
+  if (
+    containsValue(
+      retentionPeriods,
+      "unknown"
+    )
+  ) {
+
+    score += 8;
+
+    factors.push(
+      "Data-retention period is unknown."
+    );
+
+    recommendations.push(
+      "Document how long each category of personal data is retained."
+    );
+
+    addFinding(
+      findings,
+      "Retention",
+      "Retention period is unknown",
+      "Medium",
+      "The organisation has not established how long the assessed personal data is retained.",
+      "Document retention requirements for each data category and processing purpose."
+    );
+  }
+
+  /*
+   * -------------------------------------------------------
+   * 15. DELETION
+   * -------------------------------------------------------
+   */
+
+  if (
+    containsValue(
       deletionMethods,
+      "no defined"
+    ) ||
+    containsValue(
+      deletionMethods,
+      "unknown"
+    )
+  ) {
 
+    score += 10;
+
+    factors.push(
+      "There may be no defined personal-data deletion process."
+    );
+
+    recommendations.push(
+      "Define and document secure deletion and disposal procedures."
+    );
+
+    addFinding(
+      findings,
+      "Deletion",
+      "Data deletion process is not defined",
+      "High",
+      "The assessment does not establish a reliable process for deleting or disposing of personal data.",
+      "Define secure deletion procedures for both digital and physical records."
+    );
+  }
+
+  /*
+   * -------------------------------------------------------
+   * 16. PRIVACY NOTICE
+   * -------------------------------------------------------
+   */
+
+  if (
+    containsValue(
       privacyNotices,
+      "no"
+    ) ||
+    containsValue(
+      privacyNotices,
+      "partially"
+    )
+  ) {
 
+    score += 12;
+
+    factors.push(
+      "Privacy-notice coverage may be incomplete."
+    );
+
+    recommendations.push(
+      "Review privacy notices provided at or before collection of personal data."
+    );
+
+    addFinding(
+      findings,
+      "Transparency",
+      "Privacy notice coverage may be incomplete",
+      "High",
+      "The assessment indicates that privacy information may not be consistently provided to data subjects.",
+      "Review privacy notices across every collection channel and ensure they are presented appropriately."
+    );
+  }
+
+  if (
+    containsValue(
+      privacyNotices,
+      "unknown"
+    )
+  ) {
+
+    score += 7;
+
+    factors.push(
+      "Privacy-notice status is unknown."
+    );
+
+    recommendations.push(
+      "Confirm whether appropriate privacy notices are provided to data subjects."
+    );
+
+    addFinding(
+      findings,
+      "Transparency",
+      "Privacy notice status is unknown",
+      "Medium",
+      "It is unclear whether appropriate privacy notices are provided.",
+      "Confirm notice coverage for every collection channel."
+    );
+  }
+
+  /*
+   * -------------------------------------------------------
+   * 17. CONSENT / LAWFUL BASIS
+   * -------------------------------------------------------
+   */
+
+  if (
+    containsValue(
       consentStatuses,
+      "no"
+    )
+  ) {
 
-      parentalConsentStatuses,
+    score += 15;
 
+    factors.push(
+      "Consent may not be obtained where the organisation expects it to be required."
+    );
+
+    recommendations.push(
+      "Validate the applicable legal basis and document the organisation's basis for processing."
+    );
+
+    addFinding(
+      findings,
+      "Lawful Basis",
+      "Consent or lawful-basis controls may be inadequate",
+      "High",
+      "The assessment indicates that consent may not be obtained where expected.",
+      "Validate the applicable lawful basis for each processing activity and document the rationale."
+    );
+  }
+
+  if (
+    containsValue(
+      consentStatuses,
+      "unknown"
+    )
+  ) {
+
+    score += 8;
+
+    factors.push(
+      "Consent or other lawful-basis status is unknown."
+    );
+
+    recommendations.push(
+      "Document the purpose and legal basis for each personal-data processing activity."
+    );
+
+    addFinding(
+      findings,
+      "Lawful Basis",
+      "Lawful basis is unknown",
+      "Medium",
+      "The assessment does not establish the lawful basis for processing.",
+      "Document the purpose and applicable lawful basis for each processing activity."
+    );
+  }
+
+  /*
+   * -------------------------------------------------------
+   * 18. PARENT / GUARDIAN CONTROLS
+   * -------------------------------------------------------
+   */
+
+  if (
+    involvesStudent ||
+    involvesChild ||
+    involvesMinor
+  ) {
+
+    if (
+      containsValue(
+        parentalConsentStatuses,
+        "no"
+      ) ||
+      containsValue(
+        parentalConsentStatuses,
+        "partially"
+      )
+    ) {
+
+      score += 20;
+
+      factors.push(
+        "Child-related processing may not have adequate parent/guardian controls."
+      );
+
+      recommendations.push(
+        "Review parental/guardian requirements for child-related personal data."
+      );
+
+      addFinding(
+        findings,
+        "Children's Data",
+        "Parent or guardian controls may be incomplete",
+        "Critical",
+        "Student or child-related personal data is being processed while parent/guardian controls may be absent or incomplete.",
+        "Review applicable requirements for parental/guardian involvement and document the process."
+      );
+    }
+
+    if (
+      containsValue(
+        parentalConsentStatuses,
+        "unknown"
+      )
+    ) {
+
+      score += 10;
+
+      factors.push(
+        "Parent/guardian requirements are unknown for child-related processing."
+      );
+
+      recommendations.push(
+        "Confirm how parent/guardian requirements are handled for child-related personal data."
+      );
+
+      addFinding(
+        findings,
+        "Children's Data",
+        "Parent or guardian controls are unknown",
+        "High",
+        "The organisation has not established how parent/guardian requirements are handled.",
+        "Document the process used to determine and verify parent/guardian involvement."
+      );
+    }
+  }
+
+  /*
+   * -------------------------------------------------------
+   * 19. CROSS-BORDER TRANSFER
+   * -------------------------------------------------------
+   */
+
+  if (
+    containsValue(
       crossBorderTransfers,
-    });
+      "yes"
+    )
+  ) {
 
-    setRiskResult(result);
+    score += 10;
 
-    setTimeout(() => {
-      document
-        .getElementById("privacy-risk-result")
-        ?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-    }, 100);
+    factors.push(
+      "Personal data may be transferred outside India."
+    );
+
+    recommendations.push(
+      "Identify countries, cloud services and processors involved in cross-border processing."
+    );
+
+    addFinding(
+      findings,
+      "Cross-Border Processing",
+      "Potential international data transfer",
+      "High",
+      "The assessment indicates that personal data may be transferred outside India.",
+      "Identify the destination countries, cloud providers and processors involved and assess applicable requirements."
+    );
   }
 
-  return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background: "#f8fafc",
-        padding: "60px 24px",
-        fontFamily:
-          "Arial, Helvetica, sans-serif",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: "900px",
-          margin: "0 auto",
-        }}
-      >
-        <p
-          style={{
-            fontSize: "13px",
-            fontWeight: 700,
-            letterSpacing: "3px",
-            color: "#1d4ed8",
-          }}
-        >
-          PRIVACYMAP INDIA
-        </p>
-
-        <h1
-          style={{
-            fontSize: "42px",
-            color: "#0f172a",
-            marginBottom: "12px",
-          }}
-        >
-          Privacy Assessment
-        </h1>
-
-        <p
-          style={{
-            color: "#475569",
-            fontSize: "18px",
-            lineHeight: 1.6,
-            marginBottom: "40px",
-          }}
-        >
-          Identify where personal data enters your
-          organisation, what information is collected,
-          how it is handled and where privacy risks
-          may exist.
-        </p>
-
-        {/* STEP 1 */}
-
-        <section style={cardStyle}>
-          <StepNumber number="1" />
-
-          <h2 style={headingStyle}>
-            Select your industry
-          </h2>
-
-          <select
-            value={industryId}
-            onChange={(event) => {
-              setIndustryId(event.target.value);
-              resetAssessment();
-            }}
-            style={selectStyle}
-          >
-            <option value="">
-              Select industry...
-            </option>
-
-            {kb.industries
-              .filter(
-                (item) =>
-                  item.status === "active"
-              )
-              .map((industry) => (
-                <option
-                  key={industry.id}
-                  value={industry.id}
-                >
-                  {industry.name}
-                </option>
-              ))}
-          </select>
-        </section>
-
-        {/* STEP 2 */}
-
-        {industryId && (
-          <section style={cardStyle}>
-            <StepNumber number="2" />
-
-            <h2 style={headingStyle}>
-              Select your business type
-            </h2>
-
-            <select
-              value={businessTypeId}
-              onChange={(event) => {
-                setBusinessTypeId(
-                  event.target.value
-                );
-                resetFromBusinessType();
-              }}
-              style={selectStyle}
-            >
-              <option value="">
-                Select business type...
-              </option>
-
-              {businessTypes.map(
-                (businessType) => (
-                  <option
-                    key={businessType.id}
-                    value={businessType.id}
-                  >
-                    {businessType.name}
-                  </option>
-                )
-              )}
-            </select>
-
-            {businessTypes.length === 0 && (
-              <p style={noticeStyle}>
-                A detailed assessment pack for
-                this business type is not available
-                yet. More sector packs will be added
-                progressively.
-              </p>
-            )}
-          </section>
-        )}
-
-        {/* STEP 3 */}
-
-        {businessTypeId === "EDU-SCH" && (
-          <section style={cardStyle}>
-            <StepNumber number="3" />
-
-            <h2 style={headingStyle}>
-              Select a business process
-            </h2>
-
-            <select
-              value={processId}
-              onChange={(event) => {
-                setProcessId(
-                  event.target.value
-                );
-                resetFromProcess();
-              }}
-              style={selectStyle}
-            >
-              <option value="">
-                All school processes...
-              </option>
-
-              {processes.map((process) => (
-                <option
-                  key={process.id}
-                  value={process.id}
-                >
-                  {process.name}
-                </option>
-              ))}
-            </select>
-          </section>
-        )}
-
-        {/* STEP 4 */}
-
-        {businessTypeId === "EDU-SCH" && (
-          <section style={cardStyle}>
-            <StepNumber number="4" />
-
-            <h2 style={headingStyle}>
-              Potential data entry points
-            </h2>
-
-            <p
-              style={{
-                ...noticeStyle,
-                marginBottom: "20px",
-              }}
-            >
-              Select all channels through which
-              your organisation may collect
-              personal data.
-            </p>
-
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "repeat(auto-fit, minmax(260px, 1fr))",
-                gap: "12px",
-              }}
-            >
-              {entryPoints.map(
-                (entryPoint) => {
-                  const isSelected =
-                    selectedEntryPoints.includes(
-                      entryPoint.id
-                    );
-
-                  return (
-                    <label
-                      key={entryPoint.id}
-                      style={{
-                        display: "flex",
-                        alignItems:
-                          "flex-start",
-                        gap: "12px",
-                        padding: "16px",
-                        border:
-                          isSelected
-                            ? "2px solid #1d4ed8"
-                            : "1px solid #e2e8f0",
-                        borderRadius: "10px",
-                        background:
-                          isSelected
-                            ? "#eff6ff"
-                            : "#f8fafc",
-                        cursor:
-                          "pointer",
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={
-                          isSelected
-                        }
-                        onChange={() =>
-                          toggleEntryPoint(
-                            entryPoint.id
-                          )
-                        }
-                        style={{
-                          marginTop:
-                            "3px",
-                          width:
-                            "18px",
-                          height:
-                            "18px",
-                        }}
-                      />
-
-                      <span>
-                        <strong>
-                          {
-                            entryPoint.name
-                          }
-                        </strong>
-
-                        <span
-                          style={{
-                            display:
-                              "block",
-                            fontSize:
-                              "13px",
-                            color:
-                              "#64748b",
-                            marginTop:
-                              "5px",
-                          }}
-                        >
-                          {
-                            entryPoint.collection_method
-                          }
-                        </span>
-                      </span>
-                    </label>
-                  );
-                }
-              )}
-            </div>
-
-            <div
-              style={{
-                marginTop: "24px",
-                paddingTop: "20px",
-                borderTop:
-                  "1px solid #e2e8f0",
-              }}
-            >
-              <h3
-                style={{
-                  color: "#0f172a",
-                  fontSize: "17px",
-                }}
-              >
-                Don't see your data entry point?
-              </h3>
-
-              <p style={noticeStyle}>
-                Add a custom channel used by
-                your organisation.
-              </p>
-
-              <div
-                style={{
-                  display: "flex",
-                  gap: "10px",
-                  marginTop: "12px",
-                  flexWrap: "wrap",
-                }}
-              >
-                <input
-                  type="text"
-                  value={
-                    customEntryPoint
-                  }
-                  onChange={(event) =>
-                    setCustomEntryPoint(
-                      event.target.value
-                    )
-                  }
-                  placeholder="e.g. Admission kiosk"
-                  style={{
-                    flex:
-                      "1 1 300px",
-                    padding:
-                      "12px 14px",
-                    borderRadius:
-                      "8px",
-                    border:
-                      "1px solid #cbd5e1",
-                    fontSize:
-                      "15px",
-                  }}
-                />
-
-                <button
-                  type="button"
-                  onClick={
-                    addCustomEntryPoint
-                  }
-                  style={
-                    secondaryButtonStyle
-                  }
-                >
-                  Add
-                </button>
-              </div>
-
-              {customEntryPoints.length >
-                0 && (
-                <div
-                  style={{
-                    marginTop:
-                      "16px",
-                  }}
-                >
-                  {customEntryPoints.map(
-                    (entryPoint) => (
-                      <div
-                        key={
-                          entryPoint.id
-                        }
-                        style={{
-                          display:
-                            "flex",
-                          alignItems:
-                            "center",
-                          justifyContent:
-                            "space-between",
-                          padding:
-                            "12px 14px",
-                          marginBottom:
-                            "8px",
-                          background:
-                            "#f8fafc",
-                          border:
-                            "1px solid #e2e8f0",
-                          borderRadius:
-                            "8px",
-                        }}
-                      >
-                        <strong>
-                          {
-                            entryPoint.name
-                          }
-                        </strong>
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            removeCustomEntryPoint(
-                              entryPoint.id
-                            )
-                          }
-                          style={
-                            removeButtonStyle
-                          }
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    )
-                  )}
-                </div>
-              )}
-            </div>
-
-            {(selectedEntryPoints.length >
-              0 ||
-              customEntryPoints.length >
-                0) && (
-              <SelectionSummary
-                count={
-                  selectedEntryPoints.length +
-                  customEntryPoints.length
-                }
-                label="data entry point"
-              />
-            )}
-          </section>
-        )}
-
-        {/* STEP 5 */}
-
-        {businessTypeId === "EDU-SCH" &&
-          (selectedEntryPoints.length > 0 ||
-            customEntryPoints.length > 0) && (
-            <section style={cardStyle}>
-              <StepNumber number="5" />
-
-              <h2 style={headingStyle}>
-                What personal data is collected?
-              </h2>
-
-              <p
-                style={{
-                  ...noticeStyle,
-                  marginBottom: "20px",
-                }}
-              >
-                Select all personal-data fields
-                that your organisation collects.
-              </p>
-
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns:
-                    "repeat(auto-fit, minmax(280px, 1fr))",
-                  gap: "12px",
-                }}
-              >
-                {kb.school.fields.map(
-                  (field) => {
-                    const isSelected =
-                      selectedFields.includes(
-                        field.id
-                      );
-
-                    return (
-                      <label
-                        key={field.id}
-                        style={{
-                          display:
-                            "flex",
-                          alignItems:
-                            "flex-start",
-                          gap: "12px",
-                          padding:
-                            "16px",
-                          border:
-                            isSelected
-                              ? "2px solid #1d4ed8"
-                              : "1px solid #e2e8f0",
-                          borderRadius:
-                            "10px",
-                          background:
-                            isSelected
-                              ? "#eff6ff"
-                              : "#f8fafc",
-                          cursor:
-                            "pointer",
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={
-                            isSelected
-                          }
-                          onChange={() =>
-                            toggleField(
-                              field.id
-                            )
-                          }
-                          style={{
-                            marginTop:
-                              "3px",
-                            width:
-                              "18px",
-                            height:
-                              "18px",
-                          }}
-                        />
-
-                        <span>
-                          <strong>
-                            {
-                              field.name
-                            }
-                          </strong>
-
-                          <span
-                            style={{
-                              display:
-                                "block",
-                              fontSize:
-                                "12px",
-                              color:
-                                "#64748b",
-                              marginTop:
-                                "5px",
-                            }}
-                          >
-                            {field.data_categories.join(
-                              ", "
-                            )}
-                          </span>
-
-                          <span
-                            style={{
-                              display:
-                                "block",
-                              fontSize:
-                                "12px",
-                              color:
-                                field.child_relevant
-                                  ? "#b45309"
-                                  : "#64748b",
-                              marginTop:
-                                "4px",
-                            }}
-                          >
-                            Data subject:{" "}
-                            {field.typical_data_subjects.join(
-                              ", "
-                            )}
-                            {field.child_relevant
-                              ? " • Child-relevant"
-                              : ""}
-                          </span>
-                        </span>
-                      </label>
-                    );
-                  }
-                )}
-              </div>
-
-              <div
-                style={{
-                  marginTop: "24px",
-                  paddingTop: "20px",
-                  borderTop:
-                    "1px solid #e2e8f0",
-                }}
-              >
-                <h3
-                  style={{
-                    color: "#0f172a",
-                    fontSize: "17px",
-                  }}
-                >
-                  Don't see your data field?
-                </h3>
-
-                <p style={noticeStyle}>
-                  Add a custom personal-data
-                  field.
-                </p>
-
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "10px",
-                    marginTop: "12px",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <input
-                    type="text"
-                    value={customField}
-                    onChange={(event) =>
-                      setCustomField(
-                        event.target.value
-                      )
-                    }
-                    placeholder="e.g. Previous School Name"
-                    style={{
-                      flex:
-                        "1 1 300px",
-                      padding:
-                        "12px 14px",
-                      borderRadius:
-                        "8px",
-                      border:
-                        "1px solid #cbd5e1",
-                      fontSize:
-                        "15px",
-                    }}
-                  />
-
-                  <button
-                    type="button"
-                    onClick={
-                      addCustomField
-                    }
-                    style={
-                      secondaryButtonStyle
-                    }
-                  >
-                    Add
-                  </button>
-                </div>
-
-                {customFields.length >
-                  0 && (
-                  <div
-                    style={{
-                      marginTop:
-                        "16px",
-                    }}
-                  >
-                    {customFields.map(
-                      (field) => (
-                        <div
-                          key={field.id}
-                          style={{
-                            display:
-                              "flex",
-                            justifyContent:
-                              "space-between",
-                            alignItems:
-                              "center",
-                            padding:
-                              "12px 14px",
-                            marginBottom:
-                              "8px",
-                            background:
-                              "#f8fafc",
-                            border:
-                              "1px solid #e2e8f0",
-                            borderRadius:
-                              "8px",
-                          }}
-                        >
-                          <strong>
-                            {
-                              field.name
-                            }
-                          </strong>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              removeCustomField(
-                                field.id
-                              )
-                            }
-                            style={
-                              removeButtonStyle
-                            }
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      )
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {(selectedFields.length >
-                0 ||
-                customFields.length >
-                  0) && (
-                <SelectionSummary
-                  count={
-                    selectedFields.length +
-                    customFields.length
-                  }
-                  label="data field"
-                />
-              )}
-            </section>
-          )}
-
-        {/* STEP 6 */}
-
-        {businessTypeId === "EDU-SCH" &&
-          selectedFields.length > 0 && (
-            <section style={cardStyle}>
-              <StepNumber number="6" />
-
-              <h2 style={headingStyle}>
-                How is this personal data collected and handled?
-              </h2>
-
-              <p
-                style={{
-                  ...noticeStyle,
-                  marginBottom: "24px",
-                }}
-              >
-                Select all options that apply.
-                Real-world processes often use
-                multiple people, channels and
-                storage locations.
-              </p>
-
-              <MultiSelectField
-                label="Who collects this data?"
-                values={collectorRoles}
-                options={[
-                  "Admissions Executive",
-                  "Teacher",
-                  "Class Teacher",
-                  "Administrative Staff",
-                  "Accounts Staff",
-                  "HR / HR Administrator",
-                  "IT / System Administrator",
-                  "Principal / Management",
-                  "Reception / Front Desk",
-                  "Third-party Service Provider",
-                  "Other",
-                ]}
-                onToggle={(value) =>
-                  toggleArrayValue(
-                    value,
-                    setCollectorRoles
-                  )
-                }
-              />
-
-              <MultiSelectField
-                label="Who is the data subject?"
-                values={dataSubjectTypes}
-                options={[
-                  "Student",
-                  "Parent / Guardian",
-                  "Employee",
-                  "Teacher",
-                  "Visitor",
-                  "Vendor / Service Provider",
-                  "Other",
-                ]}
-                onToggle={(value) =>
-                  toggleArrayValue(
-                    value,
-                    setDataSubjectTypes
-                  )
-                }
-              />
-
-              <MultiSelectField
-                label="How is the data collected?"
-                values={collectionFormats}
-                options={[
-                  "Website Form",
-                  "Google Form",
-                  "Mobile / School App",
-                  "WhatsApp",
-                  "Email",
-                  "Telephone",
-                  "Paper / Physical Form",
-                  "In Person / Verbal",
-                  "Excel / Spreadsheet",
-                  "Other",
-                ]}
-                onToggle={(value) =>
-                  toggleArrayValue(
-                    value,
-                    setCollectionFormats
-                  )
-                }
-              />
-
-              <MultiSelectField
-                label="Where is the data stored?"
-                values={storageLocations}
-                options={[
-                  "School Management System",
-                  "Student Information System",
-                  "CRM",
-                  "Google Drive",
-                  "Microsoft 365 / SharePoint",
-                  "Excel / Spreadsheet",
-                  "Email Mailbox",
-                  "WhatsApp Account",
-                  "Local Computer",
-                  "Paper File / Physical Record",
-                  "Third-party Vendor System",
-                  "Other",
-                  "Unknown",
-                ]}
-                onToggle={(value) =>
-                  toggleArrayValue(
-                    value,
-                    setStorageLocations
-                  )
-                }
-              />
-
-              <MultiSelectField
-                label="Where is the storage environment?"
-                values={storageEnvironments}
-                options={[
-                  "Cloud",
-                  "On-Premises",
-                  "Employee Device",
-                  "Mobile Device",
-                  "Physical Storage",
-                  "Third-party Hosted",
-                  "Unknown",
-                ]}
-                onToggle={(value) =>
-                  toggleArrayValue(
-                    value,
-                    setStorageEnvironments
-                  )
-                }
-              />
-
-              <MultiSelectField
-                label="How is the stored data protected?"
-                values={encryptionStatuses}
-                options={[
-                  "Encrypted at rest and in transit",
-                  "Encrypted at rest only",
-                  "Encrypted in transit only",
-                  "Clear text / Not encrypted",
-                  "Unknown",
-                ]}
-                onToggle={(value) =>
-                  toggleArrayValue(
-                    value,
-                    setEncryptionStatuses
-                  )
-                }
-              />
-
-              <MultiSelectField
-                label="Who can access the data?"
-                values={accessRoles}
-                options={[
-                  "Admissions Executive",
-                  "Teacher",
-                  "Class Teacher",
-                  "Administrative Staff",
-                  "Accounts Staff",
-                  "HR / HR Administrator",
-                  "IT / System Administrator",
-                  "Principal / Management",
-                  "Reception / Front Desk",
-                  "Third-party Service Provider",
-                  "Other",
-                ]}
-                onToggle={(value) =>
-                  toggleArrayValue(
-                    value,
-                    setAccessRoles
-                  )
-                }
-              />
-
-              <MultiSelectField
-                label="Is the data shared with anyone else?"
-                values={sharingStatuses}
-                options={[
-                  "No external sharing",
-                  "Shared internally only",
-                  "Shared with service provider",
-                  "Shared with multiple third parties",
-                  "Unknown",
-                ]}
-                onToggle={(value) =>
-                  toggleArrayValue(
-                    value,
-                    setSharingStatuses
-                  )
-                }
-              />
-
-              <MultiSelectField
-                label="How long is the data retained?"
-                values={retentionPeriods}
-                options={[
-                  "Less than 30 days",
-                  "30 days – 1 year",
-                  "1 – 3 years",
-                  "3 – 5 years",
-                  "More than 5 years",
-                  "Indefinitely",
-                  "No defined retention period",
-                  "Unknown",
-                ]}
-                onToggle={(value) =>
-                  toggleArrayValue(
-                    value,
-                    setRetentionPeriods
-                  )
-                }
-              />
-
-              <MultiSelectField
-                label="How is the data deleted?"
-                values={deletionMethods}
-                options={[
-                  "Automatic deletion",
-                  "Manual deletion",
-                  "Periodic review and deletion",
-                  "On request",
-                  "No defined deletion process",
-                  "Unknown",
-                ]}
-                onToggle={(value) =>
-                  toggleArrayValue(
-                    value,
-                    setDeletionMethods
-                  )
-                }
-              />
-
-              <MultiSelectField
-                label="Is a privacy notice provided?"
-                values={privacyNotices}
-                options={[
-                  "Yes",
-                  "No",
-                  "Partially",
-                  "Unknown",
-                ]}
-                onToggle={(value) =>
-                  toggleArrayValue(
-                    value,
-                    setPrivacyNotices
-                  )
-                }
-              />
-
-              <MultiSelectField
-                label="Is consent obtained where required?"
-                values={consentStatuses}
-                options={[
-                  "Yes",
-                  "No",
-                  "Partially",
-                  "Not applicable / Other lawful basis",
-                  "Unknown",
-                ]}
-                onToggle={(value) =>
-                  toggleArrayValue(
-                    value,
-                    setConsentStatuses
-                  )
-                }
-              />
-
-              <MultiSelectField
-                label="For minors, is parent / guardian involvement addressed?"
-                values={
-                  parentalConsentStatuses
-                }
-                options={[
-                  "Yes",
-                  "No",
-                  "Partially",
-                  "Not applicable",
-                  "Unknown",
-                ]}
-                onToggle={(value) =>
-                  toggleArrayValue(
-                    value,
-                    setParentalConsentStatuses
-                  )
-                }
-              />
-
-              <MultiSelectField
-                label="Is the data transferred outside India?"
-                values={
-                  crossBorderTransfers
-                }
-                options={[
-                  "No",
-                  "Yes",
-                  "Unknown",
-                ]}
-                onToggle={(value) =>
-                  toggleArrayValue(
-                    value,
-                    setCrossBorderTransfers
-                  )
-                }
-              />
-
-              <div
-                style={{
-                  marginTop: "28px",
-                  padding: "16px",
-                  background: "#f8fafc",
-                  border:
-                    "1px solid #e2e8f0",
-                  borderRadius: "10px",
-                  color: "#475569",
-                  lineHeight: 1.6,
-                }}
-              >
-                <strong>
-                  Assessment guidance:
-                </strong>{" "}
-                Select all options that apply.
-                If you don't know the answer,
-                select <strong>Unknown</strong>.
-              </div>
-            </section>
-          )}
-
-        {/* STEP 7 */}
-
-        {businessTypeId === "EDU-SCH" &&
-          selectedFields.length > 0 && (
-            <section style={cardStyle}>
-              <StepNumber number="7" />
-
-              <h2 style={headingStyle}>
-                Privacy Risk Assessment
-              </h2>
-
-              <p
-                style={{
-                  ...noticeStyle,
-                  marginBottom: "24px",
-                }}
-              >
-                PrivacyMap will analyse the
-                information entered above and
-                identify potential privacy,
-                security and governance risks.
-              </p>
-
-              <div
-                style={{
-                  padding: "20px",
-                  background: "#eff6ff",
-                  border:
-                    "1px solid #bfdbfe",
-                  borderRadius: "12px",
-                  marginBottom: "20px",
-                  color: "#1e3a8a",
-                  lineHeight: 1.6,
-                }}
-              >
-                <strong>
-                  Important:
-                </strong>{" "}
-                This is a preliminary
-                privacy-risk assessment based
-                on the information provided.
-                It is not a legal opinion or a
-                determination of DPDPA compliance.
-              </div>
-
-              <button
-                type="button"
-                onClick={
-                  runPrivacyRiskAssessment
-                }
-                style={{
-                  width: "100%",
-                  padding: "16px",
-                  border: "none",
-                  borderRadius: "10px",
-                  background:
-                    "#1d4ed8",
-                  color: "white",
-                  fontSize: "17px",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
-              >
-                Analyse Privacy Risks
-              </button>
-            </section>
-          )}
-
-        {/* RISK RESULT */}
-
-        {riskResult && (
-          <div
-            id="privacy-risk-result"
-          >
-            <RiskDashboard
-              result={riskResult}
-            />
-          </div>
-        )}
-
-        {/* PRIVACY BY DESIGN */}
-
-        <div
-          style={{
-            marginTop: "32px",
-            padding: "18px 20px",
-            background: "#eff6ff",
-            border:
-              "1px solid #bfdbfe",
-            borderRadius: "10px",
-            color: "#1e3a8a",
-            lineHeight: 1.6,
-          }}
-        >
-          <strong>
-            Privacy-by-design:
-          </strong>{" "}
-          PrivacyMap does not require your
-          customers' personal data.
-          Assessment responses remain in
-          your browser and are used locally
-          to generate assessment results
-          and reports.
-        </div>
-      </div>
-    </main>
+  if (
+    containsValue(
+      crossBorderTransfers,
+      "unknown"
+    )
+  ) {
+
+    score += 5;
+
+    factors.push(
+      "Cross-border data-transfer status is unknown."
+    );
+
+    recommendations.push(
+      "Determine whether cloud services, SaaS platforms or processors transfer data outside India."
+    );
+
+    addFinding(
+      findings,
+      "Cross-Border Processing",
+      "Cross-border transfer status is unknown",
+      "Medium",
+      "It is not clear whether personal data leaves India through cloud services, SaaS applications or third-party processors.",
+      "Review hosting locations, subprocessors and data-transfer arrangements."
+    );
+  }
+
+  /*
+   * -------------------------------------------------------
+   * 20. UNKNOWN COLLECTION PRACTICES
+   * -------------------------------------------------------
+   */
+
+  if (
+    collectionFormats.length === 0
+  ) {
+
+    score += 5;
+
+    factors.push(
+      "The method used to collect personal data has not been documented."
+    );
+
+    recommendations.push(
+      "Document the collection method for each personal-data entry point."
+    );
+
+    addFinding(
+      findings,
+      "Data Collection",
+      "Collection method is not documented",
+      "Medium",
+      "The assessment does not identify how personal data is collected.",
+      "Document the collection method for every personal-data entry point."
+    );
+  }
+
+  /*
+   * -------------------------------------------------------
+   * 21. UNKNOWN DATA SUBJECT
+   * -------------------------------------------------------
+   */
+
+  if (
+    dataSubjectTypes.length === 0
+  ) {
+
+    score += 5;
+
+    factors.push(
+      "The data subjects associated with the processing have not been identified."
+    );
+
+    recommendations.push(
+      "Identify all categories of data subjects whose personal data is processed."
+    );
+
+    addFinding(
+      findings,
+      "Data Governance",
+      "Data subjects are not identified",
+      "Medium",
+      "The assessment does not identify who the personal data relates to.",
+      "Document all relevant data-subject categories such as students, parents, employees and visitors."
+    );
+  }
+
+  /*
+   * -------------------------------------------------------
+   * CAP SCORE
+   * -------------------------------------------------------
+   */
+
+  score = Math.min(
+    Math.max(score, 0),
+    100
   );
-}
 
-/*
- * ---------------------------------------------------------
- * RISK DASHBOARD
- * ---------------------------------------------------------
- */
+  /*
+   * -------------------------------------------------------
+   * OVERALL LEVEL
+   * -------------------------------------------------------
+   */
 
-function RiskDashboard({
-  result,
-}: {
-  result: RiskResult;
-}) {
-  return (
-    <section
-      style={{
-        marginTop: "24px",
-        marginBottom: "24px",
-      }}
-    >
-      <div
-        style={{
-          background: "white",
-          border:
-            "1px solid #e2e8f0",
-          borderRadius: "14px",
-          padding: "28px",
-        }}
-      >
-        <h2
-          style={{
-            color: "#0f172a",
-            marginTop: 0,
-          }}
-        >
-          Privacy Risk Dashboard
-        </h2>
+  const overallLevel =
+    riskLevelFromScore(score);
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns:
-              "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: "16px",
-            marginTop: "20px",
-          }}
-        >
-          <div
-            style={{
-              padding: "22px",
-              borderRadius: "12px",
-              background:
-                riskBackground(
-                  result.overallLevel
-                ),
-            }}
-          >
-            <div
-              style={{
-                fontSize: "13px",
-                fontWeight: 700,
-                color: "#475569",
-              }}
-            >
-              OVERALL RISK
-            </div>
+  /*
+   * -------------------------------------------------------
+   * CATEGORY SCORES
+   *
+   * These are derived from findings rather than
+   * being arbitrary duplicates of the overall score.
+   * -------------------------------------------------------
+   */
 
-            <div
-              style={{
-                fontSize: "32px",
-                fontWeight: 800,
-                marginTop: "8px",
-                color:
-                  riskColor(
-                    result.overallLevel
-                  ),
-              }}
-            >
-              {result.overallLevel}
-            </div>
+  const categoryNames =
+    uniqueStrings(
+      findings.map(
+        (finding) =>
+          finding.category
+      )
+    );
 
-            <div
-              style={{
-                marginTop: "5px",
-                color: "#475569",
-              }}
-            >
-              Risk score:{" "}
-              {result.score}/100
-            </div>
-          </div>
+  const categoryScores:
+    RiskCategoryScore[] =
+    categoryNames.map(
+      (category) => {
 
-          <div
-            style={{
-              padding: "22px",
-              borderRadius: "12px",
-              background:
-                "#f8fafc",
-            }}
-          >
-            <div
-              style={{
-                fontSize: "13px",
-                fontWeight: 700,
-                color: "#475569",
-              }}
-            >
-              FINDINGS
-            </div>
-
-            <div
-              style={{
-                fontSize: "32px",
-                fontWeight: 800,
-                marginTop: "8px",
-                color: "#0f172a",
-              }}
-            >
-              {result.findings.length}
-            </div>
-
-            <div
-              style={{
-                marginTop: "5px",
-                color: "#475569",
-              }}
-            >
-              Potential issues identified
-            </div>
-          </div>
-        </div>
-
-        <h3
-          style={{
-            marginTop: "32px",
-            color: "#0f172a",
-          }}
-        >
-          Risk by category
-        </h3>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns:
-              "repeat(auto-fit, minmax(250px, 1fr))",
-            gap: "12px",
-          }}
-        >
-          {result.categoryScores.map(
-            (category) => (
-              <div
-                key={
-                  category.category
-                }
-                style={{
-                  padding: "16px",
-                  border:
-                    "1px solid #e2e8f0",
-                  borderRadius: "10px",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent:
-                      "space-between",
-                    gap: "10px",
-                  }}
-                >
-                  <strong>
-                    {category.category}
-                  </strong>
-
-                  <strong
-                    style={{
-                      color:
-                        riskColor(
-                          category.level
-                        ),
-                    }}
-                  >
-                    {category.level}
-                  </strong>
-                </div>
-
-                <div
-                  style={{
-                    marginTop: "10px",
-                    height: "8px",
-                    background:
-                      "#e2e8f0",
-                    borderRadius:
-                      "20px",
-                    overflow:
-                      "hidden",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: `${category.score}%`,
-                      height: "100%",
-                      background:
-                        riskColor(
-                          category.level
-                        ),
-                    }}
-                  />
-                </div>
-
-                <div
-                  style={{
-                    marginTop: "6px",
-                    fontSize: "12px",
-                    color:
-                      "#64748b",
-                  }}
-                >
-                  {category.score}/100
-                </div>
-              </div>
-            )
-          )}
-        </div>
-      </div>
-
-      {/* FINDINGS */}
-
-      <div
-        style={{
-          background: "white",
-          border:
-            "1px solid #e2e8f0",
-          borderRadius: "14px",
-          padding: "28px",
-          marginTop: "20px",
-        }}
-      >
-        <h2
-          style={{
-            marginTop: 0,
-            color: "#0f172a",
-          }}
-        >
-          Key Privacy Findings
-        </h2>
-
-        {result.findings.length ===
-        0 ? (
-          <div
-            style={{
-              padding: "18px",
-              background:
-                "#f0fdf4",
-              border:
-                "1px solid #bbf7d0",
-              borderRadius:
-                "10px",
-              color:
-                "#166534",
-            }}
-          >
-            No significant privacy
-            risk signals were identified
-            from the information provided.
-          </div>
-        ) : (
-          result.findings.map(
-            (finding) => (
-              <div
-                key={finding.id}
-                style={{
-                  padding: "20px",
-                  marginBottom: "14px",
-                  border:
-                    "1px solid #e2e8f0",
-                  borderRadius:
-                    "10px",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent:
-                      "space-between",
-                    alignItems:
-                      "flex-start",
-                    gap: "15px",
-                    flexWrap:
-                      "wrap",
-                  }}
-                >
-                  <div>
-                    <div
-                      style={{
-                        fontSize:
-                          "12px",
-                        fontWeight:
-                          700,
-                        color:
-                          "#64748b",
-                        textTransform:
-                          "uppercase",
-                        letterSpacing:
-                          "1px",
-                      }}
-                    >
-                      {
-                        finding.category
-                      }
-                    </div>
-
-                    <h3
-                      style={{
-                        margin:
-                          "6px 0",
-                        color:
-                          "#0f172a",
-                      }}
-                    >
-                      {
-                        finding.title
-                      }
-                    </h3>
-                  </div>
-
-                  <span
-                    style={{
-                      padding:
-                        "6px 10px",
-                      borderRadius:
-                        "20px",
-                      background:
-                        riskBackground(
-                          finding.level
-                        ),
-                      color:
-                        riskColor(
-                          finding.level
-                        ),
-                      fontWeight:
-                        700,
-                      fontSize:
-                        "12px",
-                    }}
-                  >
-                    {finding.level}
-                  </span>
-                </div>
-
-                <p
-                  style={{
-                    color:
-                      "#475569",
-                    lineHeight:
-                      1.6,
-                  }}
-                >
-                  {
-                    finding.explanation
-                  }
-                </p>
-
-                <div
-                  style={{
-                    padding:
-                      "14px",
-                    background:
-                      "#f8fafc",
-                    borderRadius:
-                      "8px",
-                    color:
-                      "#334155",
-                    lineHeight:
-                      1.6,
-                  }}
-                >
-                  <strong>
-                    Recommended action:
-                  </strong>{" "}
-                  {
-                    finding.recommendation
-                  }
-                </div>
-              </div>
-            )
-          )
-        )}
-      </div>
-    </section>
-  );
-}
-
-/*
- * ---------------------------------------------------------
- * MULTI SELECT FIELD
- * ---------------------------------------------------------
- */
-
-function MultiSelectField({
-  label,
-  values,
-  options,
-  onToggle,
-}: {
-  label: string;
-  values: string[];
-  options: string[];
-  onToggle: (value: string) => void;
-}) {
-  return (
-    <div
-      style={{
-        marginBottom: "24px",
-      }}
-    >
-      <label
-        style={{
-          display: "block",
-          fontWeight: 700,
-          color: "#0f172a",
-          marginBottom: "10px",
-        }}
-      >
-        {label}
-      </label>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns:
-            "repeat(auto-fit, minmax(240px, 1fr))",
-          gap: "8px",
-        }}
-      >
-        {options.map((option) => {
-          const selected =
-            values.includes(option);
-
-          return (
-            <label
-              key={option}
-              style={{
-                display: "flex",
-                alignItems:
-                  "center",
-                gap: "10px",
-                padding:
-                  "11px 12px",
-                border:
-                  selected
-                    ? "2px solid #1d4ed8"
-                    : "1px solid #cbd5e1",
-                borderRadius:
-                  "8px",
-                background:
-                  selected
-                    ? "#eff6ff"
-                    : "white",
-                cursor:
-                  "pointer",
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={selected}
-                onChange={() =>
-                  onToggle(option)
-                }
-                style={{
-                  width:
-                    "17px",
-                  height:
-                    "17px",
-                }}
-              />
-
-              <span
-                style={{
-                  fontSize:
-                    "14px",
-                  color:
-                    "#334155",
-                }}
-              >
-                {option}
-              </span>
-            </label>
+        const categoryFindings =
+          findings.filter(
+            (finding) =>
+              finding.category ===
+              category
           );
-        })}
-      </div>
 
-      {values.length > 0 && (
-        <div
-          style={{
-            marginTop: "8px",
-            fontSize: "12px",
-            color: "#64748b",
-          }}
-        >
-          {values.length} selected
-        </div>
-      )}
-    </div>
+        let categoryScore = 0;
+
+        categoryFindings.forEach(
+          (finding) => {
+
+            switch (
+              finding.level
+            ) {
+
+              case "Critical":
+                categoryScore += 85;
+                break;
+
+              case "High":
+                categoryScore += 65;
+                break;
+
+              case "Medium":
+                categoryScore += 40;
+                break;
+
+              case "Low":
+                categoryScore += 20;
+                break;
+            }
+          }
+        );
+
+        categoryScore =
+          Math.min(
+            categoryScore,
+            100
+          );
+
+        return {
+          category,
+          score: categoryScore,
+          level:
+            riskLevelFromScore(
+              categoryScore
+            ),
+        };
+      }
+    );
+
+  /*
+   * -------------------------------------------------------
+   * SORT FINDINGS
+   *
+   * Critical → High → Medium → Low
+   * -------------------------------------------------------
+   */
+
+  const priority:
+    Record<RiskLevel, number> = {
+      Critical: 4,
+      High: 3,
+      Medium: 2,
+      Low: 1,
+    };
+
+  findings.sort(
+    (a, b) =>
+      priority[b.level] -
+      priority[a.level]
   );
+
+  /*
+   * -------------------------------------------------------
+   * REMOVE DUPLICATES
+   * -------------------------------------------------------
+   */
+
+  const uniqueFactors =
+    uniqueStrings(
+      factors
+    );
+
+  const uniqueRecommendations =
+    uniqueStrings(
+      recommendations
+    );
+
+  /*
+   * -------------------------------------------------------
+   * STEP 8
+   *
+   * BUILD TREATMENT PLAN AFTER
+   * FINDINGS HAVE BEEN SORTED.
+   * -------------------------------------------------------
+   */
+
+  const treatmentPlan =
+    buildTreatmentPlan(
+      findings
+    );
+
+  /*
+   * -------------------------------------------------------
+   * RETURN
+   * -------------------------------------------------------
+   */
+
+  return {
+    score,
+
+    overallLevel,
+
+    findings,
+
+    categoryScores,
+
+    treatmentPlan,
+
+    /*
+     * Backward compatibility
+     */
+    level:
+      overallLevel,
+
+    factors:
+      uniqueFactors,
+
+    recommendations:
+      uniqueRecommendations,
+  };
 }
-
-/*
- * ---------------------------------------------------------
- * SUPPORTING COMPONENTS
- * ---------------------------------------------------------
- */
-
-function SelectionSummary({
-  count,
-  label,
-}: {
-  count: number;
-  label: string;
-}) {
-  return (
-    <div
-      style={{
-        marginTop: "24px",
-        padding: "16px",
-        background: "#f0fdf4",
-        border:
-          "1px solid #bbf7d0",
-        borderRadius: "10px",
-        color: "#166534",
-      }}
-    >
-      <strong>
-        {count} {label}
-        {count !== 1 ? "s" : ""} selected
-      </strong>
-    </div>
-  );
-}
-
-function StepNumber({
-  number,
-}: {
-  number: string;
-}) {
-  return (
-    <div
-      style={{
-        width: "34px",
-        height: "34px",
-        borderRadius: "50%",
-        background: "#1d4ed8",
-        color: "white",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontWeight: 700,
-        marginBottom: "16px",
-      }}
-    >
-      {number}
-    </div>
-  );
-}
-
-function riskColor(
-  level: RiskLevel
-) {
-  switch (level) {
-    case "Critical":
-      return "#991b1b";
-
-    case "High":
-      return "#dc2626";
-
-    case "Medium":
-      return "#d97706";
-
-    case "Low":
-      return "#15803d";
-  }
-}
-
-function riskBackground(
-  level: RiskLevel
-) {
-  switch (level) {
-    case "Critical":
-      return "#fee2e2";
-
-    case "High":
-      return "#fef2f2";
-
-    case "Medium":
-      return "#fffbeb";
-
-    case "Low":
-      return "#f0fdf4";
-  }
-}
-
-const cardStyle = {
-  background: "white",
-  border:
-    "1px solid #e2e8f0",
-  borderRadius: "14px",
-  padding: "28px",
-  marginBottom: "20px",
-};
-
-const headingStyle = {
-  color: "#0f172a",
-  marginTop: 0,
-  marginBottom: "18px",
-};
-
-const selectStyle = {
-  width: "100%",
-  padding: "13px 14px",
-  borderRadius: "8px",
-  border:
-    "1px solid #cbd5e1",
-  background: "white",
-  fontSize: "16px",
-  color: "#0f172a",
-};
-
-const noticeStyle = {
-  color: "#64748b",
-  lineHeight: 1.6,
-};
-
-const secondaryButtonStyle = {
-  padding: "12px 18px",
-  borderRadius: "8px",
-  border: "none",
-  background: "#0f172a",
-  color: "white",
-  fontWeight: 600,
-  cursor: "pointer",
-};
-
-const removeButtonStyle = {
-  border: "none",
-  background: "transparent",
-  color: "#64748b",
-  cursor: "pointer",
-  fontSize: "13px",
-};
