@@ -60,9 +60,10 @@ function buildResidualRiskDecisions(
   return residualRisks.map((risk) => {
     const residualRisk = risk.residualRisk;
 
-    const decision = defaultResidualRiskDecision(
-      residualRisk
-    );
+    const decision =
+      defaultResidualRiskDecision(
+        residualRisk
+      );
 
     return {
       id: `DEC-${risk.findingId ?? risk.id}`,
@@ -71,10 +72,7 @@ function buildResidualRiskDecisions(
         risk.findingId ?? risk.id,
 
       riskTitle:
-        risk.title,
-
-      riskLevel:
-        risk.level,
+        risk.riskTitle,
 
       category:
         risk.category,
@@ -82,61 +80,12 @@ function buildResidualRiskDecisions(
       inherentRisk:
         risk.inherentRisk,
 
-      residualRisk:
-        risk.residualRisk,
+      residualRisk,
 
-      decision,
+      decision:
+        decision,
 
-      rationale:
-        defaultDecisionRationale(
-          decision,
-          residualRisk
-        ),
-
-      accountableOwner:
-        "Risk Owner",
-
-      decisionAuthority:
-        defaultDecisionAuthority(
-          residualRisk
-        ),
-
-      reviewDate:
-        "",
-
-      approvalDate:
-        "",
-
-      reviewFrequency:
-        "Quarterly",
-
-      nextReviewDate:
-        "",
-
-      targetResolutionDate:
-        "",
-
-      approvalStatus:
-        defaultApprovalStatus(
-          decision,
-          residualRisk
-        ),
-
-      escalationRequired:
-        defaultEscalation(
-          residualRisk
-        ),
-
-      escalationReason:
-        defaultEscalationReason(
-          residualRisk
-        ),
-
-      treatmentStatus:
-        "Open",
-    };
-  });
-}
+      // ...
 
   /*
    * =========================================================
