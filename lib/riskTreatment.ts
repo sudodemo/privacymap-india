@@ -4,13 +4,11 @@ import type {
   RiskResult,
 } from "./privacyRisk";
 
-
 export type TreatmentStatus =
   | "Open"
   | "In Progress"
   | "Completed"
   | "Accepted";
-
 
 export type TreatmentPriority =
   | "Immediate"
@@ -18,41 +16,26 @@ export type TreatmentPriority =
   | "Medium"
   | "Low";
 
-
 export type TreatmentEffort =
   | "Low"
   | "Medium"
   | "High";
 
-
 export type RiskTreatmentAction = {
   id: string;
-
   findingId: string;
-
   category: string;
-
   riskTitle: string;
-
   riskLevel: RiskLevel;
-
   priority: TreatmentPriority;
-
   action: string;
-
   rationale: string;
-
   suggestedOwner: string;
-
   suggestedTimeframe: string;
-
   effort: TreatmentEffort;
-
   evidence: string;
-
   status: TreatmentStatus;
 };
-
 
 /*
  * ---------------------------------------------------------
@@ -63,9 +46,7 @@ export type RiskTreatmentAction = {
 function treatmentPriority(
   level: RiskLevel
 ): TreatmentPriority {
-
   switch (level) {
-
     case "Critical":
       return "Immediate";
 
@@ -80,7 +61,6 @@ function treatmentPriority(
   }
 }
 
-
 /*
  * ---------------------------------------------------------
  * TIMEFRAME
@@ -90,9 +70,7 @@ function treatmentPriority(
 function treatmentTimeframe(
   level: RiskLevel
 ): string {
-
   switch (level) {
-
     case "Critical":
       return "0–30 days";
 
@@ -107,7 +85,6 @@ function treatmentTimeframe(
   }
 }
 
-
 /*
  * ---------------------------------------------------------
  * EFFORT
@@ -118,7 +95,6 @@ function treatmentEffort(
   category: string,
   title: string
 ): TreatmentEffort {
-
   const text =
     `${category} ${title}`.toLowerCase();
 
@@ -143,7 +119,6 @@ function treatmentEffort(
   return "Low";
 }
 
-
 /*
  * ---------------------------------------------------------
  * SUGGESTED OWNER
@@ -153,9 +128,7 @@ function treatmentEffort(
 function suggestedOwner(
   category: string
 ): string {
-
   switch (category) {
-
     case "Security":
     case "Access Control":
       return "IT / Information Security";
@@ -203,7 +176,6 @@ function suggestedOwner(
   }
 }
 
-
 /*
  * ---------------------------------------------------------
  * ACTION GENERATOR
@@ -217,23 +189,22 @@ function treatmentAction(
   rationale: string;
   evidence: string;
 } {
-
   const title =
     finding.title.toLowerCase();
 
   const category =
     finding.category.toLowerCase();
 
-
   /*
+   * -------------------------------------------------------
    * ENCRYPTION
+   * -------------------------------------------------------
    */
 
   if (
     title.includes("not encrypted") ||
     title.includes("encryption")
   ) {
-
     return {
       action:
         "Perform an encryption gap assessment for all systems processing personal data. Implement appropriate encryption for data at rest and in transit and document the encryption standard used.",
@@ -246,16 +217,16 @@ function treatmentAction(
     };
   }
 
-
   /*
+   * -------------------------------------------------------
    * ACCESS
+   * -------------------------------------------------------
    */
 
   if (
     title.includes("access roles") ||
     category.includes("access")
   ) {
-
     return {
       action:
         "Define role-based access for personal data, remove unnecessary privileges and establish periodic access reviews.",
@@ -268,9 +239,10 @@ function treatmentAction(
     };
   }
 
-
   /*
+   * -------------------------------------------------------
    * CHILDREN
+   * -------------------------------------------------------
    */
 
   if (
@@ -278,7 +250,6 @@ function treatmentAction(
     title.includes("parent") ||
     title.includes("guardian")
   ) {
-
     return {
       action:
         "Document the process for identifying child-related processing and establish appropriate parent/guardian verification and approval controls where applicable.",
@@ -291,16 +262,16 @@ function treatmentAction(
     };
   }
 
-
   /*
+   * -------------------------------------------------------
    * THIRD PARTIES
+   * -------------------------------------------------------
    */
 
   if (
     category.includes("third") ||
     title.includes("third party")
   ) {
-
     return {
       action:
         "Create or update the personal-data processor and third-party inventory. Review contracts, data-processing terms, security obligations and permitted data sharing.",
@@ -313,16 +284,16 @@ function treatmentAction(
     };
   }
 
-
   /*
+   * -------------------------------------------------------
    * RETENTION
+   * -------------------------------------------------------
    */
 
   if (
     category.includes("retention") ||
     title.includes("retention")
   ) {
-
     return {
       action:
         "Define a documented retention period for each personal-data category and processing purpose. Establish review and disposal triggers.",
@@ -335,16 +306,16 @@ function treatmentAction(
     };
   }
 
-
   /*
+   * -------------------------------------------------------
    * DELETION
+   * -------------------------------------------------------
    */
 
   if (
     category.includes("deletion") ||
     title.includes("deletion")
   ) {
-
     return {
       action:
         "Implement a documented secure deletion process covering digital records, physical records, backups and applicable third-party systems.",
@@ -357,16 +328,16 @@ function treatmentAction(
     };
   }
 
-
   /*
+   * -------------------------------------------------------
    * PRIVACY NOTICE
+   * -------------------------------------------------------
    */
 
   if (
     category.includes("transparency") ||
     title.includes("privacy notice")
   ) {
-
     return {
       action:
         "Review every personal-data collection channel and ensure an appropriate privacy notice is provided at or before collection.",
@@ -379,9 +350,10 @@ function treatmentAction(
     };
   }
 
-
   /*
+   * -------------------------------------------------------
    * LAWFUL BASIS
+   * -------------------------------------------------------
    */
 
   if (
@@ -389,7 +361,6 @@ function treatmentAction(
     title.includes("lawful basis") ||
     title.includes("consent")
   ) {
-
     return {
       action:
         "Document the purpose and applicable lawful basis for each processing activity. Where consent is relied upon, verify that the consent process is appropriate and demonstrable.",
@@ -402,16 +373,16 @@ function treatmentAction(
     };
   }
 
-
   /*
+   * -------------------------------------------------------
    * CROSS-BORDER
+   * -------------------------------------------------------
    */
 
   if (
     category.includes("cross-border") ||
     title.includes("international")
   ) {
-
     return {
       action:
         "Identify destination countries, cloud providers, processors and subprocessors involved in international data transfers and document the applicable transfer safeguards.",
@@ -424,16 +395,16 @@ function treatmentAction(
     };
   }
 
-
   /*
+   * -------------------------------------------------------
    * STORAGE
+   * -------------------------------------------------------
    */
 
   if (
     category.includes("storage") ||
     title.includes("storage")
   ) {
-
     return {
       action:
         "Create a data-flow and storage inventory identifying every system, application, device, cloud service and physical location containing personal data.",
@@ -446,16 +417,16 @@ function treatmentAction(
     };
   }
 
-
   /*
+   * -------------------------------------------------------
    * DATA MINIMISATION
+   * -------------------------------------------------------
    */
 
   if (
     category.includes("minimisation") ||
     title.includes("number of personal-data")
   ) {
-
     return {
       action:
         "Review every personal-data field against the stated processing purpose and remove fields that are unnecessary or disproportionate.",
@@ -468,15 +439,15 @@ function treatmentAction(
     };
   }
 
-
   /*
+   * -------------------------------------------------------
    * DATA COLLECTION
+   * -------------------------------------------------------
    */
 
   if (
     category.includes("data collection")
   ) {
-
     return {
       action:
         "Create a consolidated inventory of all personal-data collection channels and document the information collected, purpose, owner and downstream systems.",
@@ -489,16 +460,16 @@ function treatmentAction(
     };
   }
 
-
   /*
+   * -------------------------------------------------------
    * PHYSICAL RECORDS
+   * -------------------------------------------------------
    */
 
   if (
     category.includes("physical") ||
     title.includes("paper")
   ) {
-
     return {
       action:
         "Define physical-record controls covering secure storage, access, transportation, scanning, tracking and secure disposal.",
@@ -511,16 +482,16 @@ function treatmentAction(
     };
   }
 
-
   /*
+   * -------------------------------------------------------
    * UNKNOWN GOVERNANCE
+   * -------------------------------------------------------
    */
 
   if (
     title.includes("unknown") ||
     category.includes("governance")
   ) {
-
     return {
       action:
         "Investigate and document the currently unknown aspect of the processing. Assign an accountable owner and update the privacy/data inventory.",
@@ -533,9 +504,10 @@ function treatmentAction(
     };
   }
 
-
   /*
+   * -------------------------------------------------------
    * GENERIC FALLBACK
+   * -------------------------------------------------------
    */
 
   return {
@@ -550,7 +522,6 @@ function treatmentAction(
   };
 }
 
-
 /*
  * ---------------------------------------------------------
  * GENERATE TREATMENT PLAN
@@ -560,81 +531,85 @@ function treatmentAction(
 export function generateRiskTreatmentPlan(
   result: RiskResult
 ): RiskTreatmentAction[] {
+  const treatments: RiskTreatmentAction[] =
+    result.findings.map(
+      (finding): RiskTreatmentAction => {
+        const treatment =
+          treatmentAction(finding);
 
-  return result.findings
-    .map((finding) => {
+        return {
+          id:
+            `TREAT-${finding.id}`,
 
-      const treatment =
-        treatmentAction(finding);
+          findingId:
+            finding.id,
 
-      return {
-
-        id:
-          `TREAT-${finding.id}`,
-
-        findingId:
-          finding.id,
-
-        category:
-          finding.category,
-
-        riskTitle:
-          finding.title,
-
-        riskLevel:
-          finding.level,
-
-        priority:
-          treatmentPriority(
-            finding.level
-          ),
-
-        action:
-          treatment.action,
-
-        rationale:
-          treatment.rationale,
-
-        suggestedOwner:
-          suggestedOwner(
-            finding.category
-          ),
-
-        suggestedTimeframe:
-          treatmentTimeframe(
-            finding.level
-          ),
-
-        effort:
-          treatmentEffort(
+          category:
             finding.category,
-            finding.title
-          ),
 
-        evidence:
-          treatment.evidence,
+          riskTitle:
+            finding.title,
 
-        status:
-          "Open",
-      };
-    })
-    .sort((a, b) => {
+          riskLevel:
+            finding.level,
 
-      const priority:
-        Record<
-          TreatmentPriority,
-          number
-        > = {
+          priority:
+            treatmentPriority(
+              finding.level
+            ),
 
-          Immediate: 4,
-          High: 3,
-          Medium: 2,
-          Low: 1,
+          action:
+            treatment.action,
+
+          rationale:
+            treatment.rationale,
+
+          suggestedOwner:
+            suggestedOwner(
+              finding.category
+            ),
+
+          suggestedTimeframe:
+            treatmentTimeframe(
+              finding.level
+            ),
+
+          effort:
+            treatmentEffort(
+              finding.category,
+              finding.title
+            ),
+
+          evidence:
+            treatment.evidence,
+
+          /*
+           * Explicitly typed through the
+           * RiskTreatmentAction return type.
+           */
+          status:
+            "Open",
         };
+      }
+    );
 
-      return (
-        priority[b.priority] -
-        priority[a.priority]
-      );
-    });
+  /*
+   * -------------------------------------------------------
+   * SORT BY PRIORITY
+   * -------------------------------------------------------
+   */
+
+  const priority:
+    Record<TreatmentPriority, number> = {
+      Immediate: 4,
+      High: 3,
+      Medium: 2,
+      Low: 1,
+    };
+
+  return treatments.sort(
+    (a, b) =>
+      priority[b.priority] -
+      priority[a.priority]
+  );
 }
