@@ -93,10 +93,7 @@ function resetFromProcess() {
   setCustomEntryPoint("");
 }
 
-onChange={(event) => {
-  setProcessId(event.target.value);
-  resetFromProcess();
-}}
+
   
   return (
     <main
