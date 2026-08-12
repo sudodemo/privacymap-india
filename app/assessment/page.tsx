@@ -6,6 +6,7 @@ import {
   decisionRequiresApproval,
   type ResidualRiskDecision,
   type ResidualRiskDecisionRecord,
+  type DecisionApprovalStatus,
 } from "../../lib/residualDecision";
 
 import {
@@ -44,43 +45,140 @@ import {
 export default function AssessmentPage() {
   /*
    * =========================================================
-   * BASIC ASSESSMENT STATE
+   * RESIDUAL RISK DECISION BUILDER
    * =========================================================
    */
 
-  const [industryId, setIndustryId] = useState("");
-  const [businessTypeId, setBusinessTypeId] = useState("");
-  const [processId, setProcessId] = useState("");
+  function buildResidualRiskDecisions(
+    residualRisks: ResidualRiskAssessment[]
+  ): ResidualRiskDecisionRecord[] {
+    return residualRisks.map((risk) => {
+      const residualRisk =
+        risk.residualRisk ??
+        risk.residualLevel ??
+        risk.level;
 
-  const [selectedEntryPoints, setSelectedEntryPoints] =
-    useState<string[]>([]);
+      const decision =
+        defaultResidualRiskDecision(
+          residualRisk
+        );
 
-  const [customEntryPoint, setCustomEntryPoint] =
+      return {
+        id: `DEC-${risk.findingId}`,
+
+        findingId:
+          risk.findingId,
+
+        riskTitle:
+          risk.riskTitle ??
+          risk.findingId,
+
+        category:
+          risk.category,
+
+        inherentRisk:
+          risk.inherentRisk ??
+          risk.level,
+
+        residualRisk,
+
+        decision,
+
+        rationale:
+          defaultDecisionRationale(
+            decision,
+            residualRisk
+          ),
+
+        accountableOwner:
+          "Risk Owner",
+
+        reviewDate:
+          "",
+
+        approvalStatus:
+          decisionRequiresApproval(
+            decision,
+            residualRisk
+          )
+            ? "Pending"
+            : "Approved",
+
+        treatmentStatus:
+          "Open",
+      };
+    });
+  }
+
+  /*
+   * =========================================================
+   * STEP 1-2 STATE
+   * =========================================================
+   */
+
+  const [industryId, setIndustryId] =
     useState("");
 
-  const [customEntryPoints, setCustomEntryPoints] =
-    useState<
-      {
-        id: string;
-        name: string;
-        collection_method: string;
-        custom: boolean;
-      }[]
-    >([]);
+  const [businessTypeId, setBusinessTypeId] =
+    useState("");
 
-  const [selectedFields, setSelectedFields] =
-    useState<string[]>([]);
+  const [processId, setProcessId] =
+    useState("");
 
-  const [customField, setCustomField] = useState("");
+  /*
+   * =========================================================
+   * STEP 4 STATE - ENTRY POINTS
+   * =========================================================
+   */
 
-  const [customFields, setCustomFields] =
-    useState<
-      {
-        id: string;
-        name: string;
-        custom: boolean;
-      }[]
-    >([]);
+  const [
+    selectedEntryPoints,
+    setSelectedEntryPoints,
+  ] = useState<string[]>([]);
+
+  const [
+    customEntryPoint,
+    setCustomEntryPoint,
+  ] = useState("");
+
+  const [
+    customEntryPoints,
+    setCustomEntryPoints,
+  ] = useState<
+    {
+      id: string;
+      name: string;
+      collection_method: string;
+      custom: boolean;
+    }[]
+  >([]);
+
+  /*
+   * =========================================================
+   * STEP 5 STATE - DATA FIELDS
+   * =========================================================
+   */
+
+  const [
+    selectedFields,
+    setSelectedFields,
+  ] = useState<string[]>([]);
+
+  const [
+    customField,
+    setCustomField,
+  ] = useState("");
+
+  const [
+    customFields,
+    setCustomFields,
+  ] = useState<
+    {
+      id: string;
+      name: string;
+      custom: boolean;
+    }[]
+  >([]);
 
   /*
    * =========================================================
@@ -88,56 +186,99 @@ export default function AssessmentPage() {
    * =========================================================
    */
 
-  const [collectorRoles, setCollectorRoles] =
-    useState<string[]>([]);
+  const [
+    collectorRoles,
+    setCollectorRoles,
+  ] = useState<string[]>([]);
 
-  const [dataSubjectTypes, setDataSubjectTypes] =
-    useState<string[]>([]);
+  const [
+    dataSubjectTypes,
+    setDataSubjectTypes,
+  ] = useState<string[]>([]);
 
-  const [collectionFormats, setCollectionFormats] =
-    useState<string[]>([]);
+  const [
+    collectionFormats,
+    setCollectionFormats,
+  ] = useState<string[]>([]);
 
-  const [storageLocations, setStorageLocations] =
-    useState<string[]>([]);
+  const [
+    storageLocations,
+    setStorageLocations,
+  ] = useState<string[]>([]);
 
-  const [storageEnvironments, setStorageEnvironments] =
-    useState<string[]>([]);
+  const [
+    storageEnvironments,
+    setStorageEnvironments,
+  ] = useState<string[]>([]);
 
-  const [encryptionStatuses, setEncryptionStatuses] =
-    useState<string[]>([]);
+  const [
+    encryptionStatuses,
+    setEncryptionStatuses,
+  ] = useState<string[]>([]);
 
-  const [accessRoles, setAccessRoles] =
-    useState<string[]>([]);
+  const [
+    accessRoles,
+    setAccessRoles,
+  ] = useState<string[]>([]);
 
-  const [sharingStatuses, setSharingStatuses] =
-    useState<string[]>([]);
+  const [
+    sharingStatuses,
+    setSharingStatuses,
+  ] = useState<string[]>([]);
 
-  const [retentionPeriods, setRetentionPeriods] =
-    useState<string[]>([]);
+  const [
+    retentionPeriods,
+    setRetentionPeriods,
+  ] = useState<string[]>([]);
 
-  const [deletionMethods, setDeletionMethods] =
-    useState<string[]>([]);
+  const [
+    deletionMethods,
+    setDeletionMethods,
+  ] = useState<string[]>([]);
 
-  const [privacyNotices, setPrivacyNotices] =
-    useState<string[]>([]);
+  const [
+    privacyNotices,
+    setPrivacyNotices,
+  ] = useState<string[]>([]);
 
-  const [consentStatuses, setConsentStatuses] =
-    useState<string[]>([]);
+  const [
+    consentStatuses,
+    setConsentStatuses,
+  ] = useState<string[]>([]);
 
-  const [parentalConsentStatuses, setParentalConsentStatuses] =
-    useState<string[]>([]);
+  const [
+    parentalConsentStatuses,
+    setParentalConsentStatuses,
+  ] = useState<string[]>([]);
 
-  const [crossBorderTransfers, setCrossBorderTransfers] =
-    useState<string[]>([]);
+  const [
+    crossBorderTransfers,
+    setCrossBorderTransfers,
+  ] = useState<string[]>([]);
 
   /*
    * =========================================================
-   * STEP 7
+   * STEP 7 STATE
    * =========================================================
    */
 
-  const [riskResult, setRiskResult] =
-    useState<RiskResult | null>(null);
+  const [
+    riskResult,
+    setRiskResult,
+  ] = useState<RiskResult | null>(null);
+
+  /*
+   * =========================================================
+   * STEP 9 STATE - RESIDUAL RISK DECISIONS
+   * =========================================================
+   */
+
+  const [
+    residualRiskDecisions,
+    setResidualRiskDecisions,
+  ] = useState<
+    ResidualRiskDecisionRecord[]
+  >([]);
 
   /*
    * =========================================================
@@ -151,7 +292,9 @@ export default function AssessmentPage() {
         return [];
       }
 
-      return generateRiskTreatmentPlan(riskResult);
+      return generateRiskTreatmentPlan(
+        riskResult
+      );
     }, [riskResult]);
 
   /*
@@ -173,12 +316,16 @@ export default function AssessmentPage() {
         riskResult,
         treatmentPlan
       );
-    }, [riskResult, treatmentPlan]);
+    }, [
+      riskResult,
+      treatmentPlan,
+    ]);
 
   const residualRiskSummary =
     useMemo<ResidualRiskSummary | null>(() => {
       if (
-        residualRiskAssessments.length === 0
+        residualRiskAssessments.length ===
+        0
       ) {
         return null;
       }
@@ -186,242 +333,38 @@ export default function AssessmentPage() {
       return generateResidualRiskSummary(
         residualRiskAssessments
       );
-    }, [residualRiskAssessments]);
+    }, [
+      residualRiskAssessments,
+    ]);
 
   /*
    * =========================================================
-   * STEP 10 - RESIDUAL RISK DECISIONS
-   *
-   * This was the major missing wiring in the supplied file.
+   * BUILD / SYNCHRONISE RESIDUAL DECISIONS
    * =========================================================
-   */
-
-  const [residualRiskDecisions, setResidualRiskDecisions] =
-    useState<ResidualRiskDecisionRecord[]>([]);
-
-  /*
-   * Generate decision records whenever the residual-risk
-   * assessment changes.
    *
-   * We intentionally preserve an existing user's decision
-   * where possible.
+   * Important:
+   * Residual risk assessments are generated from Step 7 +
+   * Step 8. Once those assessments exist, we create the
+   * explicit decision records.
+   *
+   * This is intentionally browser-local.
    */
 
   useEffect(() => {
-    if (residualRiskAssessments.length === 0) {
+    if (
+      residualRiskAssessments.length ===
+      0
+    ) {
       setResidualRiskDecisions([]);
       return;
     }
 
-    setResidualRiskDecisions((current) => {
-      return residualRiskAssessments.map((assessment) => {
-        const existing = current.find(
-          (item) =>
-            item.findingId === assessment.findingId
-        );
-
-        if (existing) {
-          return {
-            ...existing,
-
-            residualRisk:
-              assessment.residualRisk,
-
-            inherentRisk:
-              assessment.inherentRisk,
-
-            treatmentStatus:
-              assessment.status === "Completed"
-                ? "Completed"
-                : existing.treatmentStatus,
-          };
-        }
-
-        const residualRisk =
-          assessment.residualRisk;
-
-        const decision =
-          defaultResidualRiskDecision(
-            residualRisk
-          );
-
-        return {
-          id: `DEC-${assessment.findingId}`,
-
-          findingId:
-            assessment.findingId,
-
-          riskTitle:
-            assessment.findingId,
-
-          category:
-            "Privacy Risk",
-
-          inherentRisk:
-            assessment.inherentRisk,
-
-          residualRisk,
-
-          decision,
-
-          rationale:
-            defaultDecisionRationale(
-              decision,
-              residualRisk
-            ),
-
-          accountableOwner:
-            "Risk Owner",
-
-          reviewDate:
-            "",
-
-          approvalStatus:
-            decisionRequiresApproval(
-              decision,
-              residualRisk
-            )
-              ? "Pending"
-              : "Approved",
-
-          treatmentStatus:
-            assessment.status === "Completed"
-              ? "Completed"
-              : "Open",
-        };
-      });
-    });
+    setResidualRiskDecisions(
+      buildResidualRiskDecisions(
+        residualRiskAssessments
+      )
+    );
   }, [residualRiskAssessments]);
-
-  /*
-   * =========================================================
-   * UPDATE RESIDUAL DECISION
-   * =========================================================
-   */
-
-  function updateResidualDecision(
-    id: string,
-    decision: ResidualRiskDecision
-  ) {
-    setResidualRiskDecisions((current) =>
-      current.map((record) => {
-        if (record.id !== id) {
-          return record;
-        }
-
-        const requiresApproval =
-          decisionRequiresApproval(
-            decision,
-            record.residualRisk
-          );
-
-        return {
-          ...record,
-
-          decision,
-
-          rationale:
-            defaultDecisionRationale(
-              decision,
-              record.residualRisk
-            ),
-
-          approvalStatus:
-            requiresApproval
-              ? "Pending"
-              : "Approved",
-        };
-      })
-    );
-  }
-
-  /*
-   * =========================================================
-   * UPDATE DECISION RATIONALE
-   * =========================================================
-   */
-
-  function updateDecisionRationale(
-    id: string,
-    rationale: string
-  ) {
-    setResidualRiskDecisions((current) =>
-      current.map((record) =>
-        record.id === id
-          ? {
-              ...record,
-              rationale,
-            }
-          : record
-      )
-    );
-  }
-
-  /*
-   * =========================================================
-   * UPDATE ACCOUNTABLE OWNER
-   * =========================================================
-   */
-
-  function updateDecisionOwner(
-    id: string,
-    accountableOwner: string
-  ) {
-    setResidualRiskDecisions((current) =>
-      current.map((record) =>
-        record.id === id
-          ? {
-              ...record,
-              accountableOwner,
-            }
-          : record
-      )
-    );
-  }
-
-  /*
-   * =========================================================
-   * UPDATE REVIEW DATE
-   * =========================================================
-   */
-
-  function updateDecisionReviewDate(
-    id: string,
-    reviewDate: string
-  ) {
-    setResidualRiskDecisions((current) =>
-      current.map((record) =>
-        record.id === id
-          ? {
-              ...record,
-              reviewDate,
-            }
-          : record
-      )
-    );
-  }
-
-  /*
-   * =========================================================
-   * UPDATE TREATMENT STATUS
-   * =========================================================
-   */
-
-  function updateDecisionTreatmentStatus(
-    id: string,
-    treatmentStatus: string
-  ) {
-    setResidualRiskDecisions((current) =>
-      current.map((record) =>
-        record.id === id
-          ? {
-              ...record,
-              treatmentStatus,
-            }
-          : record
-      )
-    );
-  }
 
   /*
    * =========================================================
@@ -431,7 +374,9 @@ export default function AssessmentPage() {
 
   function toggleArrayValue(
     value: string,
-    setter: Dispatch<SetStateAction<string[]>>
+    setter: Dispatch<
+      SetStateAction<string[]>
+    >
   ) {
     setter((current) =>
       current.includes(value)
@@ -448,13 +393,16 @@ export default function AssessmentPage() {
    * =========================================================
    */
 
-  function toggleEntryPoint(id: string) {
-    setSelectedEntryPoints((current) =>
-      current.includes(id)
-        ? current.filter(
-            (item) => item !== id
-          )
-        : [...current, id]
+  function toggleEntryPoint(
+    id: string
+  ) {
+    setSelectedEntryPoints(
+      (current) =>
+        current.includes(id)
+          ? current.filter(
+              (item) => item !== id
+            )
+          : [...current, id]
     );
   }
 
@@ -471,19 +419,24 @@ export default function AssessmentPage() {
       custom: true,
     };
 
-    setCustomEntryPoints((current) => [
-      ...current,
-      newEntryPoint,
-    ]);
+    setCustomEntryPoints(
+      (current) => [
+        ...current,
+        newEntryPoint,
+      ]
+    );
 
     setCustomEntryPoint("");
   }
 
-  function removeCustomEntryPoint(id: string) {
-    setCustomEntryPoints((current) =>
-      current.filter(
-        (item) => item.id !== id
-      )
+  function removeCustomEntryPoint(
+    id: string
+  ) {
+    setCustomEntryPoints(
+      (current) =>
+        current.filter(
+          (item) => item.id !== id
+        )
     );
   }
 
@@ -494,12 +447,13 @@ export default function AssessmentPage() {
    */
 
   function toggleField(id: string) {
-    setSelectedFields((current) =>
-      current.includes(id)
-        ? current.filter(
-            (item) => item !== id
-          )
-        : [...current, id]
+    setSelectedFields(
+      (current) =>
+        current.includes(id)
+          ? current.filter(
+              (item) => item !== id
+            )
+          : [...current, id]
     );
   }
 
@@ -515,19 +469,24 @@ export default function AssessmentPage() {
       custom: true,
     };
 
-    setCustomFields((current) => [
-      ...current,
-      newField,
-    ]);
+    setCustomFields(
+      (current) => [
+        ...current,
+        newField,
+      ]
+    );
 
     setCustomField("");
   }
 
-  function removeCustomField(id: string) {
-    setCustomFields((current) =>
-      current.filter(
-        (item) => item.id !== id
-      )
+  function removeCustomField(
+    id: string
+  ) {
+    setCustomFields(
+      (current) =>
+        current.filter(
+          (item) => item.id !== id
+        )
     );
   }
 
@@ -580,13 +539,9 @@ export default function AssessmentPage() {
 
   /*
    * =========================================================
-   * RESET
+   * RESET FUNCTIONS
    * =========================================================
    */
-
-  function resetDecisionState() {
-    setResidualRiskDecisions([]);
-  }
 
   function resetAssessment() {
     setBusinessTypeId("");
@@ -616,8 +571,7 @@ export default function AssessmentPage() {
     setCrossBorderTransfers([]);
 
     setRiskResult(null);
-
-    resetDecisionState();
+    setResidualRiskDecisions([]);
   }
 
   function resetFromBusinessType() {
@@ -647,8 +601,7 @@ export default function AssessmentPage() {
     setCrossBorderTransfers([]);
 
     setRiskResult(null);
-
-    resetDecisionState();
+    setResidualRiskDecisions([]);
   }
 
   function resetFromProcess() {
@@ -676,13 +629,12 @@ export default function AssessmentPage() {
     setCrossBorderTransfers([]);
 
     setRiskResult(null);
-
-    resetDecisionState();
+    setResidualRiskDecisions([]);
   }
 
   /*
    * =========================================================
-   * RUN ASSESSMENT
+   * RUN PRIVACY RISK ASSESSMENT
    * =========================================================
    */
 
@@ -723,7 +675,6 @@ export default function AssessmentPage() {
       });
 
     setRiskResult(result);
-
     setResidualRiskDecisions([]);
 
     setTimeout(() => {
@@ -796,7 +747,9 @@ export default function AssessmentPage() {
           risks may exist.
         </p>
 
-        {/* STEP 1 */}
+        {/* =================================================
+            STEP 1
+            ================================================= */}
 
         <section style={cardStyle}>
           <StepNumber number="1" />
@@ -836,13 +789,19 @@ export default function AssessmentPage() {
           </select>
         </section>
 
-        {/* STEP 2 */}
+        {/* =================================================
+            STEP 2
+            ================================================= */}
 
         {industryId && (
-          <section style={cardStyle}>
+          <section
+            style={cardStyle}
+          >
             <StepNumber number="2" />
 
-            <h2 style={headingStyle}>
+            <h2
+              style={headingStyle}
+            >
               Select your business type
             </h2>
 
@@ -880,7 +839,11 @@ export default function AssessmentPage() {
 
             {businessTypes.length ===
               0 && (
-              <p style={noticeStyle}>
+              <p
+                style={
+                  noticeStyle
+                }
+              >
                 A detailed assessment
                 pack for this business
                 type is not available
@@ -892,14 +855,20 @@ export default function AssessmentPage() {
           </section>
         )}
 
-        {/* STEP 3 */}
+        {/* =================================================
+            STEP 3
+            ================================================= */}
 
         {businessTypeId ===
           "EDU-SCH" && (
-          <section style={cardStyle}>
+          <section
+            style={cardStyle}
+          >
             <StepNumber number="3" />
 
-            <h2 style={headingStyle}>
+            <h2
+              style={headingStyle}
+            >
               Select a business process
             </h2>
 
@@ -931,54 +900,187 @@ export default function AssessmentPage() {
           </section>
         )}
 
-        {/* STEP 4 */}
+        {/* =================================================
+            STEP 4
+            ================================================= */}
 
         {businessTypeId ===
           "EDU-SCH" && (
-          <section style={cardStyle}>
+          <section
+            style={cardStyle}
+          >
             <StepNumber number="4" />
 
-            <h2 style={headingStyle}>
+            <h2
+              style={headingStyle}
+            >
               Potential data entry points
             </h2>
 
-            <p style={noticeStyle}>
-              Select all channels through
-              which your organisation may
-              collect personal data.
+            <p
+              style={{
+                ...noticeStyle,
+                marginBottom: "20px",
+              }}
+            >
+              Select all channels
+              through which your
+              organisation may collect
+              personal data.
             </p>
 
-            <CheckboxGrid
-              items={entryPoints.map(
-                (item) => ({
-                  id: item.id,
-                  title: item.name,
-                  description:
-                    item.collection_method,
-                })
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "repeat(auto-fit, minmax(260px, 1fr))",
+                gap: "12px",
+              }}
+            >
+              {entryPoints.map(
+                (entryPoint) => {
+                  const isSelected =
+                    selectedEntryPoints.includes(
+                      entryPoint.id
+                    );
+
+                  return (
+                    <label
+                      key={
+                        entryPoint.id
+                      }
+                      style={{
+                        display:
+                          "flex",
+                        alignItems:
+                          "flex-start",
+                        gap: "12px",
+                        padding:
+                          "16px",
+                        border:
+                          isSelected
+                            ? "2px solid #1d4ed8"
+                            : "1px solid #e2e8f0",
+                        borderRadius:
+                          "10px",
+                        background:
+                          isSelected
+                            ? "#eff6ff"
+                            : "#f8fafc",
+                        cursor:
+                          "pointer",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={
+                          isSelected
+                        }
+                        onChange={() =>
+                          toggleEntryPoint(
+                            entryPoint.id
+                          )
+                        }
+                        style={{
+                          marginTop:
+                            "3px",
+                          width:
+                            "18px",
+                          height:
+                            "18px",
+                        }}
+                      />
+
+                      <span>
+                        <strong>
+                          {
+                            entryPoint.name
+                          }
+                        </strong>
+
+                        <span
+                          style={{
+                            display:
+                              "block",
+                            fontSize:
+                              "13px",
+                            color:
+                              "#64748b",
+                            marginTop:
+                              "5px",
+                          }}
+                        >
+                          {
+                            entryPoint.collection_method
+                          }
+                        </span>
+                      </span>
+                    </label>
+                  );
+                }
               )}
-              selected={selectedEntryPoints}
-              onToggle={toggleEntryPoint}
-            />
+            </div>
 
-            <div style={subsectionStyle}>
-              <h3>Don't see your data entry point?</h3>
+            <div
+              style={{
+                marginTop: "24px",
+                paddingTop: "20px",
+                borderTop:
+                  "1px solid #e2e8f0",
+              }}
+            >
+              <h3
+                style={{
+                  color: "#0f172a",
+                  fontSize: "17px",
+                }}
+              >
+                Don't see your data
+                entry point?
+              </h3>
 
-              <p style={noticeStyle}>
-                Add a custom channel used by
-                your organisation.
+              <p
+                style={
+                  noticeStyle
+                }
+              >
+                Add a custom channel
+                used by your
+                organisation.
               </p>
 
-              <div style={inputRowStyle}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "10px",
+                  marginTop: "12px",
+                  flexWrap:
+                    "wrap",
+                }}
+              >
                 <input
-                  value={customEntryPoint}
+                  type="text"
+                  value={
+                    customEntryPoint
+                  }
                   onChange={(event) =>
                     setCustomEntryPoint(
                       event.target.value
                     )
                   }
                   placeholder="e.g. Admission kiosk"
-                  style={inputStyle}
+                  style={{
+                    flex:
+                      "1 1 300px",
+                    padding:
+                      "12px 14px",
+                    borderRadius:
+                      "8px",
+                    border:
+                      "1px solid #cbd5e1",
+                    fontSize:
+                      "15px",
+                  }}
                 />
 
                 <button
@@ -994,18 +1096,64 @@ export default function AssessmentPage() {
                 </button>
               </div>
 
-              {customEntryPoints.map(
-                (item) => (
-                  <RemovableItem
-                    key={item.id}
-                    name={item.name}
-                    onRemove={() =>
-                      removeCustomEntryPoint(
-                        item.id
-                      )
-                    }
-                  />
-                )
+              {customEntryPoints.length >
+                0 && (
+                <div
+                  style={{
+                    marginTop:
+                      "16px",
+                  }}
+                >
+                  {customEntryPoints.map(
+                    (
+                      entryPoint
+                    ) => (
+                      <div
+                        key={
+                          entryPoint.id
+                        }
+                        style={{
+                          display:
+                            "flex",
+                          alignItems:
+                            "center",
+                          justifyContent:
+                            "space-between",
+                          padding:
+                            "12px 14px",
+                          marginBottom:
+                            "8px",
+                          background:
+                            "#f8fafc",
+                          border:
+                            "1px solid #e2e8f0",
+                          borderRadius:
+                            "8px",
+                        }}
+                      >
+                        <strong>
+                          {
+                            entryPoint.name
+                          }
+                        </strong>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            removeCustomEntryPoint(
+                              entryPoint.id
+                            )
+                          }
+                          style={
+                            removeButtonStyle
+                          }
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    )
+                  )}
+                </div>
               )}
             </div>
 
@@ -1024,7 +1172,9 @@ export default function AssessmentPage() {
           </section>
         )}
 
-        {/* STEP 5 */}
+        {/* =================================================
+            STEP 5
+            ================================================= */}
 
         {businessTypeId ===
           "EDU-SCH" &&
@@ -1032,571 +1182,831 @@ export default function AssessmentPage() {
             0 ||
             customEntryPoints.length >
               0) && (
-          <section style={cardStyle}>
-            <StepNumber number="5" />
+            <section
+              style={cardStyle}
+            >
+              <StepNumber number="5" />
 
-            <h2 style={headingStyle}>
-              What personal data is collected?
-            </h2>
+              <h2
+                style={headingStyle}
+              >
+                What personal data is
+                collected?
+              </h2>
 
-            <p style={noticeStyle}>
-              Select all personal-data fields
-              that your organisation collects.
-            </p>
-
-            <div style={gridStyle}>
-              {kb.school.fields.map(
-                (field) => {
-                  const selected =
-                    selectedFields.includes(
-                      field.id
-                    );
-
-                  return (
-                    <label
-                      key={field.id}
-                      style={{
-                        ...checkboxStyle,
-                        border:
-                          selected
-                            ? "2px solid #1d4ed8"
-                            : "1px solid #e2e8f0",
-                        background:
-                          selected
-                            ? "#eff6ff"
-                            : "#f8fafc",
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selected}
-                        onChange={() =>
-                          toggleField(
-                            field.id
-                          )
-                        }
-                      />
-
-                      <span>
-                        <strong>
-                          {field.name}
-                        </strong>
-
-                        <span
-                          style={smallTextStyle}
-                        >
-                          {field.data_categories.join(
-                            ", "
-                          )}
-                        </span>
-
-                        <span
-                          style={{
-                            ...smallTextStyle,
-                            color:
-                              field.child_relevant
-                                ? "#b45309"
-                                : "#64748b",
-                          }}
-                        >
-                          Data subject:{" "}
-                          {field.typical_data_subjects.join(
-                            ", "
-                          )}
-                          {field.child_relevant
-                            ? " • Child-relevant"
-                            : ""}
-                        </span>
-                      </span>
-                    </label>
-                  );
-                }
-              )}
-            </div>
-
-            <div style={subsectionStyle}>
-              <h3>Don't see your data field?</h3>
-
-              <p style={noticeStyle}>
-                Add a custom personal-data field.
+              <p
+                style={{
+                  ...noticeStyle,
+                  marginBottom:
+                    "20px",
+                }}
+              >
+                Select all personal-data
+                fields that your
+                organisation collects.
               </p>
 
-              <div style={inputRowStyle}>
-                <input
-                  value={customField}
-                  onChange={(event) =>
-                    setCustomField(
-                      event.target.value
-                    )
-                  }
-                  placeholder="e.g. Previous School Name"
-                  style={inputStyle}
-                />
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    "repeat(auto-fit, minmax(280px, 1fr))",
+                  gap: "12px",
+                }}
+              >
+                {kb.school.fields.map(
+                  (field) => {
+                    const isSelected =
+                      selectedFields.includes(
+                        field.id
+                      );
 
-                <button
-                  type="button"
-                  onClick={addCustomField}
-                  style={
-                    secondaryButtonStyle
+                    return (
+                      <label
+                        key={
+                          field.id
+                        }
+                        style={{
+                          display:
+                            "flex",
+                          alignItems:
+                            "flex-start",
+                          gap: "12px",
+                          padding:
+                            "16px",
+                          border:
+                            isSelected
+                              ? "2px solid #1d4ed8"
+                              : "1px solid #e2e8f0",
+                          borderRadius:
+                            "10px",
+                          background:
+                            isSelected
+                              ? "#eff6ff"
+                              : "#f8fafc",
+                          cursor:
+                            "pointer",
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={
+                            isSelected
+                          }
+                          onChange={() =>
+                            toggleField(
+                              field.id
+                            )
+                          }
+                          style={{
+                            marginTop:
+                              "3px",
+                            width:
+                              "18px",
+                            height:
+                              "18px",
+                          }}
+                        />
+
+                        <span>
+                          <strong>
+                            {
+                              field.name
+                            }
+                          </strong>
+
+                          <span
+                            style={{
+                              display:
+                                "block",
+                              fontSize:
+                                "12px",
+                              color:
+                                "#64748b",
+                              marginTop:
+                                "5px",
+                            }}
+                          >
+                            {field.data_categories.join(
+                              ", "
+                            )}
+                          </span>
+
+                          <span
+                            style={{
+                              display:
+                                "block",
+                              fontSize:
+                                "12px",
+                              color:
+                                field.child_relevant
+                                  ? "#b45309"
+                                  : "#64748b",
+                              marginTop:
+                                "4px",
+                            }}
+                          >
+                            Data subject:{" "}
+                            {field.typical_data_subjects.join(
+                              ", "
+                            )}
+                            {field.child_relevant
+                              ? " • Child-relevant"
+                              : ""}
+                          </span>
+                        </span>
+                      </label>
+                    );
                   }
-                >
-                  Add
-                </button>
+                )}
               </div>
 
-              {customFields.map(
-                (field) => (
-                  <RemovableItem
-                    key={field.id}
-                    name={field.name}
-                    onRemove={() =>
-                      removeCustomField(
-                        field.id
+              <div
+                style={{
+                  marginTop: "24px",
+                  paddingTop: "20px",
+                  borderTop:
+                    "1px solid #e2e8f0",
+                }}
+              >
+                <h3
+                  style={{
+                    color: "#0f172a",
+                    fontSize: "17px",
+                  }}
+                >
+                  Don't see your data
+                  field?
+                </h3>
+
+                <p
+                  style={
+                    noticeStyle
+                  }
+                >
+                  Add a custom
+                  personal-data field.
+                </p>
+
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "10px",
+                    marginTop: "12px",
+                    flexWrap:
+                      "wrap",
+                  }}
+                >
+                  <input
+                    type="text"
+                    value={
+                      customField
+                    }
+                    onChange={(event) =>
+                      setCustomField(
+                        event.target.value
                       )
                     }
+                    placeholder="e.g. Previous School Name"
+                    style={{
+                      flex:
+                        "1 1 300px",
+                      padding:
+                        "12px 14px",
+                      borderRadius:
+                        "8px",
+                      border:
+                        "1px solid #cbd5e1",
+                      fontSize:
+                        "15px",
+                    }}
                   />
-                )
+
+                  <button
+                    type="button"
+                    onClick={
+                      addCustomField
+                    }
+                    style={
+                      secondaryButtonStyle
+                    }
+                  >
+                    Add
+                  </button>
+                </div>
+
+                {customFields.length >
+                  0 && (
+                  <div
+                    style={{
+                      marginTop:
+                        "16px",
+                    }}
+                  >
+                    {customFields.map(
+                      (field) => (
+                        <div
+                          key={
+                            field.id
+                          }
+                          style={{
+                            display:
+                              "flex",
+                            justifyContent:
+                              "space-between",
+                            alignItems:
+                              "center",
+                            padding:
+                              "12px 14px",
+                            marginBottom:
+                              "8px",
+                            background:
+                              "#f8fafc",
+                            border:
+                              "1px solid #e2e8f0",
+                            borderRadius:
+                              "8px",
+                          }}
+                        >
+                          <strong>
+                            {
+                              field.name
+                            }
+                          </strong>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              removeCustomField(
+                                field.id
+                              )
+                            }
+                            style={
+                              removeButtonStyle
+                            }
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      )
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {(selectedFields.length >
+                0 ||
+                customFields.length >
+                  0) && (
+                <SelectionSummary
+                  count={
+                    selectedFields.length +
+                    customFields.length
+                  }
+                  label="data field"
+                />
               )}
-            </div>
+            </section>
+          )}
 
-            {(selectedFields.length >
-              0 ||
-              customFields.length >
-                0) && (
-              <SelectionSummary
-                count={
-                  selectedFields.length +
-                  customFields.length
-                }
-                label="data field"
-              />
-            )}
-          </section>
-        )}
-
-        {/* STEP 6 */}
+        {/* =================================================
+            STEP 6
+            ================================================= */}
 
         {businessTypeId ===
           "EDU-SCH" &&
           selectedFields.length >
             0 && (
-          <section style={cardStyle}>
-            <StepNumber number="6" />
-
-            <h2 style={headingStyle}>
-              How is this personal data
-              collected and handled?
-            </h2>
-
-            <p style={noticeStyle}>
-              Select all options that apply.
-              If you don't know the answer,
-              select Unknown.
-            </p>
-
-            <MultiSelectField
-              label="Who collects this data?"
-              values={collectorRoles}
-              options={[
-                "Admissions Executive",
-                "Teacher",
-                "Class Teacher",
-                "Administrative Staff",
-                "Accounts Staff",
-                "HR / HR Administrator",
-                "IT / System Administrator",
-                "Principal / Management",
-                "Reception / Front Desk",
-                "Third-party Service Provider",
-                "Other",
-              ]}
-              onToggle={(value) =>
-                toggleArrayValue(
-                  value,
-                  setCollectorRoles
-                )
-              }
-            />
-
-            <MultiSelectField
-              label="Who is the data subject?"
-              values={dataSubjectTypes}
-              options={[
-                "Student",
-                "Parent / Guardian",
-                "Employee",
-                "Teacher",
-                "Visitor",
-                "Vendor / Service Provider",
-                "Other",
-              ]}
-              onToggle={(value) =>
-                toggleArrayValue(
-                  value,
-                  setDataSubjectTypes
-                )
-              }
-            />
-
-            <MultiSelectField
-              label="How is the data collected?"
-              values={collectionFormats}
-              options={[
-                "Website Form",
-                "Google Form",
-                "Mobile / School App",
-                "WhatsApp",
-                "Email",
-                "Telephone",
-                "Paper / Physical Form",
-                "In Person / Verbal",
-                "Excel / Spreadsheet",
-                "Other",
-              ]}
-              onToggle={(value) =>
-                toggleArrayValue(
-                  value,
-                  setCollectionFormats
-                )
-              }
-            />
-
-            <MultiSelectField
-              label="Where is the data stored?"
-              values={storageLocations}
-              options={[
-                "School Management System",
-                "Student Information System",
-                "CRM",
-                "Google Drive",
-                "Microsoft 365 / SharePoint",
-                "Excel / Spreadsheet",
-                "Email Mailbox",
-                "WhatsApp Account",
-                "Local Computer",
-                "Paper File / Physical Record",
-                "Third-party Vendor System",
-                "Other",
-                "Unknown",
-              ]}
-              onToggle={(value) =>
-                toggleArrayValue(
-                  value,
-                  setStorageLocations
-                )
-              }
-            />
-
-            <MultiSelectField
-              label="Where is the storage environment?"
-              values={storageEnvironments}
-              options={[
-                "Cloud",
-                "On-Premises",
-                "Employee Device",
-                "Mobile Device",
-                "Physical Storage",
-                "Third-party Hosted",
-                "Unknown",
-              ]}
-              onToggle={(value) =>
-                toggleArrayValue(
-                  value,
-                  setStorageEnvironments
-                )
-              }
-            />
-
-            <MultiSelectField
-              label="How is the stored data protected?"
-              values={encryptionStatuses}
-              options={[
-                "Encrypted at rest and in transit",
-                "Encrypted at rest only",
-                "Encrypted in transit only",
-                "Clear text / Not encrypted",
-                "Unknown",
-              ]}
-              onToggle={(value) =>
-                toggleArrayValue(
-                  value,
-                  setEncryptionStatuses
-                )
-              }
-            />
-
-            <MultiSelectField
-              label="Who can access the data?"
-              values={accessRoles}
-              options={[
-                "Admissions Executive",
-                "Teacher",
-                "Class Teacher",
-                "Administrative Staff",
-                "Accounts Staff",
-                "HR / HR Administrator",
-                "IT / System Administrator",
-                "Principal / Management",
-                "Reception / Front Desk",
-                "Third-party Service Provider",
-                "Other",
-              ]}
-              onToggle={(value) =>
-                toggleArrayValue(
-                  value,
-                  setAccessRoles
-                )
-              }
-            />
-
-            <MultiSelectField
-              label="Is the data shared with anyone else?"
-              values={sharingStatuses}
-              options={[
-                "No external sharing",
-                "Shared internally only",
-                "Shared with service provider",
-                "Shared with multiple third parties",
-                "Unknown",
-              ]}
-              onToggle={(value) =>
-                toggleArrayValue(
-                  value,
-                  setSharingStatuses
-                )
-              }
-            />
-
-            <MultiSelectField
-              label="How long is the data retained?"
-              values={retentionPeriods}
-              options={[
-                "Less than 30 days",
-                "30 days – 1 year",
-                "1 – 3 years",
-                "3 – 5 years",
-                "More than 5 years",
-                "Indefinitely",
-                "No defined retention period",
-                "Unknown",
-              ]}
-              onToggle={(value) =>
-                toggleArrayValue(
-                  value,
-                  setRetentionPeriods
-                )
-              }
-            />
-
-            <MultiSelectField
-              label="How is the data deleted?"
-              values={deletionMethods}
-              options={[
-                "Automatic deletion",
-                "Manual deletion",
-                "Periodic review and deletion",
-                "On request",
-                "No defined deletion process",
-                "Unknown",
-              ]}
-              onToggle={(value) =>
-                toggleArrayValue(
-                  value,
-                  setDeletionMethods
-                )
-              }
-            />
-
-            <MultiSelectField
-              label="Is a privacy notice provided?"
-              values={privacyNotices}
-              options={[
-                "Yes",
-                "No",
-                "Partially",
-                "Unknown",
-              ]}
-              onToggle={(value) =>
-                toggleArrayValue(
-                  value,
-                  setPrivacyNotices
-                )
-              }
-            />
-
-            <MultiSelectField
-              label="Is consent obtained where required?"
-              values={consentStatuses}
-              options={[
-                "Yes",
-                "No",
-                "Partially",
-                "Not applicable / Other lawful basis",
-                "Unknown",
-              ]}
-              onToggle={(value) =>
-                toggleArrayValue(
-                  value,
-                  setConsentStatuses
-                )
-              }
-            />
-
-            <MultiSelectField
-              label="For minors, is parent / guardian involvement addressed?"
-              values={parentalConsentStatuses}
-              options={[
-                "Yes",
-                "No",
-                "Partially",
-                "Not applicable",
-                "Unknown",
-              ]}
-              onToggle={(value) =>
-                toggleArrayValue(
-                  value,
-                  setParentalConsentStatuses
-                )
-              }
-            />
-
-            <MultiSelectField
-              label="Is the data transferred outside India?"
-              values={crossBorderTransfers}
-              options={[
-                "No",
-                "Yes",
-                "Unknown",
-              ]}
-              onToggle={(value) =>
-                toggleArrayValue(
-                  value,
-                  setCrossBorderTransfers
-                )
-              }
-            />
-          </section>
-        )}
-
-        {/* STEP 7 */}
-
-        {businessTypeId ===
-          "EDU-SCH" &&
-          selectedFields.length >
-            0 && (
-          <section style={cardStyle}>
-            <StepNumber number="7" />
-
-            <h2 style={headingStyle}>
-              Privacy Risk Assessment
-            </h2>
-
-            <p style={noticeStyle}>
-              PrivacyMap will analyse the
-              information entered above and
-              identify potential privacy,
-              security and governance risks.
-            </p>
-
-            <div style={warningStyle}>
-              <strong>Important:</strong>{" "}
-              This is a preliminary
-              privacy-risk assessment based on
-              the information provided. It is
-              not a legal opinion or a
-              determination of DPDPA compliance.
-            </div>
-
-            <button
-              type="button"
-              onClick={
-                runPrivacyRiskAssessment
-              }
-              style={primaryButtonStyle}
+            <section
+              style={cardStyle}
             >
-              Analyse Privacy Risks
-            </button>
-          </section>
-        )}
+              <StepNumber number="6" />
+
+              <h2
+                style={headingStyle}
+              >
+                How is this personal data
+                collected and handled?
+              </h2>
+
+              <p
+                style={{
+                  ...noticeStyle,
+                  marginBottom:
+                    "24px",
+                }}
+              >
+                Select all options that
+                apply. Real-world
+                processes often use
+                multiple people, channels
+                and storage locations.
+              </p>
+
+              <MultiSelectField
+                label="Who collects this data?"
+                values={
+                  collectorRoles
+                }
+                options={[
+                  "Admissions Executive",
+                  "Teacher",
+                  "Class Teacher",
+                  "Administrative Staff",
+                  "Accounts Staff",
+                  "HR / HR Administrator",
+                  "IT / System Administrator",
+                  "Principal / Management",
+                  "Reception / Front Desk",
+                  "Third-party Service Provider",
+                  "Other",
+                ]}
+                onToggle={(value) =>
+                  toggleArrayValue(
+                    value,
+                    setCollectorRoles
+                  )
+                }
+              />
+
+              <MultiSelectField
+                label="Who is the data subject?"
+                values={
+                  dataSubjectTypes
+                }
+                options={[
+                  "Student",
+                  "Parent / Guardian",
+                  "Employee",
+                  "Teacher",
+                  "Visitor",
+                  "Vendor / Service Provider",
+                  "Other",
+                ]}
+                onToggle={(value) =>
+                  toggleArrayValue(
+                    value,
+                    setDataSubjectTypes
+                  )
+                }
+              />
+
+              <MultiSelectField
+                label="How is the data collected?"
+                values={
+                  collectionFormats
+                }
+                options={[
+                  "Website Form",
+                  "Google Form",
+                  "Mobile / School App",
+                  "WhatsApp",
+                  "Email",
+                  "Telephone",
+                  "Paper / Physical Form",
+                  "In Person / Verbal",
+                  "Excel / Spreadsheet",
+                  "Other",
+                ]}
+                onToggle={(value) =>
+                  toggleArrayValue(
+                    value,
+                    setCollectionFormats
+                  )
+                }
+              />
+
+              <MultiSelectField
+                label="Where is the data stored?"
+                values={
+                  storageLocations
+                }
+                options={[
+                  "School Management System",
+                  "Student Information System",
+                  "CRM",
+                  "Google Drive",
+                  "Microsoft 365 / SharePoint",
+                  "Excel / Spreadsheet",
+                  "Email Mailbox",
+                  "WhatsApp Account",
+                  "Local Computer",
+                  "Paper File / Physical Record",
+                  "Third-party Vendor System",
+                  "Other",
+                  "Unknown",
+                ]}
+                onToggle={(value) =>
+                  toggleArrayValue(
+                    value,
+                    setStorageLocations
+                  )
+                }
+              />
+
+              <MultiSelectField
+                label="Where is the storage environment?"
+                values={
+                  storageEnvironments
+                }
+                options={[
+                  "Cloud",
+                  "On-Premises",
+                  "Employee Device",
+                  "Mobile Device",
+                  "Physical Storage",
+                  "Third-party Hosted",
+                  "Unknown",
+                ]}
+                onToggle={(value) =>
+                  toggleArrayValue(
+                    value,
+                    setStorageEnvironments
+                  )
+                }
+              />
+
+              <MultiSelectField
+                label="How is the stored data protected?"
+                values={
+                  encryptionStatuses
+                }
+                options={[
+                  "Encrypted at rest and in transit",
+                  "Encrypted at rest only",
+                  "Encrypted in transit only",
+                  "Clear text / Not encrypted",
+                  "Unknown",
+                ]}
+                onToggle={(value) =>
+                  toggleArrayValue(
+                    value,
+                    setEncryptionStatuses
+                  )
+                }
+              />
+
+              <MultiSelectField
+                label="Who can access the data?"
+                values={
+                  accessRoles
+                }
+                options={[
+                  "Admissions Executive",
+                  "Teacher",
+                  "Class Teacher",
+                  "Administrative Staff",
+                  "Accounts Staff",
+                  "HR / HR Administrator",
+                  "IT / System Administrator",
+                  "Principal / Management",
+                  "Reception / Front Desk",
+                  "Third-party Service Provider",
+                  "Other",
+                ]}
+                onToggle={(value) =>
+                  toggleArrayValue(
+                    value,
+                    setAccessRoles
+                  )
+                }
+              />
+
+              <MultiSelectField
+                label="Is the data shared with anyone else?"
+                values={
+                  sharingStatuses
+                }
+                options={[
+                  "No external sharing",
+                  "Shared internally only",
+                  "Shared with service provider",
+                  "Shared with multiple third parties",
+                  "Unknown",
+                ]}
+                onToggle={(value) =>
+                  toggleArrayValue(
+                    value,
+                    setSharingStatuses
+                  )
+                }
+              />
+
+              <MultiSelectField
+                label="How long is the data retained?"
+                values={
+                  retentionPeriods
+                }
+                options={[
+                  "Less than 30 days",
+                  "30 days – 1 year",
+                  "1 – 3 years",
+                  "3 – 5 years",
+                  "More than 5 years",
+                  "Indefinitely",
+                  "No defined retention period",
+                  "Unknown",
+                ]}
+                onToggle={(value) =>
+                  toggleArrayValue(
+                    value,
+                    setRetentionPeriods
+                  )
+                }
+              />
+
+              <MultiSelectField
+                label="How is the data deleted?"
+                values={
+                  deletionMethods
+                }
+                options={[
+                  "Automatic deletion",
+                  "Manual deletion",
+                  "Periodic review and deletion",
+                  "On request",
+                  "No defined deletion process",
+                  "Unknown",
+                ]}
+                onToggle={(value) =>
+                  toggleArrayValue(
+                    value,
+                    setDeletionMethods
+                  )
+                }
+              />
+
+              <MultiSelectField
+                label="Is a privacy notice provided?"
+                values={
+                  privacyNotices
+                }
+                options={[
+                  "Yes",
+                  "No",
+                  "Partially",
+                  "Unknown",
+                ]}
+                onToggle={(value) =>
+                  toggleArrayValue(
+                    value,
+                    setPrivacyNotices
+                  )
+                }
+              />
+
+              <MultiSelectField
+                label="Is consent obtained where required?"
+                values={
+                  consentStatuses
+                }
+                options={[
+                  "Yes",
+                  "No",
+                  "Partially",
+                  "Not applicable / Other lawful basis",
+                  "Unknown",
+                ]}
+                onToggle={(value) =>
+                  toggleArrayValue(
+                    value,
+                    setConsentStatuses
+                  )
+                }
+              />
+
+              <MultiSelectField
+                label="For minors, is parent / guardian involvement addressed?"
+                values={
+                  parentalConsentStatuses
+                }
+                options={[
+                  "Yes",
+                  "No",
+                  "Partially",
+                  "Not applicable",
+                  "Unknown",
+                ]}
+                onToggle={(value) =>
+                  toggleArrayValue(
+                    value,
+                    setParentalConsentStatuses
+                  )
+                }
+              />
+
+              <MultiSelectField
+                label="Is the data transferred outside India?"
+                values={
+                  crossBorderTransfers
+                }
+                options={[
+                  "No",
+                  "Yes",
+                  "Unknown",
+                ]}
+                onToggle={(value) =>
+                  toggleArrayValue(
+                    value,
+                    setCrossBorderTransfers
+                  )
+                }
+              />
+
+              <div
+                style={{
+                  marginTop: "28px",
+                  padding: "16px",
+                  background:
+                    "#f8fafc",
+                  border:
+                    "1px solid #e2e8f0",
+                  borderRadius: "10px",
+                  color: "#475569",
+                  lineHeight: 1.6,
+                }}
+              >
+                <strong>
+                  Assessment guidance:
+                </strong>{" "}
+                Select all options that
+                apply. If you don't know
+                the answer, select{" "}
+                <strong>
+                  Unknown
+                </strong>
+                .
+              </div>
+            </section>
+          )}
+
+        {/* =================================================
+            STEP 7
+            ================================================= */}
+
+        {businessTypeId ===
+          "EDU-SCH" &&
+          selectedFields.length >
+            0 && (
+            <section
+              style={cardStyle}
+            >
+              <StepNumber number="7" />
+
+              <h2
+                style={headingStyle}
+              >
+                Privacy Risk Assessment
+              </h2>
+
+              <p
+                style={{
+                  ...noticeStyle,
+                  marginBottom:
+                    "24px",
+                }}
+              >
+                PrivacyMap will analyse
+                the information entered
+                above and identify
+                potential privacy,
+                security and governance
+                risks.
+              </p>
+
+              <div
+                style={{
+                  padding: "20px",
+                  background:
+                    "#eff6ff",
+                  border:
+                    "1px solid #bfdbfe",
+                  borderRadius:
+                    "12px",
+                  marginBottom:
+                    "20px",
+                  color:
+                    "#1e3a8a",
+                  lineHeight: 1.6,
+                }}
+              >
+                <strong>
+                  Important:
+                </strong>{" "}
+                This is a preliminary
+                privacy-risk assessment
+                based on the information
+                provided. It is not a
+                legal opinion or a
+                determination of DPDPA
+                compliance.
+              </div>
+
+              <button
+                type="button"
+                onClick={
+                  runPrivacyRiskAssessment
+                }
+                style={{
+                  width: "100%",
+                  padding: "16px",
+                  border: "none",
+                  borderRadius:
+                    "10px",
+                  background:
+                    "#1d4ed8",
+                  color: "white",
+                  fontSize:
+                    "17px",
+                  fontWeight: 700,
+                  cursor:
+                    "pointer",
+                }}
+              >
+                Analyse Privacy Risks
+              </button>
+            </section>
+          )}
+
+        {/* =================================================
+            STEP 7 OUTPUT
+            ================================================= */}
 
         {riskResult && (
-          <div id="privacy-risk-result">
-            <RiskDashboard result={riskResult} />
+          <div
+            id="privacy-risk-result"
+          >
+            <RiskDashboard
+              result={riskResult}
+            />
           </div>
         )}
 
-        {/* STEP 8 */}
+        {/* =================================================
+            STEP 8
+            ================================================= */}
 
         {riskResult &&
           treatmentPlan.length > 0 && (
-          <RiskTreatmentPlan
-            plan={treatmentPlan}
-          />
-        )}
+            <RiskTreatmentPlan
+              plan={treatmentPlan}
+            />
+          )}
 
-        {/* STEP 9 */}
+        {/* =================================================
+            STEP 9 - RESIDUAL RISK + DECISION
+            ================================================= */}
 
         {riskResult &&
           treatmentPlan.length > 0 &&
           residualRiskAssessments.length >
             0 && (
-          <ResidualRiskDashboard
-            assessments={
-              residualRiskAssessments
-            }
-            summary={
-              residualRiskSummary
-            }
-          />
-        )}
+            <ResidualRiskDashboard
+              assessments={
+                residualRiskAssessments
+              }
+              summary={
+                residualRiskSummary
+              }
+              decisions={
+                residualRiskDecisions
+              }
+              setDecisions={
+                setResidualRiskDecisions
+              }
+            />
+          )}
 
-        {/* STEP 10 */}
-
-        {riskResult &&
-          residualRiskDecisions.length >
-            0 && (
-          <ResidualRiskDecisionDashboard
-            decisions={
-              residualRiskDecisions
-            }
-            onDecisionChange={
-              updateResidualDecision
-            }
-            onRationaleChange={
-              updateDecisionRationale
-            }
-            onOwnerChange={
-              updateDecisionOwner
-            }
-            onReviewDateChange={
-              updateDecisionReviewDate
-            }
-            onTreatmentStatusChange={
-              updateDecisionTreatmentStatus
-            }
-          />
-        )}
+        {/* =================================================
+            PRIVACY BY DESIGN
+            ================================================= */}
 
         <div
           style={{
             marginTop: "32px",
-            padding: "18px 20px",
-            background: "#eff6ff",
+            padding:
+              "18px 20px",
+            background:
+              "#eff6ff",
             border:
               "1px solid #bfdbfe",
-            borderRadius: "10px",
-            color: "#1e3a8a",
+            borderRadius:
+              "10px",
+            color:
+              "#1e3a8a",
             lineHeight: 1.6,
           }}
         >
           <strong>
             Privacy-by-design:
           </strong>{" "}
-          PrivacyMap does not require your
-          customers' personal data. Assessment
-          responses remain in your browser and
+          PrivacyMap does not require
+          your customers' personal
+          data. Assessment responses
+          remain in your browser and
           are used locally to generate
-          assessment results and reports.
+          assessment results and
+          reports.
         </div>
       </div>
     </main>
@@ -1615,47 +2025,194 @@ function RiskDashboard({
   result: RiskResult;
 }) {
   return (
-    <section style={sectionStyle}>
-      <div style={panelStyle}>
-        <h2 style={panelHeadingStyle}>
+    <section
+      style={{
+        marginTop: "24px",
+        marginBottom: "24px",
+      }}
+    >
+      <div
+        style={{
+          background: "white",
+          border:
+            "1px solid #e2e8f0",
+          borderRadius: "14px",
+          padding: "28px",
+        }}
+      >
+        <h2
+          style={{
+            color: "#0f172a",
+            marginTop: 0,
+          }}
+        >
           Privacy Risk Dashboard
         </h2>
 
-        <div style={summaryGridStyle}>
-          <RiskSummaryCard
-            label="OVERALL RISK"
-            value={result.overallLevel}
-            level={result.overallLevel}
-            description={`Risk score: ${result.score}/100`}
-          />
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: "16px",
+            marginTop: "20px",
+          }}
+        >
+          <div
+            style={{
+              padding: "22px",
+              borderRadius:
+                "12px",
+              background:
+                riskBackground(
+                  result.overallLevel
+                ),
+            }}
+          >
+            <div
+              style={{
+                fontSize:
+                  "13px",
+                fontWeight: 700,
+                color:
+                  "#475569",
+              }}
+            >
+              OVERALL RISK
+            </div>
 
-          <RiskSummaryCard
-            label="FINDINGS"
-            value={result.findings.length}
-            description="Potential issues identified"
-          />
+            <div
+              style={{
+                fontSize:
+                  "32px",
+                fontWeight: 800,
+                marginTop:
+                  "8px",
+                color:
+                  riskColor(
+                    result.overallLevel
+                  ),
+              }}
+            >
+              {
+                result.overallLevel
+              }
+            </div>
+
+            <div
+              style={{
+                marginTop:
+                  "5px",
+                color:
+                  "#475569",
+              }}
+            >
+              Risk score:{" "}
+              {result.score}
+              /100
+            </div>
+          </div>
+
+          <div
+            style={{
+              padding: "22px",
+              borderRadius:
+                "12px",
+              background:
+                "#f8fafc",
+            }}
+          >
+            <div
+              style={{
+                fontSize:
+                  "13px",
+                fontWeight: 700,
+                color:
+                  "#475569",
+              }}
+            >
+              FINDINGS
+            </div>
+
+            <div
+              style={{
+                fontSize:
+                  "32px",
+                fontWeight: 800,
+                marginTop:
+                  "8px",
+                color:
+                  "#0f172a",
+              }}
+            >
+              {
+                result.findings
+                  .length
+              }
+            </div>
+
+            <div
+              style={{
+                marginTop:
+                  "5px",
+                color:
+                  "#475569",
+              }}
+            >
+              Potential issues
+              identified
+            </div>
+          </div>
         </div>
 
-        <h3 style={subheadingStyle}>
+        <h3
+          style={{
+            marginTop:
+              "32px",
+            color:
+              "#0f172a",
+          }}
+        >
           Risk by category
         </h3>
 
-        <div style={gridStyle}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(auto-fit, minmax(250px, 1fr))",
+            gap: "12px",
+          }}
+        >
           {result.categoryScores.map(
             (category) => (
               <div
-                key={category.category}
-                style={metaCardStyle}
+                key={
+                  category.category
+                }
+                style={{
+                  padding:
+                    "16px",
+                  border:
+                    "1px solid #e2e8f0",
+                  borderRadius:
+                    "10px",
+                }}
               >
                 <div
                   style={{
-                    display: "flex",
+                    display:
+                      "flex",
                     justifyContent:
                       "space-between",
+                    gap:
+                      "10px",
                   }}
                 >
                   <strong>
-                    {category.category}
+                    {
+                      category.category
+                    }
                   </strong>
 
                   <strong
@@ -1666,15 +2223,31 @@ function RiskDashboard({
                         ),
                     }}
                   >
-                    {category.level}
+                    {
+                      category.level
+                    }
                   </strong>
                 </div>
 
-                <div style={progressBackgroundStyle}>
+                <div
+                  style={{
+                    marginTop:
+                      "10px",
+                    height:
+                      "8px",
+                    background:
+                      "#e2e8f0",
+                    borderRadius:
+                      "20px",
+                    overflow:
+                      "hidden",
+                  }}
+                >
                   <div
                     style={{
                       width: `${category.score}%`,
-                      height: "100%",
+                      height:
+                        "100%",
                       background:
                         riskColor(
                           category.level
@@ -1683,8 +2256,20 @@ function RiskDashboard({
                   />
                 </div>
 
-                <div style={smallMutedStyle}>
-                  {category.score}/100
+                <div
+                  style={{
+                    marginTop:
+                      "6px",
+                    fontSize:
+                      "12px",
+                    color:
+                      "#64748b",
+                  }}
+                >
+                  {
+                    category.score
+                  }
+                  /100
                 </div>
               </div>
             )
@@ -1692,32 +2277,105 @@ function RiskDashboard({
         </div>
       </div>
 
-      <div style={panelStyle}>
-        <h2 style={panelHeadingStyle}>
+      {/* FINDINGS */}
+
+      <div
+        style={{
+          background:
+            "white",
+          border:
+            "1px solid #e2e8f0",
+          borderRadius:
+            "14px",
+          padding:
+            "28px",
+          marginTop:
+            "20px",
+        }}
+      >
+        <h2
+          style={{
+            marginTop: 0,
+            color:
+              "#0f172a",
+          }}
+        >
           Key Privacy Findings
         </h2>
 
-        {result.findings.length === 0 ? (
-          <div style={successStyle}>
-            No significant privacy risk
-            signals were identified from the
-            information provided.
+        {result.findings
+          .length === 0 ? (
+          <div
+            style={{
+              padding:
+                "18px",
+              background:
+                "#f0fdf4",
+              border:
+                "1px solid #bbf7d0",
+              borderRadius:
+                "10px",
+              color:
+                "#166534",
+            }}
+          >
+            No significant
+            privacy risk
+            signals were
+            identified from
+            the information
+            provided.
           </div>
         ) : (
           result.findings.map(
             (finding) => (
               <div
-                key={finding.id}
-                style={findingCardStyle}
+                key={
+                  finding.id
+                }
+                style={{
+                  padding:
+                    "20px",
+                  marginBottom:
+                    "14px",
+                  border:
+                    "1px solid #e2e8f0",
+                  borderRadius:
+                    "10px",
+                }}
               >
-                <div style={findingHeaderStyle}>
+                <div
+                  style={{
+                    display:
+                      "flex",
+                    justifyContent:
+                      "space-between",
+                    alignItems:
+                      "flex-start",
+                    gap:
+                      "15px",
+                    flexWrap:
+                      "wrap",
+                  }}
+                >
                   <div>
                     <div
-                      style={
-                        smallLabelStyle
-                      }
+                      style={{
+                        fontSize:
+                          "12px",
+                        fontWeight:
+                          700,
+                        color:
+                          "#64748b",
+                        textTransform:
+                          "uppercase",
+                        letterSpacing:
+                          "1px",
+                      }}
                     >
-                      {finding.category}
+                      {
+                        finding.category
+                      }
                     </div>
 
                     <h3
@@ -1728,29 +2386,72 @@ function RiskDashboard({
                           "#0f172a",
                       }}
                     >
-                      {finding.title}
+                      {
+                        finding.title
+                      }
                     </h3>
                   </div>
 
-                  <RiskBadge
-                    level={
+                  <span
+                    style={{
+                      padding:
+                        "6px 10px",
+                      borderRadius:
+                        "20px",
+                      background:
+                        riskBackground(
+                          finding.level
+                        ),
+                      color:
+                        riskColor(
+                          finding.level
+                        ),
+                      fontWeight:
+                        700,
+                      fontSize:
+                        "12px",
+                    }}
+                  >
+                    {
                       finding.level
                     }
-                    label={
-                      finding.level
-                    }
-                  />
+                  </span>
                 </div>
 
-                <p style={paragraphStyle}>
-                  {finding.explanation}
+                <p
+                  style={{
+                    color:
+                      "#475569",
+                    lineHeight:
+                      1.6,
+                  }}
+                >
+                  {
+                    finding.explanation
+                  }
                 </p>
 
-                <div style={recommendationStyle}>
+                <div
+                  style={{
+                    padding:
+                      "14px",
+                    background:
+                      "#f8fafc",
+                    borderRadius:
+                      "8px",
+                    color:
+                      "#334155",
+                    lineHeight:
+                      1.6,
+                  }}
+                >
                   <strong>
-                    Recommended action:
+                    Recommended
+                    action:
                   </strong>{" "}
-                  {finding.recommendation}
+                  {
+                    finding.recommendation
+                  }
                 </div>
               </div>
             )
@@ -1763,7 +2464,7 @@ function RiskDashboard({
 
 /*
  * =========================================================
- * STEP 8 - TREATMENT
+ * STEP 8 - RISK TREATMENT PLAN
  * =========================================================
  */
 
@@ -1773,11 +2474,165 @@ function RiskTreatmentPlan({
   plan: RiskTreatmentAction[];
 }) {
   const [actions, setActions] =
-    useState<RiskTreatmentAction[]>(plan);
+    useState<RiskTreatmentAction[]>(
+      plan
+    );
 
   useEffect(() => {
     setActions(plan);
   }, [plan]);
+
+  function TreatmentSummaryCard({
+    label,
+    value,
+    level,
+  }: {
+    label: string;
+    value: number;
+    level?: RiskLevel;
+  }) {
+    return (
+      <div
+        style={{
+          padding: "18px",
+          borderRadius: "10px",
+          background:
+            level
+              ? riskBackground(level)
+              : "#f8fafc",
+          border:
+            "1px solid #e2e8f0",
+        }}
+      >
+        <div
+          style={{
+            fontSize: "11px",
+            fontWeight: 700,
+            color: "#64748b",
+            letterSpacing: "1px",
+          }}
+        >
+          {label}
+        </div>
+
+        <div
+          style={{
+            marginTop: "6px",
+            fontSize: "28px",
+            fontWeight: 800,
+            color:
+              level
+                ? riskColor(level)
+                : "#0f172a",
+          }}
+        >
+          {value}
+        </div>
+      </div>
+    );
+  }
+
+  function TreatmentMeta({
+    label,
+    value,
+  }: {
+    label: string;
+    value: string;
+  }) {
+    return (
+      <div
+        style={{
+          padding: "12px",
+          background: "#f8fafc",
+          borderRadius: "8px",
+        }}
+      >
+        <div
+          style={{
+            fontSize: "11px",
+            fontWeight: 700,
+            color: "#64748b",
+            textTransform:
+              "uppercase",
+            marginBottom: "5px",
+          }}
+        >
+          {label}
+        </div>
+
+        <div
+          style={{
+            fontSize: "13px",
+            color: "#334155",
+            lineHeight: 1.5,
+          }}
+        >
+          {value}
+        </div>
+      </div>
+    );
+  }
+
+  function RiskBadge({
+    label,
+    level,
+  }: {
+    label: string;
+    level: RiskLevel;
+  }) {
+    return (
+      <span
+        style={{
+          padding: "6px 10px",
+          borderRadius: "20px",
+          background:
+            riskBackground(level),
+          color:
+            riskColor(level),
+          fontWeight: 700,
+          fontSize: "12px",
+        }}
+      >
+        {label}
+      </span>
+    );
+  }
+
+  function PriorityBadge({
+    priority,
+  }: {
+    priority:
+      | "Immediate"
+      | "High"
+      | "Medium"
+      | "Low";
+  }) {
+    const level: RiskLevel =
+      priority === "Immediate"
+        ? "Critical"
+        : priority === "High"
+        ? "High"
+        : priority === "Medium"
+        ? "Medium"
+        : "Low";
+
+    return (
+      <span
+        style={{
+          padding: "6px 10px",
+          borderRadius: "20px",
+          background:
+            riskBackground(level),
+          color:
+            riskColor(level),
+          fontWeight: 700,
+          fontSize: "12px",
+        }}
+      >
+        {priority} Priority
+      </span>
+    );
+  }
 
   function updateStatus(
     id: string,
@@ -1814,42 +2669,82 @@ function RiskTreatmentPlan({
     ).length;
 
   return (
-    <section style={sectionStyle}>
-      <div style={panelStyle}>
-        <div style={stepLabelStyle}>
+    <section
+      style={{
+        marginTop: "24px",
+        marginBottom: "24px",
+      }}
+    >
+      <div
+        style={{
+          background: "white",
+          border:
+            "1px solid #e2e8f0",
+          borderRadius: "14px",
+          padding: "28px",
+        }}
+      >
+        <div
+          style={{
+            fontSize: "13px",
+            fontWeight: 700,
+            letterSpacing: "2px",
+            color: "#1d4ed8",
+            marginBottom: "8px",
+          }}
+        >
           STEP 8
         </div>
 
-        <h2 style={panelHeadingStyle}>
+        <h2
+          style={{
+            marginTop: 0,
+            color: "#0f172a",
+          }}
+        >
           Risk Treatment & Action Plan
         </h2>
 
-        <p style={paragraphStyle}>
+        <p
+          style={{
+            color: "#64748b",
+            lineHeight: 1.6,
+            maxWidth: "720px",
+          }}
+        >
           Convert the privacy risks identified
           in Step 7 into practical remediation
           actions, ownership, target timeframes
           and treatment status.
         </p>
 
-        <div style={summaryGridStyle}>
-          <RiskSummaryCard
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(auto-fit, minmax(180px, 1fr))",
+            gap: "12px",
+            marginTop: "24px",
+          }}
+        >
+          <TreatmentSummaryCard
             label="TOTAL ACTIONS"
             value={actions.length}
           />
 
-          <RiskSummaryCard
+          <TreatmentSummaryCard
             label="IMMEDIATE"
             value={immediateCount}
             level="Critical"
           />
 
-          <RiskSummaryCard
+          <TreatmentSummaryCard
             label="HIGH PRIORITY"
             value={highCount}
             level="High"
           />
 
-          <RiskSummaryCard
+          <TreatmentSummaryCard
             label="COMPLETED"
             value={completedCount}
             level="Low"
@@ -1857,28 +2752,65 @@ function RiskTreatmentPlan({
         </div>
       </div>
 
-      <div style={panelStyle}>
-        <h2 style={panelHeadingStyle}>
+      <div
+        style={{
+          marginTop: "20px",
+          background: "white",
+          border:
+            "1px solid #e2e8f0",
+          borderRadius: "14px",
+          padding: "28px",
+        }}
+      >
+        <h2
+          style={{
+            marginTop: 0,
+            color: "#0f172a",
+          }}
+        >
           Recommended Risk Treatments
         </h2>
 
         {actions.map((action) => (
           <div
             key={action.id}
-            style={findingCardStyle}
+            style={{
+              border:
+                "1px solid #e2e8f0",
+              borderRadius: "12px",
+              padding: "22px",
+              marginBottom: "16px",
+            }}
           >
-            <div style={findingHeaderStyle}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent:
+                  "space-between",
+                alignItems:
+                  "flex-start",
+                gap: "15px",
+                flexWrap: "wrap",
+              }}
+            >
               <div>
                 <div
-                  style={smallLabelStyle}
+                  style={{
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    color: "#64748b",
+                    textTransform:
+                      "uppercase",
+                    letterSpacing: "1px",
+                  }}
                 >
                   {action.category}
                 </div>
 
                 <h3
                   style={{
-                    margin:
-                      "6px 0",
+                    margin: "6px 0",
+                    color: "#0f172a",
                   }}
                 >
                   {action.riskTitle}
@@ -1889,78 +2821,93 @@ function RiskTreatmentPlan({
                 style={{
                   display: "flex",
                   gap: "8px",
+                  flexWrap: "wrap",
                 }}
               >
                 <RiskBadge
-                  label={
-                    action.riskLevel
-                  }
+                  label={action.riskLevel}
                   level={
                     action.riskLevel
                   }
                 />
 
-                <RiskBadge
-                  label={`${action.priority} Priority`}
-                  level={
-                    action.priority ===
-                    "Immediate"
-                      ? "Critical"
-                      : action.priority ===
-                        "High"
-                      ? "High"
-                      : action.priority ===
-                        "Medium"
-                      ? "Medium"
-                      : "Low"
+                <PriorityBadge
+                  priority={
+                    action.priority
                   }
                 />
               </div>
             </div>
 
-            <div style={recommendationStyle}>
+            <div
+              style={{
+                marginTop: "18px",
+                padding: "16px",
+                background: "#eff6ff",
+                border:
+                  "1px solid #bfdbfe",
+                borderRadius: "10px",
+                lineHeight: 1.6,
+                color: "#1e3a8a",
+              }}
+            >
               <strong>
                 Recommended treatment
               </strong>
 
               <div
                 style={{
-                  marginTop:
-                    "6px",
+                  marginTop: "6px",
                 }}
               >
                 {action.action}
               </div>
             </div>
 
-            <p style={paragraphStyle}>
+            <div
+              style={{
+                marginTop: "14px",
+                color: "#475569",
+                lineHeight: 1.6,
+              }}
+            >
               <strong>
                 Why this matters:
               </strong>{" "}
               {action.rationale}
-            </p>
+            </div>
 
-            <div style={metaGridStyle}>
-              <Meta
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "repeat(auto-fit, minmax(180px, 1fr))",
+                gap: "12px",
+                marginTop: "18px",
+              }}
+            >
+              <TreatmentMeta
                 label="Suggested owner"
                 value={
                   action.suggestedOwner
                 }
               />
 
-              <Meta
+              <TreatmentMeta
                 label="Suggested timeframe"
                 value={
                   action.suggestedTimeframe
                 }
               />
 
-              <Meta
+              <TreatmentMeta
                 label="Estimated effort"
-                value={action.effort}
+                value={
+                  action.effort
+                }
               />
 
-              <Meta
+              <TreatmentMeta
                 label="Evidence expected"
                 value={
                   action.evidence
@@ -1968,8 +2915,23 @@ function RiskTreatmentPlan({
               />
             </div>
 
-            <div style={statusRowStyle}>
-              <strong>
+            <div
+              style={{
+                marginTop: "18px",
+                paddingTop: "18px",
+                borderTop:
+                  "1px solid #e2e8f0",
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                flexWrap: "wrap",
+              }}
+            >
+              <strong
+                style={{
+                  color: "#0f172a",
+                }}
+              >
                 Treatment status
               </strong>
 
@@ -1982,7 +2944,16 @@ function RiskTreatmentPlan({
                       .value as TreatmentStatus
                   )
                 }
-                style={smallSelectStyle}
+                style={{
+                  padding:
+                    "9px 12px",
+                  border:
+                    "1px solid #cbd5e1",
+                  borderRadius: "8px",
+                  background: "white",
+                  color: "#0f172a",
+                  fontSize: "14px",
+                }}
               >
                 <option value="Open">
                   Open
@@ -2004,67 +2975,327 @@ function RiskTreatmentPlan({
           </div>
         ))}
       </div>
+
+      <div
+        style={{
+          marginTop: "16px",
+          padding: "16px 18px",
+          background: "#f8fafc",
+          border:
+            "1px solid #e2e8f0",
+          borderRadius: "10px",
+          color: "#64748b",
+          fontSize: "13px",
+          lineHeight: 1.6,
+        }}
+      >
+        <strong>
+          Treatment guidance:
+        </strong>{" "}
+        The actions, owners and timeframes
+        are preliminary risk-management
+        recommendations and should be
+        reviewed and approved by the
+        organisation's appropriate privacy,
+        legal, security and business owners.
+      </div>
     </section>
   );
 }
 
 /*
  * =========================================================
- * STEP 9 - RESIDUAL RISK
+ * STEP 9 - RESIDUAL RISK DASHBOARD
  * =========================================================
  */
 
 function ResidualRiskDashboard({
   assessments,
   summary,
+  decisions,
+  setDecisions,
 }: {
   assessments: ResidualRiskAssessment[];
   summary: ResidualRiskSummary | null;
+  decisions: ResidualRiskDecisionRecord[];
+  setDecisions: Dispatch<
+    SetStateAction<
+      ResidualRiskDecisionRecord[]
+    >
+  >;
 }) {
+  /*
+   * ---------------------------------------------------------
+   * DECISION UPDATE
+   * ---------------------------------------------------------
+   */
+
+  function updateDecision(
+    id: string,
+    decision: ResidualRiskDecision
+  ) {
+    setDecisions((current) =>
+      current.map((item) => {
+        if (item.id !== id) {
+          return item;
+        }
+
+        const requiresApproval =
+          decisionRequiresApproval(
+            decision,
+            item.residualRisk
+          );
+
+        return {
+          ...item,
+          decision,
+          rationale:
+            defaultDecisionRationale(
+              decision,
+              item.residualRisk
+            ),
+          approvalStatus:
+            requiresApproval
+              ? "Pending"
+              : "Approved",
+        };
+      })
+    );
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * RATIONALE UPDATE
+   * ---------------------------------------------------------
+   */
+
+  function updateRationale(
+    id: string,
+    rationale: string
+  ) {
+    setDecisions((current) =>
+      current.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              rationale,
+            }
+          : item
+      )
+    );
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * OWNER UPDATE
+   * ---------------------------------------------------------
+   */
+
+  function updateOwner(
+    id: string,
+    accountableOwner: string
+  ) {
+    setDecisions((current) =>
+      current.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              accountableOwner,
+            }
+          : item
+      )
+    );
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * REVIEW DATE UPDATE
+   * ---------------------------------------------------------
+   */
+
+  function updateReviewDate(
+    id: string,
+    reviewDate: string
+  ) {
+    setDecisions((current) =>
+      current.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              reviewDate,
+            }
+          : item
+      )
+    );
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * APPROVAL STATUS UPDATE
+   * ---------------------------------------------------------
+   */
+
+  function updateApprovalStatus(
+    id: string,
+    approvalStatus: DecisionApprovalStatus
+  ) {
+    setDecisions((current) =>
+      current.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              approvalStatus,
+            }
+          : item
+      )
+    );
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * TREATMENT STATUS UPDATE
+   * ---------------------------------------------------------
+   */
+
+  function updateTreatmentStatus(
+    id: string,
+    treatmentStatus: TreatmentStatus
+  ) {
+    setDecisions((current) =>
+      current.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              treatmentStatus,
+            }
+          : item
+      )
+    );
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * SUMMARY COUNTS
+   * ---------------------------------------------------------
+   */
+
+  const pendingApprovals =
+    decisions.filter(
+      (decision) =>
+        decision.approvalStatus ===
+        "Pending"
+    ).length;
+
+  const approvedDecisions =
+    decisions.filter(
+      (decision) =>
+        decision.approvalStatus ===
+        "Approved"
+    ).length;
+
+  const rejectedDecisions =
+    decisions.filter(
+      (decision) =>
+        decision.approvalStatus ===
+        "Rejected"
+    ).length;
+
+  const treatFurtherCount =
+    decisions.filter(
+      (decision) =>
+        decision.decision ===
+        "Treat Further"
+    ).length;
+
   return (
-    <section style={sectionStyle}>
-      <div style={panelStyle}>
-        <div style={stepLabelStyle}>
+    <section
+      style={{
+        marginTop: "24px",
+        marginBottom: "24px",
+      }}
+    >
+      {/* =====================================================
+          RESIDUAL RISK SUMMARY
+          ===================================================== */}
+
+      <div
+        style={{
+          background: "white",
+          border:
+            "1px solid #e2e8f0",
+          borderRadius: "14px",
+          padding: "28px",
+        }}
+      >
+        <div
+          style={{
+            fontSize: "13px",
+            fontWeight: 700,
+            letterSpacing: "2px",
+            color: "#1d4ed8",
+            marginBottom: "8px",
+          }}
+        >
           STEP 9
         </div>
 
-        <h2 style={panelHeadingStyle}>
+        <h2
+          style={{
+            marginTop: 0,
+            color: "#0f172a",
+          }}
+        >
           Residual Risk Assessment
         </h2>
 
-        <p style={paragraphStyle}>
-          Residual risk represents the level of
-          privacy risk that remains after
-          considering treatment actions and
-          existing control effectiveness.
+        <p
+          style={{
+            color: "#64748b",
+            lineHeight: 1.6,
+            maxWidth: "720px",
+          }}
+        >
+          Residual risk represents the level
+          of privacy risk that remains after
+          considering the treatment actions
+          and existing control effectiveness
+          identified during the assessment.
         </p>
 
         {summary && (
-          <div style={summaryGridStyle}>
-            <RiskSummaryCard
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "repeat(auto-fit, minmax(170px, 1fr))",
+              gap: "12px",
+              marginTop: "24px",
+            }}
+          >
+            <ResidualSummaryCard
               label="TOTAL RISKS"
               value={summary.total}
             />
 
-            <RiskSummaryCard
+            <ResidualSummaryCard
               label="CRITICAL"
               value={summary.critical}
               level="Critical"
             />
 
-            <RiskSummaryCard
+            <ResidualSummaryCard
               label="HIGH"
               value={summary.high}
               level="High"
             />
 
-            <RiskSummaryCard
+            <ResidualSummaryCard
               label="MEDIUM"
               value={summary.medium}
               level="Medium"
             />
 
-            <RiskSummaryCard
+            <ResidualSummaryCard
               label="LOW"
               value={summary.low}
               level="Low"
@@ -2073,8 +3304,26 @@ function ResidualRiskDashboard({
         )}
       </div>
 
-      <div style={panelStyle}>
-        <h2 style={panelHeadingStyle}>
+      {/* =====================================================
+          RESIDUAL RISK BY FINDING
+          ===================================================== */}
+
+      <div
+        style={{
+          marginTop: "20px",
+          background: "white",
+          border:
+            "1px solid #e2e8f0",
+          borderRadius: "14px",
+          padding: "28px",
+        }}
+      >
+        <h2
+          style={{
+            marginTop: 0,
+            color: "#0f172a",
+          }}
+        >
           Residual Risk by Finding
         </h2>
 
@@ -2084,35 +3333,100 @@ function ResidualRiskDashboard({
               key={
                 assessment.findingId
               }
-              style={findingCardStyle}
+              style={{
+                border:
+                  "1px solid #e2e8f0",
+                borderRadius: "12px",
+                padding: "22px",
+                marginBottom: "16px",
+              }}
             >
-              <div style={findingHeaderStyle}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent:
+                    "space-between",
+                  alignItems:
+                    "flex-start",
+                  gap: "15px",
+                  flexWrap: "wrap",
+                }}
+              >
                 <div>
                   <div
-                    style={
-                      smallLabelStyle
-                    }
+                    style={{
+                      fontSize: "12px",
+                      fontWeight: 700,
+                      color: "#64748b",
+                      textTransform:
+                        "uppercase",
+                      letterSpacing: "1px",
+                    }}
                   >
                     FINDING
                   </div>
 
-                  <h3>
+                  <h3
+                    style={{
+                      margin: "6px 0",
+                      color: "#0f172a",
+                    }}
+                  >
                     {
+                      assessment.riskTitle ??
                       assessment.findingId
                     }
                   </h3>
+
+                  <div
+                    style={{
+                      fontSize: "12px",
+                      color: "#64748b",
+                    }}
+                  >
+                    ID:{" "}
+                    {
+                      assessment.findingId
+                    }
+                  </div>
                 </div>
 
-                <RiskBadge
-                  label={`Residual Risk: ${assessment.residualRisk}`}
-                  level={
+                <span
+                  style={{
+                    padding:
+                      "6px 10px",
+                    borderRadius:
+                      "20px",
+                    background:
+                      riskBackground(
+                        assessment.residualRisk
+                      ),
+                    color:
+                      riskColor(
+                        assessment.residualRisk
+                      ),
+                    fontWeight: 700,
+                    fontSize:
+                      "12px",
+                  }}
+                >
+                  Residual Risk:{" "}
+                  {
                     assessment.residualRisk
                   }
-                />
+                </span>
               </div>
 
-              <div style={metaGridStyle}>
-                <Meta
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    "repeat(auto-fit, minmax(180px, 1fr))",
+                  gap: "12px",
+                  marginTop: "18px",
+                }}
+              >
+                <ResidualMeta
                   label="Inherent Risk"
                   value={
                     assessment.inherentRisk
@@ -2122,14 +3436,14 @@ function ResidualRiskDashboard({
                   }
                 />
 
-                <Meta
+                <ResidualMeta
                   label="Control Effectiveness"
                   value={
                     assessment.controlEffectiveness
                   }
                 />
 
-                <Meta
+                <ResidualMeta
                   label="Residual Risk"
                   value={
                     assessment.residualRisk
@@ -2139,12 +3453,12 @@ function ResidualRiskDashboard({
                   }
                 />
 
-                <Meta
+                <ResidualMeta
                   label="Residual Score"
                   value={`${assessment.residualRiskScore}/100`}
                 />
 
-                <Meta
+                <ResidualMeta
                   label="Status"
                   value={
                     assessment.status
@@ -2152,24 +3466,60 @@ function ResidualRiskDashboard({
                 />
               </div>
 
-              <div style={neutralBoxStyle}>
+              <div
+                style={{
+                  marginTop: "18px",
+                  padding: "16px",
+                  background:
+                    "#f8fafc",
+                  borderRadius:
+                    "10px",
+                  color:
+                    "#475569",
+                  lineHeight:
+                    1.6,
+                }}
+              >
                 <strong>
                   Residual risk rationale:
                 </strong>
 
-                <div>
+                <div
+                  style={{
+                    marginTop: "6px",
+                  }}
+                >
                   {
                     assessment.residualRiskRationale
                   }
                 </div>
               </div>
 
-              <div style={recommendationStyle}>
+              <div
+                style={{
+                  marginTop: "14px",
+                  padding: "16px",
+                  background:
+                    "#eff6ff",
+                  border:
+                    "1px solid #bfdbfe",
+                  borderRadius:
+                    "10px",
+                  color:
+                    "#1e3a8a",
+                  lineHeight:
+                    1.6,
+                }}
+              >
                 <strong>
                   Recommended next action:
                 </strong>
 
-                <div>
+                <div
+                  style={{
+                    marginTop: "6px",
+                  }}
+                >
                   {
                     assessment.recommendedNextAction
                   }
@@ -2179,473 +3529,847 @@ function ResidualRiskDashboard({
           )
         )}
       </div>
-    </section>
-  );
-}
 
-/*
- * =========================================================
- * STEP 10 - RESIDUAL RISK DECISION & APPROVAL
- * =========================================================
- *
- * This is the key section missing from the supplied file.
- * =========================================================
- */
+      {/* =====================================================
+          RESIDUAL RISK DECISION SUMMARY
+          ===================================================== */}
 
-function ResidualRiskDecisionDashboard({
-  decisions,
-  onDecisionChange,
-  onRationaleChange,
-  onOwnerChange,
-  onReviewDateChange,
-  onTreatmentStatusChange,
-}: {
-  decisions: ResidualRiskDecisionRecord[];
-
-  onDecisionChange: (
-    id: string,
-    decision: ResidualRiskDecision
-  ) => void;
-
-  onRationaleChange: (
-    id: string,
-    rationale: string
-  ) => void;
-
-  onOwnerChange: (
-    id: string,
-    owner: string
-  ) => void;
-
-  onReviewDateChange: (
-    id: string,
-    date: string
-  ) => void;
-
-  onTreatmentStatusChange: (
-    id: string,
-    status: string
-  ) => void;
-}) {
-  const pendingApprovalCount =
-    decisions.filter(
-      (decision) =>
-        decision.approvalStatus ===
-        "Pending"
-    ).length;
-
-  const acceptedCount =
-    decisions.filter(
-      (decision) =>
-        decision.decision ===
-        "Accept"
-    ).length;
-
-  const treatmentCount =
-    decisions.filter(
-      (decision) =>
-        decision.decision ===
-        "Treat"
-    ).length;
-
-  return (
-    <section style={sectionStyle}>
-      <div style={panelStyle}>
-        <div style={stepLabelStyle}>
-          STEP 10
+      <div
+        style={{
+          marginTop: "20px",
+          background: "white",
+          border:
+            "1px solid #e2e8f0",
+          borderRadius: "14px",
+          padding: "28px",
+        }}
+      >
+        <div
+          style={{
+            fontSize: "13px",
+            fontWeight: 700,
+            letterSpacing: "2px",
+            color: "#1d4ed8",
+            marginBottom: "8px",
+          }}
+        >
+          DECISION LAYER
         </div>
 
-        <h2 style={panelHeadingStyle}>
+        <h2
+          style={{
+            marginTop: 0,
+            color: "#0f172a",
+          }}
+        >
           Residual Risk Decision & Approval
         </h2>
 
-        <p style={paragraphStyle}>
-          Residual risk is not automatically
-          considered acceptable merely because
-          the calculated risk level is Low or
-          Medium. The accountable risk owner
-          should explicitly decide how each
-          residual risk will be managed.
+        <p
+          style={{
+            color: "#64748b",
+            lineHeight: 1.6,
+            maxWidth: "760px",
+          }}
+        >
+          Decide how each residual risk should
+          be managed. Decisions requiring
+          approval remain in{" "}
+          <strong>
+            Pending
+          </strong>{" "}
+          status until reviewed by the
+          appropriate accountable authority.
         </p>
 
-        <div style={warningStyle}>
-          <strong>
-            Governance principle:
-          </strong>{" "}
-          Risk calculation and risk acceptance
-          are separate decisions. PrivacyMap
-          calculates the residual risk; the
-          organisation's accountable owner
-          decides whether that risk is treated,
-          accepted, transferred or avoided.
-        </div>
-
-        <div style={summaryGridStyle}>
-          <RiskSummaryCard
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(auto-fit, minmax(170px, 1fr))",
+            gap: "12px",
+            marginTop: "24px",
+          }}
+        >
+          <DecisionSummaryCard
             label="TOTAL DECISIONS"
             value={decisions.length}
           />
 
-          <RiskSummaryCard
+          <DecisionSummaryCard
             label="PENDING APPROVAL"
-            value={pendingApprovalCount}
+            value={pendingApprovals}
             level={
-              pendingApprovalCount > 0
+              pendingApprovals > 0
                 ? "High"
-                : "Low"
+                : undefined
             }
           />
 
-          <RiskSummaryCard
-            label="TREAT"
-            value={treatmentCount}
+          <DecisionSummaryCard
+            label="APPROVED"
+            value={approvedDecisions}
+            level="Low"
           />
 
-          <RiskSummaryCard
-            label="ACCEPT"
-            value={acceptedCount}
+          <DecisionSummaryCard
+            label="REJECTED"
+            value={rejectedDecisions}
+            level={
+              rejectedDecisions > 0
+                ? "High"
+                : undefined
+            }
+          />
+
+          <DecisionSummaryCard
+            label="TREAT FURTHER"
+            value={treatFurtherCount}
+            level={
+              treatFurtherCount > 0
+                ? "High"
+                : undefined
+            }
           />
         </div>
       </div>
 
-      <div style={panelStyle}>
-        <h2 style={panelHeadingStyle}>
-          Risk Decision Register
+      {/* =====================================================
+          DECISION RECORDS
+          ===================================================== */}
+
+      <div
+        style={{
+          marginTop: "20px",
+          background: "white",
+          border:
+            "1px solid #e2e8f0",
+          borderRadius: "14px",
+          padding: "28px",
+        }}
+      >
+        <h2
+          style={{
+            marginTop: 0,
+            color: "#0f172a",
+          }}
+        >
+          Residual Risk Decision Register
         </h2>
 
         {decisions.map(
-          (record) => (
-            <div
-              key={record.id}
-              style={decisionCardStyle}
-            >
-              <div style={findingHeaderStyle}>
-                <div>
-                  <div
-                    style={
-                      smallLabelStyle
-                    }
-                  >
-                    {record.category}
+          (decisionRecord) => {
+            const requiresApproval =
+              decisionRequiresApproval(
+                decisionRecord.decision,
+                decisionRecord.residualRisk
+              );
+
+            return (
+              <div
+                key={
+                  decisionRecord.id
+                }
+                style={{
+                  border:
+                    "1px solid #e2e8f0",
+                  borderRadius:
+                    "12px",
+                  padding: "22px",
+                  marginBottom:
+                    "18px",
+                }}
+              >
+                {/* HEADER */}
+
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent:
+                      "space-between",
+                    alignItems:
+                      "flex-start",
+                    gap: "15px",
+                    flexWrap:
+                      "wrap",
+                  }}
+                >
+                  <div>
+                    <div
+                      style={{
+                        fontSize:
+                          "11px",
+                        fontWeight:
+                          700,
+                        color:
+                          "#64748b",
+                        letterSpacing:
+                          "1px",
+                      }}
+                    >
+                      DECISION RECORD
+                    </div>
+
+                    <h3
+                      style={{
+                        margin:
+                          "6px 0",
+                        color:
+                          "#0f172a",
+                      }}
+                    >
+                      {
+                        decisionRecord.riskTitle
+                      }
+                    </h3>
+
+                    <div
+                      style={{
+                        fontSize:
+                          "12px",
+                        color:
+                          "#64748b",
+                      }}
+                    >
+                      {
+                        decisionRecord.findingId
+                      }{" "}
+                      •{" "}
+                      {
+                        decisionRecord.category
+                      }
+                    </div>
                   </div>
 
-                  <h3
+                  <div
                     style={{
-                      margin:
-                        "6px 0",
+                      display:
+                        "flex",
+                      gap: "8px",
+                      flexWrap:
+                        "wrap",
                     }}
                   >
-                    {record.riskTitle}
-                  </h3>
+                    <span
+                      style={{
+                        padding:
+                          "6px 10px",
+                        borderRadius:
+                          "20px",
+                        background:
+                          riskBackground(
+                            decisionRecord.residualRisk
+                          ),
+                        color:
+                          riskColor(
+                            decisionRecord.residualRisk
+                          ),
+                        fontWeight:
+                          700,
+                        fontSize:
+                          "12px",
+                      }}
+                    >
+                      Residual:{" "}
+                      {
+                        decisionRecord.residualRisk
+                      }
+                    </span>
 
-                  <div
-                    style={
-                      smallMutedStyle
-                    }
-                  >
-                    Finding ID:{" "}
-                    {record.findingId}
+                    <span
+                      style={{
+                        padding:
+                          "6px 10px",
+                        borderRadius:
+                          "20px",
+                        background:
+                          approvalBackground(
+                            decisionRecord.approvalStatus
+                          ),
+                        color:
+                          approvalColor(
+                            decisionRecord.approvalStatus
+                          ),
+                        fontWeight:
+                          700,
+                        fontSize:
+                          "12px",
+                      }}
+                    >
+                      {
+                        decisionRecord.approvalStatus
+                      }
+                    </span>
                   </div>
                 </div>
 
-                <RiskBadge
-                  label={`Residual: ${record.residualRisk}`}
-                  level={
-                    record.residualRisk
-                  }
-                />
-              </div>
+                {/* RISK METADATA */}
 
-              <div style={metaGridStyle}>
-                <Meta
-                  label="Inherent Risk"
-                  value={
-                    record.inherentRisk
-                  }
-                  level={
-                    record.inherentRisk
-                  }
-                />
-
-                <Meta
-                  label="Residual Risk"
-                  value={
-                    record.residualRisk
-                  }
-                  level={
-                    record.residualRisk
-                  }
-                />
-
-                <Meta
-                  label="Approval"
-                  value={
-                    record.approvalStatus
-                  }
-                />
-              </div>
-
-              <div
-                style={{
-                  marginTop:
-                    "20px",
-                }}
-              >
-                <label
-                  style={
-                    formLabelStyle
-                  }
-                >
-                  Risk Treatment Decision
-                </label>
-
-                <select
-                  value={
-                    record.decision
-                  }
-                  onChange={(event) =>
-                    onDecisionChange(
-                      record.id,
-                      event.target
-                        .value as ResidualRiskDecision
-                    )
-                  }
-                  style={selectStyle}
-                >
-                  <option value="Treat">
-                    Treat
-                  </option>
-
-                  <option value="Accept">
-                    Accept
-                  </option>
-
-                  <option value="Transfer">
-                    Transfer
-                  </option>
-
-                  <option value="Avoid">
-                    Avoid
-                  </option>
-                </select>
-
-                <p
+                <div
                   style={{
-                    ...smallMutedStyle,
+                    display: "grid",
+                    gridTemplateColumns:
+                      "repeat(auto-fit, minmax(180px, 1fr))",
+                    gap: "12px",
                     marginTop:
-                      "8px",
+                      "18px",
                   }}
                 >
-                  {record.decision ===
-                    "Accept" &&
-                    "Risk will be consciously retained by the accountable owner."}
-
-                  {record.decision ===
-                    "Treat" &&
-                    "Additional controls or remediation will be implemented."}
-
-                  {record.decision ===
-                    "Transfer" &&
-                    "Risk responsibility or financial impact will be transferred where appropriate."}
-
-                  {record.decision ===
-                    "Avoid" &&
-                    "The activity creating the risk should be stopped, removed or redesigned."}
-                </p>
-              </div>
-
-              <div style={metaGridStyle}>
-                <div>
-                  <label
-                    style={
-                      formLabelStyle
-                    }
-                  >
-                    Accountable Owner
-                  </label>
-
-                  <input
+                  <ResidualMeta
+                    label="Inherent Risk"
                     value={
-                      record.accountableOwner
+                      decisionRecord.inherentRisk
                     }
-                    onChange={(event) =>
-                      onOwnerChange(
-                        record.id,
-                        event.target.value
-                      )
+                    level={
+                      decisionRecord.inherentRisk
                     }
-                    style={inputStyle}
-                    placeholder="Risk Owner"
+                  />
+
+                  <ResidualMeta
+                    label="Residual Risk"
+                    value={
+                      decisionRecord.residualRisk
+                    }
+                    level={
+                      decisionRecord.residualRisk
+                    }
+                  />
+
+                  <ResidualMeta
+                    label="Approval Required"
+                    value={
+                      requiresApproval
+                        ? "Yes"
+                        : "No"
+                    }
+                    level={
+                      requiresApproval
+                        ? "High"
+                        : undefined
+                    }
+                  />
+
+                  <ResidualMeta
+                    label="Decision ID"
+                    value={
+                      decisionRecord.id
+                    }
                   />
                 </div>
 
-                <div>
-                  <label
-                    style={
-                      formLabelStyle
-                    }
-                  >
-                    Review Date
-                  </label>
+                {/* DECISION */}
 
-                  <input
-                    type="date"
-                    value={
-                      record.reviewDate
-                    }
-                    onChange={(event) =>
-                      onReviewDateChange(
-                        record.id,
-                        event.target.value
-                      )
-                    }
-                    style={inputStyle}
-                  />
-                </div>
-              </div>
-
-              <div
-                style={{
-                  marginTop:
-                    "16px",
-                }}
-              >
-                <label
-                  style={
-                    formLabelStyle
-                  }
-                >
-                  Decision Rationale
-                </label>
-
-                <textarea
-                  value={
-                    record.rationale
-                  }
-                  onChange={(event) =>
-                    onRationaleChange(
-                      record.id,
-                      event.target.value
-                    )
-                  }
-                  rows={4}
+                <div
                   style={{
-                    ...inputStyle,
-                    resize:
-                      "vertical",
+                    marginTop:
+                      "20px",
+                    padding:
+                      "18px",
+                    background:
+                      "#f8fafc",
+                    border:
+                      "1px solid #e2e8f0",
+                    borderRadius:
+                      "10px",
                   }}
-                />
-              </div>
-
-              <div
-                style={{
-                  marginTop:
-                    "16px",
-                }}
-              >
-                <label
-                  style={
-                    formLabelStyle
-                  }
                 >
-                  Treatment Status
-                </label>
+                  <label
+                    style={{
+                      display:
+                        "block",
+                      fontWeight:
+                        700,
+                      color:
+                        "#0f172a",
+                      marginBottom:
+                        "8px",
+                    }}
+                  >
+                    Residual risk decision
+                  </label>
 
-                <select
-                  value={
-                    record.treatmentStatus
-                  }
-                  onChange={(event) =>
-                    onTreatmentStatusChange(
-                      record.id,
-                      event.target.value
-                    )
-                  }
-                  style={smallSelectStyle}
-                >
-                  <option value="Open">
-                    Open
-                  </option>
+                  <select
+                    value={
+                      decisionRecord.decision
+                    }
+                    onChange={(
+                      event
+                    ) =>
+                      updateDecision(
+                        decisionRecord.id,
+                        event.target
+                          .value as ResidualRiskDecision
+                      )
+                    }
+                    style={{
+                      width:
+                        "100%",
+                      padding:
+                        "12px 14px",
+                      border:
+                        "1px solid #cbd5e1",
+                      borderRadius:
+                        "8px",
+                      background:
+                        "white",
+                      color:
+                        "#0f172a",
+                      fontSize:
+                        "15px",
+                      fontWeight:
+                        600,
+                    }}
+                  >
+                    <option value="Accept">
+                      Accept
+                    </option>
 
-                  <option value="In Progress">
-                    In Progress
-                  </option>
+                    <option value="Treat Further">
+                      Treat Further
+                    </option>
 
-                  <option value="Completed">
-                    Completed
-                  </option>
+                    <option value="Avoid">
+                      Avoid
+                    </option>
 
-                  <option value="Accepted">
-                    Accepted
-                  </option>
-                </select>
-              </div>
+                    <option value="Transfer">
+                      Transfer
+                    </option>
 
-              <div
-                style={{
-                  marginTop:
-                    "18px",
-                  padding:
-                    "14px 16px",
-                  borderRadius:
-                    "10px",
-                  background:
-                    record.approvalStatus ===
-                    "Pending"
-                      ? "#fffbeb"
-                      : "#f0fdf4",
-                  border:
-                    record.approvalStatus ===
-                    "Pending"
-                      ? "1px solid #fde68a"
-                      : "1px solid #bbf7d0",
-                  color:
-                    record.approvalStatus ===
-                    "Pending"
-                      ? "#92400e"
-                      : "#166534",
-                  lineHeight:
-                    1.6,
-                }}
-              >
-                <strong>
-                  Approval status:
-                </strong>{" "}
-                {record.approvalStatus}
+                    <option value="Monitor">
+                      Monitor
+                    </option>
+                  </select>
 
-                {record.approvalStatus ===
-                  "Pending" && (
                   <div
                     style={{
                       marginTop:
-                        "4px",
+                        "10px",
+                      fontSize:
+                        "12px",
+                      color:
+                        "#64748b",
+                      lineHeight:
+                        1.5,
                     }}
                   >
+                    {decisionRecord.decision ===
+                      "Accept" &&
+                      "The organisation accepts the residual exposure within its defined risk tolerance."}
+
+                    {decisionRecord.decision ===
+                      "Treat Further" &&
+                      "Additional controls or remediation are required to reduce the residual risk."}
+
+                    {decisionRecord.decision ===
+                      "Avoid" &&
+                      "The processing activity creating the risk will be stopped, removed or redesigned."}
+
+                    {decisionRecord.decision ===
+                      "Transfer" &&
+                      "Part of the residual exposure will be managed through contractual, insurance, vendor or other transfer mechanisms."}
+
+                    {decisionRecord.decision ===
+                      "Monitor" &&
+                      "The risk is currently manageable but requires periodic review."}
+                  </div>
+                </div>
+
+                {/* RATIONALE */}
+
+                <div
+                  style={{
+                    marginTop:
+                      "14px",
+                  }}
+                >
+                  <label
+                    style={{
+                      display:
+                        "block",
+                      fontWeight:
+                        700,
+                      color:
+                        "#0f172a",
+                      marginBottom:
+                        "8px",
+                    }}
+                  >
+                    Decision rationale
+                  </label>
+
+                  <textarea
+                    value={
+                      decisionRecord.rationale
+                    }
+                    onChange={(
+                      event
+                    ) =>
+                      updateRationale(
+                        decisionRecord.id,
+                        event.target
+                          .value
+                      )
+                    }
+                    rows={4}
+                    style={{
+                      width:
+                        "100%",
+                      boxSizing:
+                        "border-box",
+                      padding:
+                        "12px 14px",
+                      border:
+                        "1px solid #cbd5e1",
+                      borderRadius:
+                        "8px",
+                      background:
+                        "white",
+                      color:
+                        "#334155",
+                      fontSize:
+                        "14px",
+                      lineHeight:
+                        1.5,
+                      resize:
+                        "vertical",
+                    }}
+                  />
+                </div>
+
+                {/* ACCOUNTABILITY */}
+
+                <div
+                  style={{
+                    display:
+                      "grid",
+                    gridTemplateColumns:
+                      "repeat(auto-fit, minmax(220px, 1fr))",
+                    gap:
+                      "12px",
+                    marginTop:
+                      "14px",
+                  }}
+                >
+                  <div>
+                    <label
+                      style={{
+                        display:
+                          "block",
+                        fontWeight:
+                          700,
+                        color:
+                          "#0f172a",
+                        marginBottom:
+                          "8px",
+                      }}
+                    >
+                      Accountable owner
+                    </label>
+
+                    <input
+                      type="text"
+                      value={
+                        decisionRecord.accountableOwner
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        updateOwner(
+                          decisionRecord.id,
+                          event.target
+                            .value
+                        )
+                      }
+                      placeholder="e.g. Principal / DPO / Risk Owner"
+                      style={{
+                        width:
+                          "100%",
+                        boxSizing:
+                          "border-box",
+                        padding:
+                          "12px 14px",
+                        border:
+                          "1px solid #cbd5e1",
+                        borderRadius:
+                          "8px",
+                        background:
+                          "white",
+                        color:
+                          "#0f172a",
+                        fontSize:
+                          "14px",
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      style={{
+                        display:
+                          "block",
+                        fontWeight:
+                          700,
+                        color:
+                          "#0f172a",
+                        marginBottom:
+                          "8px",
+                      }}
+                    >
+                      Review date
+                    </label>
+
+                    <input
+                      type="date"
+                      value={
+                        decisionRecord.reviewDate
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        updateReviewDate(
+                          decisionRecord.id,
+                          event.target
+                            .value
+                        )
+                      }
+                      style={{
+                        width:
+                          "100%",
+                        boxSizing:
+                          "border-box",
+                        padding:
+                          "12px 14px",
+                        border:
+                          "1px solid #cbd5e1",
+                        borderRadius:
+                          "8px",
+                        background:
+                          "white",
+                        color:
+                          "#0f172a",
+                        fontSize:
+                          "14px",
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* APPROVAL + TREATMENT STATUS */}
+
+                <div
+                  style={{
+                    marginTop:
+                      "18px",
+                    paddingTop:
+                      "18px",
+                    borderTop:
+                      "1px solid #e2e8f0",
+                    display:
+                      "grid",
+                    gridTemplateColumns:
+                      "repeat(auto-fit, minmax(220px, 1fr))",
+                    gap:
+                      "12px",
+                  }}
+                >
+                  <div>
+                    <label
+                      style={{
+                        display:
+                          "block",
+                        fontWeight:
+                          700,
+                        color:
+                          "#0f172a",
+                        marginBottom:
+                          "8px",
+                      }}
+                    >
+                      Approval status
+                    </label>
+
+                    <select
+                      value={
+                        decisionRecord.approvalStatus
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        updateApprovalStatus(
+                          decisionRecord.id,
+                          event.target
+                            .value as DecisionApprovalStatus
+                        )
+                      }
+                      style={{
+                        width:
+                          "100%",
+                        padding:
+                          "11px 12px",
+                        border:
+                          "1px solid #cbd5e1",
+                        borderRadius:
+                          "8px",
+                        background:
+                          "white",
+                        color:
+                          "#0f172a",
+                        fontSize:
+                          "14px",
+                      }}
+                    >
+                      <option value="Pending">
+                        Pending
+                      </option>
+
+                      <option value="Approved">
+                        Approved
+                      </option>
+
+                      <option value="Rejected">
+                        Rejected
+                      </option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label
+                      style={{
+                        display:
+                          "block",
+                        fontWeight:
+                          700,
+                        color:
+                          "#0f172a",
+                        marginBottom:
+                          "8px",
+                      }}
+                    >
+                      Treatment status
+                    </label>
+
+                    <select
+                      value={
+                        decisionRecord.treatmentStatus
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        updateTreatmentStatus(
+                          decisionRecord.id,
+                          event.target
+                            .value as TreatmentStatus
+                        )
+                      }
+                      style={{
+                        width:
+                          "100%",
+                        padding:
+                          "11px 12px",
+                        border:
+                          "1px solid #cbd5e1",
+                        borderRadius:
+                          "8px",
+                        background:
+                          "white",
+                        color:
+                          "#0f172a",
+                        fontSize:
+                          "14px",
+                      }}
+                    >
+                      <option value="Open">
+                        Open
+                      </option>
+
+                      <option value="In Progress">
+                        In Progress
+                      </option>
+
+                      <option value="Completed">
+                        Completed
+                      </option>
+
+                      <option value="Accepted">
+                        Accepted
+                      </option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* APPROVAL WARNING */}
+
+                {requiresApproval && (
+                  <div
+                    style={{
+                      marginTop:
+                        "16px",
+                      padding:
+                        "14px 16px",
+                      background:
+                        "#fff7ed",
+                      border:
+                        "1px solid #fed7aa",
+                      borderRadius:
+                        "10px",
+                      color:
+                        "#9a3412",
+                      lineHeight:
+                        1.6,
+                      fontSize:
+                        "13px",
+                    }}
+                  >
+                    <strong>
+                      Approval required:
+                    </strong>{" "}
                     This decision requires
-                    appropriate management /
-                    risk-owner approval before
-                    it should be treated as
-                    formally accepted.
+                    review and approval because
+                    the residual risk is{" "}
+                    <strong>
+                      {
+                        decisionRecord.residualRisk
+                      }
+                    </strong>{" "}
+                    or because the selected
+                    decision requires explicit
+                    approval.
                   </div>
                 )}
               </div>
-            </div>
-          )
-        )}
+            );
+          })}
       </div>
 
-      <div style={neutralBoxStyle}>
+      {/* =====================================================
+          GOVERNANCE GUIDANCE
+          ===================================================== */}
+
+      <div
+        style={{
+          marginTop: "16px",
+          padding: "16px 18px",
+          background: "#f8fafc",
+          border:
+            "1px solid #e2e8f0",
+          borderRadius: "10px",
+          color: "#64748b",
+          fontSize: "13px",
+          lineHeight: 1.6,
+        }}
+      >
         <strong>
-          Residual-risk governance guidance:
+          Residual-risk governance:
         </strong>{" "}
-        The calculated residual risk is an
-        assessment output, not an automatic
-        risk acceptance. Acceptance,
-        treatment, transfer or avoidance
-        should be explicitly documented and
-        approved according to the
-        organisation's risk-management
-        authority matrix.
+        Residual-risk decisions are
+        management decisions, not automatic
+        legal conclusions. Critical and High
+        residual risks require explicit
+        approval. Acceptance, Avoidance and
+        other decisions should be supported
+        by an appropriate accountable owner,
+        rationale and review date.
       </div>
     </section>
   );
@@ -2653,7 +4377,173 @@ function ResidualRiskDecisionDashboard({
 
 /*
  * =========================================================
- * MULTI SELECT
+ * RESIDUAL SUMMARY CARD
+ * =========================================================
+ */
+
+function ResidualSummaryCard({
+  label,
+  value,
+  level,
+}: {
+  label: string;
+  value: number;
+  level?: RiskLevel;
+}) {
+  return (
+    <div
+      style={{
+        padding: "18px",
+        borderRadius: "10px",
+        background:
+          level
+            ? riskBackground(level)
+            : "#f8fafc",
+        border:
+          "1px solid #e2e8f0",
+      }}
+    >
+      <div
+        style={{
+          fontSize: "11px",
+          fontWeight: 700,
+          color: "#64748b",
+          letterSpacing: "1px",
+        }}
+      >
+        {label}
+      </div>
+
+      <div
+        style={{
+          marginTop: "6px",
+          fontSize: "28px",
+          fontWeight: 800,
+          color:
+            level
+              ? riskColor(level)
+              : "#0f172a",
+        }}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+/*
+ * =========================================================
+ * DECISION SUMMARY CARD
+ * =========================================================
+ */
+
+function DecisionSummaryCard({
+  label,
+  value,
+  level,
+}: {
+  label: string;
+  value: number;
+  level?: RiskLevel;
+}) {
+  return (
+    <div
+      style={{
+        padding: "18px",
+        borderRadius: "10px",
+        background:
+          level
+            ? riskBackground(level)
+            : "#f8fafc",
+        border:
+          "1px solid #e2e8f0",
+      }}
+    >
+      <div
+        style={{
+          fontSize: "11px",
+          fontWeight: 700,
+          color: "#64748b",
+          letterSpacing: "1px",
+        }}
+      >
+        {label}
+      </div>
+
+      <div
+        style={{
+          marginTop: "6px",
+          fontSize: "28px",
+          fontWeight: 800,
+          color:
+            level
+              ? riskColor(level)
+              : "#0f172a",
+        }}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+/*
+ * =========================================================
+ * RESIDUAL META
+ * =========================================================
+ */
+
+function ResidualMeta({
+  label,
+  value,
+  level,
+}: {
+  label: string;
+  value: string;
+  level?: RiskLevel;
+}) {
+  return (
+    <div
+      style={{
+        padding: "12px",
+        background: "#f8fafc",
+        borderRadius: "8px",
+      }}
+    >
+      <div
+        style={{
+          fontSize: "11px",
+          fontWeight: 700,
+          color: "#64748b",
+          textTransform:
+            "uppercase",
+          marginBottom: "5px",
+        }}
+      >
+        {label}
+      </div>
+
+      <div
+        style={{
+          fontSize: "14px",
+          fontWeight:
+            level ? 700 : 500,
+          color:
+            level
+              ? riskColor(level)
+              : "#334155",
+          lineHeight: 1.5,
+        }}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+/*
+ * =========================================================
+ * MULTI SELECT FIELD
  * =========================================================
  */
 
@@ -2678,14 +4568,26 @@ function MultiSelectField({
       }}
     >
       <label
-        style={
-          formLabelStyle
-        }
+        style={{
+          display: "block",
+          fontWeight: 700,
+          color:
+            "#0f172a",
+          marginBottom:
+            "10px",
+        }}
       >
         {label}
       </label>
 
-      <div style={gridStyle}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns:
+            "repeat(auto-fit, minmax(240px, 1fr))",
+          gap: "8px",
+        }}
+      >
         {options.map(
           (option) => {
             const selected =
@@ -2697,15 +4599,25 @@ function MultiSelectField({
               <label
                 key={option}
                 style={{
-                  ...checkboxStyle,
+                  display:
+                    "flex",
+                  alignItems:
+                    "center",
+                  gap: "10px",
+                  padding:
+                    "11px 12px",
                   border:
                     selected
                       ? "2px solid #1d4ed8"
                       : "1px solid #cbd5e1",
+                  borderRadius:
+                    "8px",
                   background:
                     selected
                       ? "#eff6ff"
                       : "white",
+                  cursor:
+                    "pointer",
                 }}
               >
                 <input
@@ -2718,12 +4630,20 @@ function MultiSelectField({
                       option
                     )
                   }
+                  style={{
+                    width:
+                      "17px",
+                    height:
+                      "17px",
+                  }}
                 />
 
                 <span
                   style={{
                     fontSize:
                       "14px",
+                    color:
+                      "#334155",
                   }}
                 >
                   {option}
@@ -2736,11 +4656,17 @@ function MultiSelectField({
 
       {values.length > 0 && (
         <div
-          style={
-            smallMutedStyle
-          }
+          style={{
+            marginTop:
+              "8px",
+            fontSize:
+              "12px",
+            color:
+              "#64748b",
+          }}
         >
-          {values.length} selected
+          {values.length}{" "}
+          selected
         </div>
       )}
     </div>
@@ -2753,114 +4679,6 @@ function MultiSelectField({
  * =========================================================
  */
 
-function CheckboxGrid({
-  items,
-  selected,
-  onToggle,
-}: {
-  items: {
-    id: string;
-    title: string;
-    description: string;
-  }[];
-  selected: string[];
-  onToggle: (
-    id: string
-  ) => void;
-}) {
-  return (
-    <div style={gridStyle}>
-      {items.map((item) => {
-        const checked =
-          selected.includes(
-            item.id
-          );
-
-        return (
-          <label
-            key={item.id}
-            style={{
-              ...checkboxStyle,
-              border:
-                checked
-                  ? "2px solid #1d4ed8"
-                  : "1px solid #e2e8f0",
-              background:
-                checked
-                  ? "#eff6ff"
-                  : "#f8fafc",
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={checked}
-              onChange={() =>
-                onToggle(item.id)
-              }
-            />
-
-            <span>
-              <strong>
-                {item.title}
-              </strong>
-
-              <span
-                style={
-                  smallTextStyle
-                }
-              >
-                {item.description}
-              </span>
-            </span>
-          </label>
-        );
-      })}
-    </div>
-  );
-}
-
-function RemovableItem({
-  name,
-  onRemove,
-}: {
-  name: string;
-  onRemove: () => void;
-}) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent:
-          "space-between",
-        alignItems:
-          "center",
-        padding:
-          "12px 14px",
-        marginTop:
-          "8px",
-        background:
-          "#f8fafc",
-        border:
-          "1px solid #e2e8f0",
-        borderRadius:
-          "8px",
-      }}
-    >
-      <strong>{name}</strong>
-
-      <button
-        type="button"
-        onClick={onRemove}
-        style={
-          removeButtonStyle
-        }
-      >
-        Remove
-      </button>
-    </div>
-  );
-}
-
 function SelectionSummary({
   count,
   label,
@@ -2869,7 +4687,22 @@ function SelectionSummary({
   label: string;
 }) {
   return (
-    <div style={successStyle}>
+    <div
+      style={{
+        marginTop:
+          "24px",
+        padding:
+          "16px",
+        background:
+          "#f0fdf4",
+        border:
+          "1px solid #bbf7d0",
+        borderRadius:
+          "10px",
+        color:
+          "#166534",
+      }}
+    >
       <strong>
         {count} {label}
         {count !== 1
@@ -2896,7 +4729,8 @@ function StepNumber({
         background:
           "#1d4ed8",
         color: "white",
-        display: "flex",
+        display:
+          "flex",
         alignItems:
           "center",
         justifyContent:
@@ -2907,136 +4741,6 @@ function StepNumber({
       }}
     >
       {number}
-    </div>
-  );
-}
-
-/*
- * =========================================================
- * GENERIC DISPLAY COMPONENTS
- * =========================================================
- */
-
-function RiskSummaryCard({
-  label,
-  value,
-  level,
-  description,
-}: {
-  label: string;
-  value: string | number;
-  level?: RiskLevel;
-  description?: string;
-}) {
-  return (
-    <div
-      style={{
-        padding: "18px",
-        borderRadius: "10px",
-        background:
-          level
-            ? riskBackground(level)
-            : "#f8fafc",
-        border:
-          "1px solid #e2e8f0",
-      }}
-    >
-      <div style={smallLabelStyle}>
-        {label}
-      </div>
-
-      <div
-        style={{
-          marginTop: "6px",
-          fontSize: "28px",
-          fontWeight: 800,
-          color:
-            level
-              ? riskColor(level)
-              : "#0f172a",
-        }}
-      >
-        {value}
-      </div>
-
-      {description && (
-        <div style={smallMutedStyle}>
-          {description}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function RiskBadge({
-  label,
-  level,
-}: {
-  label: string;
-  level: RiskLevel;
-}) {
-  return (
-    <span
-      style={{
-        padding:
-          "6px 10px",
-        borderRadius:
-          "20px",
-        background:
-          riskBackground(level),
-        color:
-          riskColor(level),
-        fontWeight: 700,
-        fontSize:
-          "12px",
-      }}
-    >
-      {label}
-    </span>
-  );
-}
-
-function Meta({
-  label,
-  value,
-  level,
-}: {
-  label: string;
-  value: string;
-  level?: RiskLevel;
-}) {
-  return (
-    <div
-      style={{
-        padding: "12px",
-        background: "#f8fafc",
-        borderRadius: "8px",
-      }}
-    >
-      <div
-        style={
-          smallLabelStyle
-        }
-      >
-        {label}
-      </div>
-
-      <div
-        style={{
-          fontSize:
-            "14px",
-          fontWeight:
-            level ? 700 : 500,
-          color:
-            level
-              ? riskColor(level)
-              : "#334155",
-          lineHeight:
-            1.5,
-        }}
-      >
-        {value}
-      </div>
     </div>
   );
 }
@@ -3085,279 +4789,115 @@ function riskBackground(
 
 /*
  * =========================================================
+ * APPROVAL HELPERS
+ * =========================================================
+ */
+
+function approvalColor(
+  status: DecisionApprovalStatus
+): string {
+  switch (status) {
+    case "Pending":
+      return "#b45309";
+
+    case "Approved":
+      return "#15803d";
+
+    case "Rejected":
+      return "#b91c1c";
+  }
+}
+
+function approvalBackground(
+  status: DecisionApprovalStatus
+): string {
+  switch (status) {
+    case "Pending":
+      return "#fffbeb";
+
+    case "Approved":
+      return "#f0fdf4";
+
+    case "Rejected":
+      return "#fee2e2";
+  }
+}
+
+/*
+ * =========================================================
  * SHARED STYLES
  * =========================================================
  */
 
-const sectionStyle = {
-  marginTop: "24px",
-  marginBottom: "24px",
-};
-
-const panelStyle = {
-  background: "white",
-  border: "1px solid #e2e8f0",
-  borderRadius: "14px",
-  padding: "28px",
-  marginBottom: "20px",
-};
-
 const cardStyle = {
-  background: "white",
-  border: "1px solid #e2e8f0",
-  borderRadius: "14px",
-  padding: "28px",
-  marginBottom: "20px",
+  background:
+    "white",
+  border:
+    "1px solid #e2e8f0",
+  borderRadius:
+    "14px",
+  padding:
+    "28px",
+  marginBottom:
+    "20px",
 };
 
 const headingStyle = {
-  color: "#0f172a",
+  color:
+    "#0f172a",
   marginTop: 0,
-  marginBottom: "18px",
-};
-
-const panelHeadingStyle = {
-  color: "#0f172a",
-  marginTop: 0,
-};
-
-const subheadingStyle = {
-  color: "#0f172a",
-  marginTop: "32px",
-};
-
-const noticeStyle = {
-  color: "#64748b",
-  lineHeight: 1.6,
-  marginBottom: "20px",
-};
-
-const paragraphStyle = {
-  color: "#475569",
-  lineHeight: 1.6,
-};
-
-const gridStyle = {
-  display: "grid",
-  gridTemplateColumns:
-    "repeat(auto-fit, minmax(240px, 1fr))",
-  gap: "12px",
-};
-
-const summaryGridStyle = {
-  display: "grid",
-  gridTemplateColumns:
-    "repeat(auto-fit, minmax(170px, 1fr))",
-  gap: "12px",
-  marginTop: "20px",
-};
-
-const metaGridStyle = {
-  display: "grid",
-  gridTemplateColumns:
-    "repeat(auto-fit, minmax(180px, 1fr))",
-  gap: "12px",
-  marginTop: "18px",
-};
-
-const checkboxStyle = {
-  display: "flex",
-  alignItems: "flex-start",
-  gap: "10px",
-  padding: "14px",
-  borderRadius: "10px",
-  cursor: "pointer",
-};
-
-const smallTextStyle = {
-  display: "block",
-  fontSize: "12px",
-  color: "#64748b",
-  marginTop: "5px",
-};
-
-const smallMutedStyle = {
-  marginTop: "5px",
-  fontSize: "12px",
-  color: "#64748b",
-};
-
-const smallLabelStyle = {
-  fontSize: "11px",
-  fontWeight: 700,
-  color: "#64748b",
-  letterSpacing: "1px",
-  textTransform: "uppercase" as const,
-};
-
-const stepLabelStyle = {
-  fontSize: "13px",
-  fontWeight: 700,
-  letterSpacing: "2px",
-  color: "#1d4ed8",
-  marginBottom: "8px",
-};
-
-const inputStyle = {
-  width: "100%",
-  boxSizing: "border-box" as const,
-  padding: "12px 14px",
-  borderRadius: "8px",
-  border: "1px solid #cbd5e1",
-  fontSize: "15px",
-  background: "white",
-  color: "#0f172a",
+  marginBottom:
+    "18px",
 };
 
 const selectStyle = {
   width: "100%",
-  padding: "13px 14px",
-  borderRadius: "8px",
-  border: "1px solid #cbd5e1",
-  background: "white",
-  fontSize: "16px",
-  color: "#0f172a",
+  padding:
+    "13px 14px",
+  borderRadius:
+    "8px",
+  border:
+    "1px solid #cbd5e1",
+  background:
+    "white",
+  fontSize:
+    "16px",
+  color:
+    "#0f172a",
 };
 
-const smallSelectStyle = {
-  padding: "9px 12px",
-  border: "1px solid #cbd5e1",
-  borderRadius: "8px",
-  background: "white",
-  color: "#0f172a",
-  fontSize: "14px",
-};
-
-const inputRowStyle = {
-  display: "flex",
-  gap: "10px",
-  marginTop: "12px",
-  flexWrap: "wrap" as const,
-};
-
-const subsectionStyle = {
-  marginTop: "24px",
-  paddingTop: "20px",
-  borderTop: "1px solid #e2e8f0",
-};
-
-const primaryButtonStyle = {
-  width: "100%",
-  padding: "16px",
-  border: "none",
-  borderRadius: "10px",
-  background: "#1d4ed8",
-  color: "white",
-  fontSize: "17px",
-  fontWeight: 700,
-  cursor: "pointer",
+const noticeStyle = {
+  color:
+    "#64748b",
+  lineHeight:
+    1.6,
 };
 
 const secondaryButtonStyle = {
-  padding: "12px 18px",
-  borderRadius: "8px",
-  border: "none",
-  background: "#0f172a",
-  color: "white",
+  padding:
+    "12px 18px",
+  borderRadius:
+    "8px",
+  border:
+    "none",
+  background:
+    "#0f172a",
+  color:
+    "white",
   fontWeight: 600,
-  cursor: "pointer",
+  cursor:
+    "pointer",
 };
 
 const removeButtonStyle = {
-  border: "none",
-  background: "transparent",
-  color: "#64748b",
-  cursor: "pointer",
-  fontSize: "13px",
-};
-
-const warningStyle = {
-  padding: "16px",
-  background: "#eff6ff",
-  border: "1px solid #bfdbfe",
-  borderRadius: "10px",
-  color: "#1e3a8a",
-  lineHeight: 1.6,
-  marginBottom: "20px",
-};
-
-const successStyle = {
-  marginTop: "20px",
-  padding: "16px",
-  background: "#f0fdf4",
-  border: "1px solid #bbf7d0",
-  borderRadius: "10px",
-  color: "#166534",
-};
-
-const neutralBoxStyle = {
-  marginTop: "18px",
-  padding: "16px",
-  background: "#f8fafc",
-  borderRadius: "10px",
-  color: "#475569",
-  lineHeight: 1.6,
-};
-
-const recommendationStyle = {
-  marginTop: "14px",
-  padding: "16px",
-  background: "#eff6ff",
-  border: "1px solid #bfdbfe",
-  borderRadius: "10px",
-  color: "#1e3a8a",
-  lineHeight: 1.6,
-};
-
-const metaCardStyle = {
-  padding: "16px",
-  border: "1px solid #e2e8f0",
-  borderRadius: "10px",
-};
-
-const findingCardStyle = {
-  padding: "20px",
-  marginBottom: "14px",
-  border: "1px solid #e2e8f0",
-  borderRadius: "10px",
-};
-
-const decisionCardStyle = {
-  padding: "22px",
-  marginBottom: "16px",
-  border: "1px solid #e2e8f0",
-  borderRadius: "12px",
-};
-
-const findingHeaderStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "flex-start",
-  gap: "15px",
-  flexWrap: "wrap" as const,
-};
-
-const progressBackgroundStyle = {
-  marginTop: "10px",
-  height: "8px",
-  background: "#e2e8f0",
-  borderRadius: "20px",
-  overflow: "hidden" as const,
-};
-
-const formLabelStyle = {
-  display: "block",
-  fontWeight: 700,
-  color: "#0f172a",
-  marginBottom: "8px",
-};
-
-const statusRowStyle = {
-  marginTop: "18px",
-  paddingTop: "18px",
-  borderTop: "1px solid #e2e8f0",
-  display: "flex",
-  alignItems: "center",
-  gap: "12px",
-  flexWrap: "wrap" as const,
+  border:
+    "none",
+  background:
+    "transparent",
+  color:
+    "#64748b",
+  cursor:
+    "pointer",
+  fontSize:
+    "13px",
 };
