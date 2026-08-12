@@ -100,6 +100,12 @@ export function decisionRequiresApproval(
   decision: ResidualRiskDecision,
   riskLevel: RiskLevel
 ): boolean {
+  /*
+   * Critical and High residual risks always require approval.
+   *
+   * Accept and Avoid decisions also require explicit approval,
+   * regardless of the residual risk rating.
+   */
   if (
     riskLevel === "Critical" ||
     riskLevel === "High"
@@ -157,4 +163,22 @@ export function defaultEscalationReason(
     default:
       return "";
   }
+}
+
+/**
+ * Determines the default approval status for a residual risk decision.
+ *
+ * Pending       = explicit approval is required
+ * Not Required  = approval is not required
+ */
+export function defaultApprovalStatus(
+  decision: ResidualRiskDecision,
+  riskLevel: RiskLevel
+): DecisionApprovalStatus {
+  return decisionRequiresApproval(
+    decision,
+    riskLevel
+  )
+    ? "Pending"
+    : "Not Required";
 }
