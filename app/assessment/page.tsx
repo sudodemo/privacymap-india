@@ -7,6 +7,55 @@ export default function AssessmentPage() {
   const [industryId, setIndustryId] = useState("");
   const [businessTypeId, setBusinessTypeId] = useState("");
   const [processId, setProcessId] = useState("");
+  const [selectedEntryPoints, setSelectedEntryPoints] =
+  useState<string[]>([]);
+
+const [customEntryPoint, setCustomEntryPoint] =
+  useState("");
+
+const [customEntryPoints, setCustomEntryPoints] =
+  useState<
+    {
+      id: string;
+      name: string;
+      collection_method: string;
+      custom: boolean;
+    }[]
+  >([]);
+
+  function toggleEntryPoint(id: string) {
+  setSelectedEntryPoints((current) =>
+    current.includes(id)
+      ? current.filter((item) => item !== id)
+      : [...current, id]
+  );
+}
+
+function addCustomEntryPoint() {
+  const name = customEntryPoint.trim();
+
+  if (!name) return;
+
+  const newEntryPoint = {
+    id: `CUSTOM-${Date.now()}`,
+    name,
+    collection_method: "Custom",
+    custom: true,
+  };
+
+  setCustomEntryPoints((current) => [
+    ...current,
+    newEntryPoint,
+  ]);
+
+  setCustomEntryPoint("");
+}
+
+function removeCustomEntryPoint(id: string) {
+  setCustomEntryPoints((current) =>
+    current.filter((item) => item.id !== id)
+  );
+}
 
   const businessTypes = useMemo(() => {
     if (!industryId) return [];
@@ -32,9 +81,23 @@ export default function AssessmentPage() {
   }
 
   function resetFromBusinessType() {
-    setProcessId("");
-  }
+  setProcessId("");
+  setSelectedEntryPoints([]);
+  setCustomEntryPoints([]);
+  setCustomEntryPoint("");
+}
 
+function resetFromProcess() {
+  setSelectedEntryPoints([]);
+  setCustomEntryPoints([]);
+  setCustomEntryPoint("");
+}
+
+onChange={(event) => {
+  setProcessId(event.target.value);
+  resetFromProcess();
+}}
+  
   return (
     <main
       style={{
@@ -166,49 +229,217 @@ export default function AssessmentPage() {
         )}
 
         {/* Step 4 */}
-        {businessTypeId === "EDU-SCH" && (
-          <section style={cardStyle}>
-            <StepNumber number="4" />
+{businessTypeId === "EDU-SCH" && (
+  <section style={cardStyle}>
+    <StepNumber number="4" />
 
-            <h2 style={headingStyle}>Potential data entry points</h2>
+    <h2 style={headingStyle}>Potential data entry points</h2>
 
-            <p style={{ ...noticeStyle, marginBottom: "20px" }}>
-              These are knowledge-base suggestions. Your organisation can
-              add custom entry points later.
-            </p>
+    <p style={{ ...noticeStyle, marginBottom: "20px" }}>
+      Select all the channels through which your organisation may collect
+      personal data for this process.
+    </p>
 
-            <div
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns:
+          "repeat(auto-fit, minmax(260px, 1fr))",
+        gap: "12px",
+      }}
+    >
+      {entryPoints.map((entryPoint) => {
+        const isSelected = selectedEntryPoints.includes(entryPoint.id);
+
+        return (
+          <label
+            key={entryPoint.id}
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "12px",
+              padding: "16px",
+              border: isSelected
+                ? "2px solid #1d4ed8"
+                : "1px solid #e2e8f0",
+              borderRadius: "10px",
+              background: isSelected ? "#eff6ff" : "#f8fafc",
+              cursor: "pointer",
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={() => toggleEntryPoint(entryPoint.id)}
               style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "repeat(auto-fit, minmax(250px, 1fr))",
-                gap: "14px",
+                marginTop: "3px",
+                width: "18px",
+                height: "18px",
+              }}
+            />
+
+            <span>
+              <strong>{entryPoint.name}</strong>
+
+              <span
+                style={{
+                  display: "block",
+                  fontSize: "13px",
+                  color: "#64748b",
+                  marginTop: "5px",
+                }}
+              >
+                {entryPoint.collection_method}
+              </span>
+            </span>
+          </label>
+        );
+      })}
+    </div>
+
+    {/* Custom entry point */}
+    <div
+      style={{
+        marginTop: "24px",
+        paddingTop: "20px",
+        borderTop: "1px solid #e2e8f0",
+      }}
+    >
+      <h3
+        style={{
+          color: "#0f172a",
+          fontSize: "17px",
+          marginBottom: "8px",
+        }}
+      >
+        Don't see your data entry point?
+      </h3>
+
+      <p style={noticeStyle}>
+        Add a custom channel used by your organisation.
+      </p>
+
+      <div
+        style={{
+          display: "flex",
+          gap: "10px",
+          marginTop: "12px",
+          flexWrap: "wrap",
+        }}
+      >
+        <input
+          type="text"
+          value={customEntryPoint}
+          onChange={(event) =>
+            setCustomEntryPoint(event.target.value)
+          }
+          placeholder="e.g. Admission kiosk"
+          style={{
+            flex: "1 1 300px",
+            padding: "12px 14px",
+            borderRadius: "8px",
+            border: "1px solid #cbd5e1",
+            fontSize: "15px",
+          }}
+        />
+
+        <button
+          type="button"
+          onClick={addCustomEntryPoint}
+          style={{
+            padding: "12px 18px",
+            borderRadius: "8px",
+            border: "none",
+            background: "#0f172a",
+            color: "white",
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
+        >
+          Add
+        </button>
+      </div>
+
+      {customEntryPoints.length > 0 && (
+        <div style={{ marginTop: "16px" }}>
+          {customEntryPoints.map((entryPoint) => (
+            <div
+              key={entryPoint.id}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "12px 14px",
+                marginBottom: "8px",
+                background: "#f8fafc",
+                border: "1px solid #e2e8f0",
+                borderRadius: "8px",
               }}
             >
-              {entryPoints.map((entryPoint) => (
-                <div key={entryPoint.id} style={entryPointStyle}>
-                  <strong>{entryPoint.name}</strong>
+              <span>
+                <strong>{entryPoint.name}</strong>
 
-                  <div
-                    style={{
-                      fontSize: "13px",
-                      color: "#64748b",
-                      marginTop: "6px",
-                    }}
-                  >
-                    {entryPoint.collection_method}
-                  </div>
-                </div>
-              ))}
+                <span
+                  style={{
+                    display: "block",
+                    fontSize: "12px",
+                    color: "#64748b",
+                    marginTop: "3px",
+                  }}
+                >
+                  Custom entry point
+                </span>
+              </span>
+
+              <button
+                type="button"
+                onClick={() =>
+                  removeCustomEntryPoint(entryPoint.id)
+                }
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  color: "#64748b",
+                  cursor: "pointer",
+                  fontSize: "13px",
+                }}
+              >
+                Remove
+              </button>
             </div>
+          ))}
+        </div>
+      )}
+    </div>
 
-            {entryPoints.length === 0 && (
-              <p style={noticeStyle}>
-                No entry points found for this selection.
-              </p>
-            )}
-          </section>
-        )}
+    {/* Selection summary */}
+    {(selectedEntryPoints.length > 0 ||
+      customEntryPoints.length > 0) && (
+      <div
+        style={{
+          marginTop: "24px",
+          padding: "16px",
+          background: "#f0fdf4",
+          border: "1px solid #bbf7d0",
+          borderRadius: "10px",
+          color: "#166534",
+        }}
+      >
+        <strong>
+          {selectedEntryPoints.length +
+            customEntryPoints.length}{" "}
+          data entry point
+          {selectedEntryPoints.length +
+            customEntryPoints.length !==
+          1
+            ? "s"
+            : ""}{" "}
+          selected
+        </strong>
+      </div>
+    )}
+  </section>
+)}
 
         {/* Privacy-by-design notice */}
         <div
