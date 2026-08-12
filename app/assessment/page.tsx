@@ -71,8 +71,7 @@ function buildResidualRiskDecisions(
         risk.findingId ?? risk.id,
 
       riskTitle:
-        risk.riskTitle ??
-        risk.title,
+        risk.riskTitle,
 
       category:
         risk.category,
