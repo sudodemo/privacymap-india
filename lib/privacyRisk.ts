@@ -26,7 +26,7 @@ export type RiskResult = {
   categoryScores: RiskCategoryScore[];
 
   /*
-   * Backward compatibility with earlier versions.
+   * Kept for compatibility with earlier versions.
    */
   level: RiskLevel;
   factors: string[];
@@ -47,7 +47,7 @@ type Field = {
 };
 
 /*
- * Privacy assessment input.
+ * IMPORTANT
  *
  * These property names intentionally match
  * app/assessment/page.tsx.
@@ -146,11 +146,12 @@ function addFinding(
   level: RiskLevel,
   explanation: string,
   recommendation: string
-): void {
+) {
   findings.push({
     id: `${category}-${title}`
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-"),
+
     category,
     title,
     level,
@@ -168,6 +169,7 @@ function addFinding(
 export function calculatePrivacyRisk(
   input: PrivacyRiskInput
 ): RiskResult {
+
   let score = 0;
 
   const findings: RiskFinding[] = [];
@@ -233,6 +235,7 @@ export function calculatePrivacyRisk(
     input.customEntryPoints.length;
 
   if (totalEntryPoints >= 4) {
+
     score += 10;
 
     factors.push(
@@ -251,7 +254,9 @@ export function calculatePrivacyRisk(
       "Personal data is entering the organisation through several channels. Multiple entry points can make data-flow visibility and control more difficult.",
       "Maintain a complete inventory of all collection channels and document how information moves from each channel into downstream systems."
     );
+
   } else if (totalEntryPoints >= 2) {
+
     score += 5;
 
     factors.push(
@@ -274,6 +279,7 @@ export function calculatePrivacyRisk(
     input.customFields.length;
 
   if (totalFields >= 10) {
+
     score += 10;
 
     factors.push(
@@ -292,7 +298,9 @@ export function calculatePrivacyRisk(
       "The process appears to collect a significant number of personal-data fields.",
       "Review each field against the purpose of processing and remove information that is not necessary."
     );
+
   } else if (totalFields >= 5) {
+
     score += 5;
 
     factors.push(
@@ -307,19 +315,29 @@ export function calculatePrivacyRisk(
    */
 
   const involvesStudent =
-    containsValue(dataSubjectTypes, "student");
+    containsValue(
+      dataSubjectTypes,
+      "student"
+    );
 
   const involvesChild =
-    containsValue(dataSubjectTypes, "child");
+    containsValue(
+      dataSubjectTypes,
+      "child"
+    );
 
   const involvesMinor =
-    containsValue(dataSubjectTypes, "minor");
+    containsValue(
+      dataSubjectTypes,
+      "minor"
+    );
 
   if (
     involvesStudent ||
     involvesChild ||
     involvesMinor
   ) {
+
     score += 15;
 
     factors.push(
@@ -347,6 +365,7 @@ export function calculatePrivacyRisk(
    */
 
   if (collectorRoles.length >= 3) {
+
     score += 5;
 
     factors.push(
@@ -374,10 +393,20 @@ export function calculatePrivacyRisk(
    */
 
   if (
-    containsValue(collectionFormats, "paper") ||
-    containsValue(collectionFormats, "physical") ||
-    containsValue(collectionFormats, "in person")
+    containsValue(
+      collectionFormats,
+      "paper"
+    ) ||
+    containsValue(
+      collectionFormats,
+      "physical"
+    ) ||
+    containsValue(
+      collectionFormats,
+      "in person"
+    )
   ) {
+
     score += 5;
 
     factors.push(
@@ -407,10 +436,13 @@ export function calculatePrivacyRisk(
   const digitalCollectionCount =
     collectionFormats.filter(
       (item) =>
-        !/paper|physical|verbal|in person/i.test(item)
+        !/paper|physical|verbal|in person/i.test(
+          item
+        )
     ).length;
 
   if (digitalCollectionCount >= 3) {
+
     score += 5;
 
     factors.push(
@@ -428,7 +460,10 @@ export function calculatePrivacyRisk(
    * -------------------------------------------------------
    */
 
-  if (storageEnvironments.length >= 2) {
+  if (
+    storageEnvironments.length >= 2
+  ) {
+
     score += 8;
 
     factors.push(
@@ -456,10 +491,20 @@ export function calculatePrivacyRisk(
    */
 
   if (
-    containsValue(storageEnvironments, "physical") ||
-    containsValue(storageLocations, "physical") ||
-    containsValue(storageLocations, "paper")
+    containsValue(
+      storageEnvironments,
+      "physical"
+    ) ||
+    containsValue(
+      storageLocations,
+      "physical"
+    ) ||
+    containsValue(
+      storageLocations,
+      "paper"
+    )
   ) {
+
     score += 5;
 
     factors.push(
@@ -487,22 +532,44 @@ export function calculatePrivacyRisk(
    */
 
   const explicitHybrid =
-    containsValue(storageEnvironments, "hybrid");
+    containsValue(
+      storageEnvironments,
+      "hybrid"
+    );
 
   const physicalStorage =
-    containsValue(storageEnvironments, "physical");
+    containsValue(
+      storageEnvironments,
+      "physical"
+    );
 
   const digitalStorage =
-    containsValue(storageEnvironments, "cloud") ||
-    containsValue(storageEnvironments, "on-premises") ||
-    containsValue(storageEnvironments, "employee device") ||
-    containsValue(storageEnvironments, "mobile device") ||
-    containsValue(storageEnvironments, "third-party");
+    containsValue(
+      storageEnvironments,
+      "cloud"
+    ) ||
+    containsValue(
+      storageEnvironments,
+      "on-premises"
+    ) ||
+    containsValue(
+      storageEnvironments,
+      "employee device"
+    ) ||
+    containsValue(
+      storageEnvironments,
+      "mobile device"
+    ) ||
+    containsValue(
+      storageEnvironments,
+      "third-party"
+    );
 
   if (
     explicitHybrid ||
     (physicalStorage && digitalStorage)
   ) {
+
     score += 8;
 
     factors.push(
@@ -530,9 +597,16 @@ export function calculatePrivacyRisk(
    */
 
   if (
-    containsValue(storageLocations, "unknown") ||
-    containsValue(storageEnvironments, "unknown")
+    containsValue(
+      storageLocations,
+      "unknown"
+    ) ||
+    containsValue(
+      storageEnvironments,
+      "unknown"
+    )
   ) {
+
     score += 10;
 
     factors.push(
@@ -560,9 +634,16 @@ export function calculatePrivacyRisk(
    */
 
   if (
-    containsValue(encryptionStatuses, "clear text") ||
-    containsValue(encryptionStatuses, "not encrypted")
+    containsValue(
+      encryptionStatuses,
+      "clear text"
+    ) ||
+    containsValue(
+      encryptionStatuses,
+      "not encrypted"
+    )
   ) {
+
     score += 25;
 
     factors.push(
@@ -584,8 +665,12 @@ export function calculatePrivacyRisk(
   }
 
   if (
-    containsValue(encryptionStatuses, "unknown")
+    containsValue(
+      encryptionStatuses,
+      "unknown"
+    )
   ) {
+
     score += 10;
 
     factors.push(
@@ -614,8 +699,12 @@ export function calculatePrivacyRisk(
 
   if (
     accessRoles.length === 0 ||
-    containsValue(accessRoles, "unknown")
+    containsValue(
+      accessRoles,
+      "unknown"
+    )
   ) {
+
     score += 8;
 
     factors.push(
@@ -643,10 +732,20 @@ export function calculatePrivacyRisk(
    */
 
   if (
-    containsValue(sharingStatuses, "service provider") ||
-    containsValue(sharingStatuses, "third parties") ||
-    containsValue(sharingStatuses, "external")
+    containsValue(
+      sharingStatuses,
+      "service provider"
+    ) ||
+    containsValue(
+      sharingStatuses,
+      "third parties"
+    ) ||
+    containsValue(
+      sharingStatuses,
+      "external"
+    )
   ) {
+
     score += 15;
 
     factors.push(
@@ -668,8 +767,12 @@ export function calculatePrivacyRisk(
   }
 
   if (
-    containsValue(sharingStatuses, "unknown")
+    containsValue(
+      sharingStatuses,
+      "unknown"
+    )
   ) {
+
     score += 8;
 
     factors.push(
@@ -697,9 +800,16 @@ export function calculatePrivacyRisk(
    */
 
   if (
-    containsValue(retentionPeriods, "indefinitely") ||
-    containsValue(retentionPeriods, "no defined")
+    containsValue(
+      retentionPeriods,
+      "indefinitely"
+    ) ||
+    containsValue(
+      retentionPeriods,
+      "no defined"
+    )
   ) {
+
     score += 15;
 
     factors.push(
@@ -721,8 +831,12 @@ export function calculatePrivacyRisk(
   }
 
   if (
-    containsValue(retentionPeriods, "unknown")
+    containsValue(
+      retentionPeriods,
+      "unknown"
+    )
   ) {
+
     score += 8;
 
     factors.push(
@@ -750,9 +864,16 @@ export function calculatePrivacyRisk(
    */
 
   if (
-    containsValue(deletionMethods, "no defined") ||
-    containsValue(deletionMethods, "unknown")
+    containsValue(
+      deletionMethods,
+      "no defined"
+    ) ||
+    containsValue(
+      deletionMethods,
+      "unknown"
+    )
   ) {
+
     score += 10;
 
     factors.push(
@@ -780,9 +901,16 @@ export function calculatePrivacyRisk(
    */
 
   if (
-    containsValue(privacyNotices, "no") ||
-    containsValue(privacyNotices, "partially")
+    containsValue(
+      privacyNotices,
+      "no"
+    ) ||
+    containsValue(
+      privacyNotices,
+      "partially"
+    )
   ) {
+
     score += 12;
 
     factors.push(
@@ -804,8 +932,12 @@ export function calculatePrivacyRisk(
   }
 
   if (
-    containsValue(privacyNotices, "unknown")
+    containsValue(
+      privacyNotices,
+      "unknown"
+    )
   ) {
+
     score += 7;
 
     factors.push(
@@ -833,8 +965,12 @@ export function calculatePrivacyRisk(
    */
 
   if (
-    containsValue(consentStatuses, "no")
+    containsValue(
+      consentStatuses,
+      "no"
+    )
   ) {
+
     score += 15;
 
     factors.push(
@@ -856,8 +992,12 @@ export function calculatePrivacyRisk(
   }
 
   if (
-    containsValue(consentStatuses, "unknown")
+    containsValue(
+      consentStatuses,
+      "unknown"
+    )
   ) {
+
     score += 8;
 
     factors.push(
@@ -889,6 +1029,7 @@ export function calculatePrivacyRisk(
     involvesChild ||
     involvesMinor
   ) {
+
     if (
       containsValue(
         parentalConsentStatuses,
@@ -899,6 +1040,7 @@ export function calculatePrivacyRisk(
         "partially"
       )
     ) {
+
       score += 20;
 
       factors.push(
@@ -925,6 +1067,7 @@ export function calculatePrivacyRisk(
         "unknown"
       )
     ) {
+
       score += 10;
 
       factors.push(
@@ -953,8 +1096,12 @@ export function calculatePrivacyRisk(
    */
 
   if (
-    containsValue(crossBorderTransfers, "yes")
+    containsValue(
+      crossBorderTransfers,
+      "yes"
+    )
   ) {
+
     score += 10;
 
     factors.push(
@@ -976,8 +1123,12 @@ export function calculatePrivacyRisk(
   }
 
   if (
-    containsValue(crossBorderTransfers, "unknown")
+    containsValue(
+      crossBorderTransfers,
+      "unknown"
+    )
   ) {
+
     score += 5;
 
     factors.push(
@@ -1007,6 +1158,7 @@ export function calculatePrivacyRisk(
   if (
     collectionFormats.length === 0
   ) {
+
     score += 5;
 
     factors.push(
@@ -1036,6 +1188,7 @@ export function calculatePrivacyRisk(
   if (
     dataSubjectTypes.length === 0
   ) {
+
     score += 5;
 
     factors.push(
@@ -1080,15 +1233,13 @@ export function calculatePrivacyRisk(
    * -------------------------------------------------------
    * CATEGORY SCORES
    * -------------------------------------------------------
-   *
-   * Category scores are derived from findings rather than
-   * simply duplicating the overall score.
    */
 
   const categoryNames =
     uniqueStrings(
       findings.map(
-        (finding) => finding.category
+        (finding) =>
+          finding.category
       )
     );
 
@@ -1096,17 +1247,21 @@ export function calculatePrivacyRisk(
     RiskCategoryScore[] =
     categoryNames.map(
       (category) => {
+
         const categoryFindings =
           findings.filter(
             (finding) =>
-              finding.category === category
+              finding.category ===
+              category
           );
 
         let categoryScore = 0;
 
         categoryFindings.forEach(
           (finding) => {
+
             switch (finding.level) {
+
               case "Critical":
                 categoryScore += 85;
                 break;
@@ -1147,19 +1302,15 @@ export function calculatePrivacyRisk(
    * -------------------------------------------------------
    * SORT FINDINGS
    * -------------------------------------------------------
-   *
-   * Critical → High → Medium → Low
    */
 
-  const priority: Record<
-    RiskLevel,
-    number
-  > = {
-    Critical: 4,
-    High: 3,
-    Medium: 2,
-    Low: 1,
-  };
+  const priority:
+    Record<RiskLevel, number> = {
+      Critical: 4,
+      High: 3,
+      Medium: 2,
+      Low: 1,
+    };
 
   findings.sort(
     (a, b) =>
@@ -1177,7 +1328,9 @@ export function calculatePrivacyRisk(
     uniqueStrings(factors);
 
   const uniqueRecommendations =
-    uniqueStrings(recommendations);
+    uniqueStrings(
+      recommendations
+    );
 
   /*
    * -------------------------------------------------------
@@ -1187,15 +1340,21 @@ export function calculatePrivacyRisk(
 
   return {
     score,
+
     overallLevel,
+
     findings,
+
     categoryScores,
 
     /*
      * Backward compatibility
      */
     level: overallLevel,
-    factors: uniqueFactors,
+
+    factors:
+      uniqueFactors,
+
     recommendations:
       uniqueRecommendations,
   };
