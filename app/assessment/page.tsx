@@ -26,6 +26,13 @@ import {
   type TreatmentStatus,
 } from "../../lib/riskTreatment";
 
+import {
+  generateResidualRiskAssessment,
+  generateResidualRiskSummary,
+  type ResidualRiskAssessment,
+  type ResidualRiskSummary,
+} from "../../lib/residualRisk";
+
 export default function AssessmentPage() {
   const [industryId, setIndustryId] =
     useState("");
@@ -155,23 +162,72 @@ export default function AssessmentPage() {
     setCrossBorderTransfers,
   ] = useState<string[]>([]);
 
+  /*
+   * ---------------------------------------------------------
+   * STEP 7 STATE
+   * ---------------------------------------------------------
+   */
+
   const [
     riskResult,
     setRiskResult,
   ] = useState<RiskResult | null>(null);
 
+  /*
+   * ---------------------------------------------------------
+   * STEP 8 - RISK TREATMENT
+   * ---------------------------------------------------------
+   */
+
   const treatmentPlan =
-  useMemo<RiskTreatmentAction[]>(() => {
+    useMemo<RiskTreatmentAction[]>(() => {
+      if (!riskResult) {
+        return [];
+      }
 
-    if (!riskResult) {
-      return [];
-    }
+      return generateRiskTreatmentPlan(
+        riskResult
+      );
+    }, [riskResult]);
 
-    return generateRiskTreatmentPlan(
-      riskResult
-    );
+  /*
+   * ---------------------------------------------------------
+   * STEP 9 - RESIDUAL RISK
+   * ---------------------------------------------------------
+   */
 
-  }, [riskResult]);
+  const residualRiskAssessments =
+    useMemo<ResidualRiskAssessment[]>(() => {
+      if (
+        !riskResult ||
+        treatmentPlan.length === 0
+      ) {
+        return [];
+      }
+
+      return generateResidualRiskAssessment(
+        riskResult,
+        treatmentPlan
+      );
+    }, [
+      riskResult,
+      treatmentPlan,
+    ]);
+
+  const residualRiskSummary =
+    useMemo<ResidualRiskSummary | null>(() => {
+      if (
+        residualRiskAssessments.length === 0
+      ) {
+        return null;
+      }
+
+      return generateResidualRiskSummary(
+        residualRiskAssessments
+      );
+    }, [
+      residualRiskAssessments,
+    ]);
 
   /*
    * ---------------------------------------------------------
@@ -451,10 +507,6 @@ export default function AssessmentPage() {
         selectedFields,
         customFields,
 
-        /*
-         * IMPORTANT:
-         * These two were missing in the previous version.
-         */
         collectorRoles,
         dataSubjectTypes,
 
@@ -554,7 +606,9 @@ export default function AssessmentPage() {
           risks may exist.
         </p>
 
-        {/* STEP 1 */}
+        {/* =================================================
+            STEP 1
+            ================================================= */}
 
         <section style={cardStyle}>
           <StepNumber number="1" />
@@ -594,7 +648,9 @@ export default function AssessmentPage() {
           </select>
         </section>
 
-        {/* STEP 2 */}
+        {/* =================================================
+            STEP 2
+            ================================================= */}
 
         {industryId && (
           <section
@@ -658,7 +714,9 @@ export default function AssessmentPage() {
           </section>
         )}
 
-        {/* STEP 3 */}
+        {/* =================================================
+            STEP 3
+            ================================================= */}
 
         {businessTypeId ===
           "EDU-SCH" && (
@@ -701,7 +759,9 @@ export default function AssessmentPage() {
           </section>
         )}
 
-        {/* STEP 4 */}
+        {/* =================================================
+            STEP 4
+            ================================================= */}
 
         {businessTypeId ===
           "EDU-SCH" && (
@@ -971,7 +1031,9 @@ export default function AssessmentPage() {
           </section>
         )}
 
-        {/* STEP 5 */}
+        {/* =================================================
+            STEP 5
+            ================================================= */}
 
         {businessTypeId ===
           "EDU-SCH" &&
@@ -1266,7 +1328,9 @@ export default function AssessmentPage() {
             </section>
           )}
 
-        {/* STEP 6 */}
+        {/* =================================================
+            STEP 6
+            ================================================= */}
 
         {businessTypeId ===
           "EDU-SCH" &&
@@ -1635,7 +1699,9 @@ export default function AssessmentPage() {
             </section>
           )}
 
-        {/* STEP 7 */}
+        {/* =================================================
+            STEP 7
+            ================================================= */}
 
         {businessTypeId ===
           "EDU-SCH" &&
@@ -1721,7 +1787,9 @@ export default function AssessmentPage() {
             </section>
           )}
 
-        {/* RISK RESULT */}
+        {/* =================================================
+            RISK RESULT / STEP 7 OUTPUT
+            ================================================= */}
 
         {riskResult && (
           <div
@@ -1733,13 +1801,38 @@ export default function AssessmentPage() {
           </div>
         )}
 
-        {riskResult && treatmentPlan.length > 0 && (
-          <RiskTreatmentPlan
-            plan={treatmentPlan}
-          />
-        )}
+        {/* =================================================
+            STEP 8
+            ================================================= */}
 
-        {/* PRIVACY BY DESIGN */}
+        {riskResult &&
+          treatmentPlan.length > 0 && (
+            <RiskTreatmentPlan
+              plan={treatmentPlan}
+            />
+          )}
+
+        {/* =================================================
+            STEP 9
+            ================================================= */}
+
+        {riskResult &&
+          treatmentPlan.length > 0 &&
+          residualRiskAssessments.length >
+            0 && (
+            <ResidualRiskDashboard
+              assessments={
+                residualRiskAssessments
+              }
+              summary={
+                residualRiskSummary
+              }
+            />
+          )}
+
+        {/* =================================================
+            PRIVACY BY DESIGN
+            ================================================= */}
 
         <div
           style={{
@@ -1774,9 +1867,9 @@ export default function AssessmentPage() {
 }
 
 /*
- * ---------------------------------------------------------
+ * =========================================================
  * RISK DASHBOARD
- * ---------------------------------------------------------
+ * =========================================================
  */
 
 function RiskDashboard({
@@ -2223,9 +2316,9 @@ function RiskDashboard({
 }
 
 /*
- * ---------------------------------------------------------
- * MULTI SELECT FIELD
- * ---------------------------------------------------------
+ * =========================================================
+ * STEP 8 - RISK TREATMENT PLAN
+ * =========================================================
  */
 
 function RiskTreatmentPlan({
@@ -2233,182 +2326,171 @@ function RiskTreatmentPlan({
 }: {
   plan: RiskTreatmentAction[];
 }) {
-
   const [actions, setActions] =
-    useState<RiskTreatmentAction[]>(plan);
+    useState<RiskTreatmentAction[]>(
+      plan
+    );
 
   useEffect(() => {
     setActions(plan);
   }, [plan]);
 
-function TreatmentSummaryCard({
-  label,
-  value,
-  level,
-}: {
-  label: string;
-  value: number;
-  level?: RiskLevel;
-}) {
-
-  return (
-    <div
-      style={{
-        padding: "18px",
-        borderRadius: "10px",
-        background:
-          level
-            ? riskBackground(level)
-            : "#f8fafc",
-        border:
-          "1px solid #e2e8f0",
-      }}
-    >
-
+  function TreatmentSummaryCard({
+    label,
+    value,
+    level,
+  }: {
+    label: string;
+    value: number;
+    level?: RiskLevel;
+  }) {
+    return (
       <div
         style={{
-          fontSize: "11px",
-          fontWeight: 700,
-          color: "#64748b",
-          letterSpacing: "1px",
-        }}
-      >
-        {label}
-      </div>
-
-      <div
-        style={{
-          marginTop: "6px",
-          fontSize: "28px",
-          fontWeight: 800,
-          color:
+          padding: "18px",
+          borderRadius: "10px",
+          background:
             level
-              ? riskColor(level)
-              : "#0f172a",
+              ? riskBackground(level)
+              : "#f8fafc",
+          border:
+            "1px solid #e2e8f0",
         }}
       >
-        {value}
+        <div
+          style={{
+            fontSize: "11px",
+            fontWeight: 700,
+            color: "#64748b",
+            letterSpacing: "1px",
+          }}
+        >
+          {label}
+        </div>
+
+        <div
+          style={{
+            marginTop: "6px",
+            fontSize: "28px",
+            fontWeight: 800,
+            color:
+              level
+                ? riskColor(level)
+                : "#0f172a",
+          }}
+        >
+          {value}
+        </div>
       </div>
+    );
+  }
 
-    </div>
-  );
-}
-
-
-function TreatmentMeta({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
-
-  return (
-    <div
-      style={{
-        padding: "12px",
-        background: "#f8fafc",
-        borderRadius: "8px",
-      }}
-    >
-
+  function TreatmentMeta({
+    label,
+    value,
+  }: {
+    label: string;
+    value: string;
+  }) {
+    return (
       <div
         style={{
-          fontSize: "11px",
+          padding: "12px",
+          background: "#f8fafc",
+          borderRadius: "8px",
+        }}
+      >
+        <div
+          style={{
+            fontSize: "11px",
+            fontWeight: 700,
+            color: "#64748b",
+            textTransform:
+              "uppercase",
+            marginBottom: "5px",
+          }}
+        >
+          {label}
+        </div>
+
+        <div
+          style={{
+            fontSize: "13px",
+            color: "#334155",
+            lineHeight: 1.5,
+          }}
+        >
+          {value}
+        </div>
+      </div>
+    );
+  }
+
+  function RiskBadge({
+    label,
+    level,
+  }: {
+    label: string;
+    level: RiskLevel;
+  }) {
+    return (
+      <span
+        style={{
+          padding: "6px 10px",
+          borderRadius: "20px",
+          background:
+            riskBackground(level),
+          color:
+            riskColor(level),
           fontWeight: 700,
-          color: "#64748b",
-          textTransform:
-            "uppercase",
-          marginBottom: "5px",
+          fontSize: "12px",
         }}
       >
         {label}
-      </div>
+      </span>
+    );
+  }
 
-      <div
+  function PriorityBadge({
+    priority,
+  }: {
+    priority:
+      | "Immediate"
+      | "High"
+      | "Medium"
+      | "Low";
+  }) {
+    const level: RiskLevel =
+      priority === "Immediate"
+        ? "Critical"
+        : priority === "High"
+        ? "High"
+        : priority === "Medium"
+        ? "Medium"
+        : "Low";
+
+    return (
+      <span
         style={{
-          fontSize: "13px",
-          color: "#334155",
-          lineHeight: 1.5,
+          padding: "6px 10px",
+          borderRadius: "20px",
+          background:
+            riskBackground(level),
+          color:
+            riskColor(level),
+          fontWeight: 700,
+          fontSize: "12px",
         }}
       >
-        {value}
-      </div>
+        {priority} Priority
+      </span>
+    );
+  }
 
-    </div>
-  );
-}
-
-
-function RiskBadge({
-  label,
-  level,
-}: {
-  label: string;
-  level: RiskLevel;
-}) {
-
-  return (
-    <span
-      style={{
-        padding: "6px 10px",
-        borderRadius: "20px",
-        background:
-          riskBackground(level),
-        color:
-          riskColor(level),
-        fontWeight: 700,
-        fontSize: "12px",
-      }}
-    >
-      {label}
-    </span>
-  );
-}
-
-
-function PriorityBadge({
-  priority,
-}: {
-  priority:
-    | "Immediate"
-    | "High"
-    | "Medium"
-    | "Low";
-}) {
-
-  const level: RiskLevel =
-    priority === "Immediate"
-      ? "Critical"
-      : priority === "High"
-      ? "High"
-      : priority === "Medium"
-      ? "Medium"
-      : "Low";
-
-  return (
-    <span
-      style={{
-        padding: "6px 10px",
-        borderRadius: "20px",
-        background:
-          riskBackground(level),
-        color:
-          riskColor(level),
-        fontWeight: 700,
-        fontSize: "12px",
-      }}
-    >
-      {priority} Priority
-    </span>
-  );
-}
-  
   function updateStatus(
     id: string,
     status: TreatmentStatus
   ) {
-
     setActions((current) =>
       current.map((action) =>
         action.id === id
@@ -2446,16 +2528,15 @@ function PriorityBadge({
         marginBottom: "24px",
       }}
     >
-
       <div
         style={{
           background: "white",
-          border: "1px solid #e2e8f0",
+          border:
+            "1px solid #e2e8f0",
           borderRadius: "14px",
           padding: "28px",
         }}
       >
-
         <div
           style={{
             fontSize: "13px",
@@ -2499,7 +2580,6 @@ function PriorityBadge({
             marginTop: "24px",
           }}
         >
-
           <TreatmentSummaryCard
             label="TOTAL ACTIONS"
             value={actions.length}
@@ -2522,22 +2602,19 @@ function PriorityBadge({
             value={completedCount}
             level="Low"
           />
-
         </div>
-
       </div>
-
 
       <div
         style={{
           marginTop: "20px",
           background: "white",
-          border: "1px solid #e2e8f0",
+          border:
+            "1px solid #e2e8f0",
           borderRadius: "14px",
           padding: "28px",
         }}
       >
-
         <h2
           style={{
             marginTop: 0,
@@ -2548,7 +2625,6 @@ function PriorityBadge({
         </h2>
 
         {actions.map((action) => (
-
           <div
             key={action.id}
             style={{
@@ -2559,7 +2635,6 @@ function PriorityBadge({
               marginBottom: "16px",
             }}
           >
-
             <div
               style={{
                 display: "flex",
@@ -2571,9 +2646,7 @@ function PriorityBadge({
                 flexWrap: "wrap",
               }}
             >
-
               <div>
-
                 <div
                   style={{
                     fontSize: "12px",
@@ -2595,7 +2668,6 @@ function PriorityBadge({
                 >
                   {action.riskTitle}
                 </h3>
-
               </div>
 
               <div
@@ -2605,20 +2677,20 @@ function PriorityBadge({
                   flexWrap: "wrap",
                 }}
               >
-
                 <RiskBadge
                   label={action.riskLevel}
-                  level={action.riskLevel}
+                  level={
+                    action.riskLevel
+                  }
                 />
 
                 <PriorityBadge
-                  priority={action.priority}
+                  priority={
+                    action.priority
+                  }
                 />
-
               </div>
-
             </div>
-
 
             <div
               style={{
@@ -2632,7 +2704,6 @@ function PriorityBadge({
                 color: "#1e3a8a",
               }}
             >
-
               <strong>
                 Recommended treatment
               </strong>
@@ -2644,9 +2715,7 @@ function PriorityBadge({
               >
                 {action.action}
               </div>
-
             </div>
-
 
             <div
               style={{
@@ -2655,15 +2724,11 @@ function PriorityBadge({
                 lineHeight: 1.6,
               }}
             >
-
               <strong>
                 Why this matters:
               </strong>{" "}
-
               {action.rationale}
-
             </div>
-
 
             <div
               style={{
@@ -2674,7 +2739,6 @@ function PriorityBadge({
                 marginTop: "18px",
               }}
             >
-
               <TreatmentMeta
                 label="Suggested owner"
                 value={
@@ -2702,9 +2766,7 @@ function PriorityBadge({
                   action.evidence
                 }
               />
-
             </div>
-
 
             <div
               style={{
@@ -2718,7 +2780,6 @@ function PriorityBadge({
                 flexWrap: "wrap",
               }}
             >
-
               <strong
                 style={{
                   color: "#0f172a",
@@ -2747,7 +2808,6 @@ function PriorityBadge({
                   fontSize: "14px",
                 }}
               >
-
                 <option value="Open">
                   Open
                 </option>
@@ -2763,17 +2823,11 @@ function PriorityBadge({
                 <option value="Accepted">
                   Accepted
                 </option>
-
               </select>
-
             </div>
-
           </div>
-
         ))}
-
       </div>
-
 
       <div
         style={{
@@ -2788,7 +2842,6 @@ function PriorityBadge({
           lineHeight: 1.6,
         }}
       >
-
         <strong>
           Treatment guidance:
         </strong>{" "}
@@ -2798,12 +2851,457 @@ function PriorityBadge({
         reviewed and approved by the
         organisation's appropriate privacy,
         legal, security and business owners.
-
       </div>
-
     </section>
   );
 }
+
+/*
+ * =========================================================
+ * STEP 9 - RESIDUAL RISK DASHBOARD
+ * =========================================================
+ */
+
+function ResidualRiskDashboard({
+  assessments,
+  summary,
+}: {
+  assessments: ResidualRiskAssessment[];
+  summary: ResidualRiskSummary | null;
+}) {
+  return (
+    <section
+      style={{
+        marginTop: "24px",
+        marginBottom: "24px",
+      }}
+    >
+      <div
+        style={{
+          background: "white",
+          border:
+            "1px solid #e2e8f0",
+          borderRadius: "14px",
+          padding: "28px",
+        }}
+      >
+        <div
+          style={{
+            fontSize: "13px",
+            fontWeight: 700,
+            letterSpacing: "2px",
+            color: "#1d4ed8",
+            marginBottom: "8px",
+          }}
+        >
+          STEP 9
+        </div>
+
+        <h2
+          style={{
+            marginTop: 0,
+            color: "#0f172a",
+          }}
+        >
+          Residual Risk Assessment
+        </h2>
+
+        <p
+          style={{
+            color: "#64748b",
+            lineHeight: 1.6,
+            maxWidth: "720px",
+          }}
+        >
+          Residual risk represents the level
+          of privacy risk that remains after
+          considering the treatment actions
+          and existing control effectiveness
+          identified during the assessment.
+        </p>
+
+        {summary && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "repeat(auto-fit, minmax(170px, 1fr))",
+              gap: "12px",
+              marginTop: "24px",
+            }}
+          >
+            <ResidualSummaryCard
+              label="TOTAL RISKS"
+              value={summary.total}
+            />
+
+            <ResidualSummaryCard
+              label="CRITICAL"
+              value={summary.critical}
+              level="Critical"
+            />
+
+            <ResidualSummaryCard
+              label="HIGH"
+              value={summary.high}
+              level="High"
+            />
+
+            <ResidualSummaryCard
+              label="MEDIUM"
+              value={summary.medium}
+              level="Medium"
+            />
+
+            <ResidualSummaryCard
+              label="LOW"
+              value={summary.low}
+              level="Low"
+            />
+          </div>
+        )}
+      </div>
+
+      <div
+        style={{
+          marginTop: "20px",
+          background: "white",
+          border:
+            "1px solid #e2e8f0",
+          borderRadius: "14px",
+          padding: "28px",
+        }}
+      >
+        <h2
+          style={{
+            marginTop: 0,
+            color: "#0f172a",
+          }}
+        >
+          Residual Risk by Finding
+        </h2>
+
+        {assessments.map(
+          (assessment) => (
+            <div
+              key={
+                assessment.findingId
+              }
+              style={{
+                border:
+                  "1px solid #e2e8f0",
+                borderRadius: "12px",
+                padding: "22px",
+                marginBottom: "16px",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent:
+                    "space-between",
+                  alignItems:
+                    "flex-start",
+                  gap: "15px",
+                  flexWrap: "wrap",
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      fontSize: "12px",
+                      fontWeight: 700,
+                      color: "#64748b",
+                      textTransform:
+                        "uppercase",
+                      letterSpacing: "1px",
+                    }}
+                  >
+                    FINDING
+                  </div>
+
+                  <h3
+                    style={{
+                      margin: "6px 0",
+                      color: "#0f172a",
+                    }}
+                  >
+                    {
+                      assessment.findingId
+                    }
+                  </h3>
+                </div>
+
+                <span
+                  style={{
+                    padding:
+                      "6px 10px",
+                    borderRadius:
+                      "20px",
+                    background:
+                      riskBackground(
+                        assessment.residualRisk
+                      ),
+                    color:
+                      riskColor(
+                        assessment.residualRisk
+                      ),
+                    fontWeight: 700,
+                    fontSize:
+                      "12px",
+                  }}
+                >
+                  Residual Risk:{" "}
+                  {
+                    assessment.residualRisk
+                  }
+                </span>
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    "repeat(auto-fit, minmax(180px, 1fr))",
+                  gap: "12px",
+                  marginTop: "18px",
+                }}
+              >
+                <ResidualMeta
+                  label="Inherent Risk"
+                  value={
+                    assessment.inherentRisk
+                  }
+                  level={
+                    assessment.inherentRisk
+                  }
+                />
+
+                <ResidualMeta
+                  label="Control Effectiveness"
+                  value={
+                    assessment.controlEffectiveness
+                  }
+                />
+
+                <ResidualMeta
+                  label="Residual Risk"
+                  value={
+                    assessment.residualRisk
+                  }
+                  level={
+                    assessment.residualRisk
+                  }
+                />
+
+                <ResidualMeta
+                  label="Residual Score"
+                  value={`${assessment.residualRiskScore}/100`}
+                />
+
+                <ResidualMeta
+                  label="Status"
+                  value={
+                    assessment.status
+                  }
+                />
+              </div>
+
+              <div
+                style={{
+                  marginTop: "18px",
+                  padding: "16px",
+                  background:
+                    "#f8fafc",
+                  borderRadius:
+                    "10px",
+                  color:
+                    "#475569",
+                  lineHeight:
+                    1.6,
+                }}
+              >
+                <strong>
+                  Residual risk rationale:
+                </strong>
+
+                <div
+                  style={{
+                    marginTop: "6px",
+                  }}
+                >
+                  {
+                    assessment.residualRiskRationale
+                  }
+                </div>
+              </div>
+
+              <div
+                style={{
+                  marginTop: "14px",
+                  padding: "16px",
+                  background:
+                    "#eff6ff",
+                  border:
+                    "1px solid #bfdbfe",
+                  borderRadius:
+                    "10px",
+                  color:
+                    "#1e3a8a",
+                  lineHeight:
+                    1.6,
+                }}
+              >
+                <strong>
+                  Recommended next action:
+                </strong>
+
+                <div
+                  style={{
+                    marginTop: "6px",
+                  }}
+                >
+                  {
+                    assessment.recommendedNextAction
+                  }
+                </div>
+              </div>
+            </div>
+          )
+        )}
+      </div>
+
+      <div
+        style={{
+          marginTop: "16px",
+          padding: "16px 18px",
+          background: "#f8fafc",
+          border:
+            "1px solid #e2e8f0",
+          borderRadius: "10px",
+          color: "#64748b",
+          fontSize: "13px",
+          lineHeight: 1.6,
+        }}
+      >
+        <strong>
+          Residual-risk guidance:
+        </strong>{" "}
+        Residual risk is an indicative
+        risk-management result based on
+        the information provided and the
+        treatment/control assumptions used
+        by PrivacyMap. It should be reviewed
+        by the appropriate privacy, legal,
+        security and business owners.
+      </div>
+    </section>
+  );
+}
+
+function ResidualSummaryCard({
+  label,
+  value,
+  level,
+}: {
+  label: string;
+  value: number;
+  level?: RiskLevel;
+}) {
+  return (
+    <div
+      style={{
+        padding: "18px",
+        borderRadius: "10px",
+        background:
+          level
+            ? riskBackground(level)
+            : "#f8fafc",
+        border:
+          "1px solid #e2e8f0",
+      }}
+    >
+      <div
+        style={{
+          fontSize: "11px",
+          fontWeight: 700,
+          color: "#64748b",
+          letterSpacing: "1px",
+        }}
+      >
+        {label}
+      </div>
+
+      <div
+        style={{
+          marginTop: "6px",
+          fontSize: "28px",
+          fontWeight: 800,
+          color:
+            level
+              ? riskColor(level)
+              : "#0f172a",
+        }}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function ResidualMeta({
+  label,
+  value,
+  level,
+}: {
+  label: string;
+  value: string;
+  level?: RiskLevel;
+}) {
+  return (
+    <div
+      style={{
+        padding: "12px",
+        background: "#f8fafc",
+        borderRadius: "8px",
+      }}
+    >
+      <div
+        style={{
+          fontSize: "11px",
+          fontWeight: 700,
+          color: "#64748b",
+          textTransform:
+            "uppercase",
+          marginBottom: "5px",
+        }}
+      >
+        {label}
+      </div>
+
+      <div
+        style={{
+          fontSize: "14px",
+          fontWeight:
+            level ? 700 : 500,
+          color:
+            level
+              ? riskColor(level)
+              : "#334155",
+          lineHeight: 1.5,
+        }}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+/*
+ * =========================================================
+ * MULTI SELECT FIELD
+ * =========================================================
+ */
 
 function MultiSelectField({
   label,
@@ -2932,9 +3430,9 @@ function MultiSelectField({
 }
 
 /*
- * ---------------------------------------------------------
+ * =========================================================
  * SUPPORTING COMPONENTS
- * ---------------------------------------------------------
+ * =========================================================
  */
 
 function SelectionSummary({
@@ -3003,6 +3501,12 @@ function StepNumber({
   );
 }
 
+/*
+ * =========================================================
+ * RISK HELPERS
+ * =========================================================
+ */
+
 function riskColor(
   level: RiskLevel
 ): string {
@@ -3038,6 +3542,12 @@ function riskBackground(
       return "#f0fdf4";
   }
 }
+
+/*
+ * =========================================================
+ * SHARED STYLES
+ * =========================================================
+ */
 
 const cardStyle = {
   background:
