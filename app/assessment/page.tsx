@@ -5,6 +5,7 @@ import {
   defaultDecisionRationale,
   decisionRequiresApproval,
   defaultDecisionAuthority,
+  defaultApprovalStatus,
   defaultEscalation,
   defaultEscalationReason,
   type ResidualRiskDecision,
