@@ -12,6 +12,13 @@ export type DecisionApprovalStatus =
   | "Approved"
   | "Rejected";
 
+export type ReviewFrequency =
+  | "Monthly"
+  | "Quarterly"
+  | "Half-yearly"
+  | "Annual"
+  | "Event-driven";
+
 export type ResidualRiskDecisionRecord = {
   id: string;
   findingId: string;
@@ -26,10 +33,20 @@ export type ResidualRiskDecisionRecord = {
   rationale: string;
 
   accountableOwner: string;
+  decisionAuthority: string;
 
   reviewDate: string;
+  approvalDate: string;
+
+  reviewFrequency: ReviewFrequency;
+  nextReviewDate: string;
+
+  targetResolutionDate: string;
 
   approvalStatus: DecisionApprovalStatus;
+
+  escalationRequired: boolean;
+  escalationReason: string;
 
   treatmentStatus:
     | "Open"
@@ -97,4 +114,46 @@ export function decisionRequiresApproval(
   }
 
   return false;
+}
+
+export function defaultDecisionAuthority(
+  riskLevel: RiskLevel
+): string {
+  switch (riskLevel) {
+    case "Critical":
+      return "Executive / Risk Committee";
+
+    case "High":
+      return "Senior Management / Risk Owner";
+
+    case "Medium":
+      return "Business / Privacy Owner";
+
+    case "Low":
+      return "Process Owner";
+  }
+}
+
+export function defaultEscalation(
+  riskLevel: RiskLevel
+): boolean {
+  return (
+    riskLevel === "Critical" ||
+    riskLevel === "High"
+  );
+}
+
+export function defaultEscalationReason(
+  riskLevel: RiskLevel
+): string {
+  switch (riskLevel) {
+    case "Critical":
+      return "Critical residual risk requires senior governance review.";
+
+    case "High":
+      return "High residual risk requires management review and documented ownership.";
+
+    default:
+      return "";
+  }
 }
