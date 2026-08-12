@@ -10,7 +10,8 @@ export type ResidualRiskDecision =
 export type DecisionApprovalStatus =
   | "Pending"
   | "Approved"
-  | "Rejected";
+  | "Rejected"
+  | "Not Required";
 
 export type ReviewFrequency =
   | "Monthly"
