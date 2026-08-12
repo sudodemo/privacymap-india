@@ -1,19 +1,19 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { getBusinessTypes, getSchoolEntryPoints, kb } from "../../lib/kb";
+import {
+  getBusinessTypes,
+  getSchoolEntryPoints,
+  kb,
+} from "../../lib/kb";
 
-type CustomItem = {
-  id: string;
-  name: string;
-  custom: boolean;
-};
+import {
+  calculatePrivacyRisk,
+  type RiskLevel,
+  type RiskResult,
+} from "../../lib/privacyRisk";
 
 export default function AssessmentPage() {
-  /* =========================================================
-     STEP 1–4: BUSINESS CONTEXT
-     ========================================================= */
-
   const [industryId, setIndustryId] = useState("");
   const [businessTypeId, setBusinessTypeId] = useState("");
   const [processId, setProcessId] = useState("");
@@ -21,37 +21,38 @@ export default function AssessmentPage() {
   const [selectedEntryPoints, setSelectedEntryPoints] =
     useState<string[]>([]);
 
-  const [customEntryPoint, setCustomEntryPoint] = useState("");
+  const [customEntryPoint, setCustomEntryPoint] =
+    useState("");
 
-  const [customEntryPoints, setCustomEntryPoints] = useState<
-    {
-      id: string;
-      name: string;
-      collection_method: string;
-      custom: boolean;
-    }[]
-  >([]);
-
-  /* =========================================================
-     STEP 5: PERSONAL DATA FIELDS
-     ========================================================= */
+  const [customEntryPoints, setCustomEntryPoints] =
+    useState<
+      {
+        id: string;
+        name: string;
+        collection_method: string;
+        custom: boolean;
+      }[]
+    >([]);
 
   const [selectedFields, setSelectedFields] =
     useState<string[]>([]);
 
-  const [customField, setCustomField] = useState("");
+  const [customField, setCustomField] =
+    useState("");
 
-  const [customFields, setCustomFields] = useState<CustomItem[]>(
-    []
-  );
+  const [customFields, setCustomFields] =
+    useState<
+      {
+        id: string;
+        name: string;
+        custom: boolean;
+      }[]
+    >([]);
 
-  /* =========================================================
-     STEP 6: DATA HANDLING / DATA FLOW ATTRIBUTES
-
-     IMPORTANT:
-     These are arrays because real-world processes can have
-     multiple collection and storage scenarios.
-     ========================================================= */
+  /*
+   * STEP 6
+   * Multiple selections are intentionally supported.
+   */
 
   const [collectorRoles, setCollectorRoles] =
     useState<string[]>([]);
@@ -59,7 +60,7 @@ export default function AssessmentPage() {
   const [dataSubjectTypes, setDataSubjectTypes] =
     useState<string[]>([]);
 
-  const [collectionMethods, setCollectionMethods] =
+  const [collectionFormats, setCollectionFormats] =
     useState<string[]>([]);
 
   const [storageLocations, setStorageLocations] =
@@ -71,29 +72,34 @@ export default function AssessmentPage() {
   const [encryptionStatuses, setEncryptionStatuses] =
     useState<string[]>([]);
 
-  const [accessRoles, setAccessRoles] = useState("");
+  const [accessRoles, setAccessRoles] =
+    useState<string[]>([]);
 
   const [sharingStatuses, setSharingStatuses] =
     useState<string[]>([]);
 
-  const [retentionPeriod, setRetentionPeriod] = useState("");
+  const [retentionPeriods, setRetentionPeriods] =
+    useState<string[]>([]);
 
-  const [deletionMethod, setDeletionMethod] = useState("");
+  const [deletionMethods, setDeletionMethods] =
+    useState<string[]>([]);
 
-  const [privacyNotice, setPrivacyNotice] = useState("");
+  const [privacyNotices, setPrivacyNotices] =
+    useState<string[]>([]);
 
-  const [consentStatus, setConsentStatus] = useState("");
+  const [consentStatuses, setConsentStatuses] =
+    useState<string[]>([]);
 
-  const [parentalConsent, setParentalConsent] = useState("");
+  const [parentalConsentStatuses, setParentalConsentStatuses] =
+    useState<string[]>([]);
 
-  const [crossBorderTransfer, setCrossBorderTransfer] =
-    useState("");
+  const [crossBorderTransfers, setCrossBorderTransfers] =
+    useState<string[]>([]);
 
-  /* =========================================================
-     GENERIC MULTI-SELECT HELPER
-     ========================================================= */
+  const [riskResult, setRiskResult] =
+    useState<RiskResult | null>(null);
 
-  function toggleMultiSelect(
+  function toggleArrayValue(
     value: string,
     setter: React.Dispatch<React.SetStateAction<string[]>>
   ) {
@@ -103,10 +109,6 @@ export default function AssessmentPage() {
         : [...current, value]
     );
   }
-
-  /* =========================================================
-     STEP 4 FUNCTIONS
-     ========================================================= */
 
   function toggleEntryPoint(id: string) {
     setSelectedEntryPoints((current) =>
@@ -142,10 +144,6 @@ export default function AssessmentPage() {
     );
   }
 
-  /* =========================================================
-     STEP 5 FUNCTIONS
-     ========================================================= */
-
   function toggleField(id: string) {
     setSelectedFields((current) =>
       current.includes(id)
@@ -179,10 +177,6 @@ export default function AssessmentPage() {
     );
   }
 
-  /* =========================================================
-     BUSINESS TYPES / PROCESSES / ENTRY POINTS
-     ========================================================= */
-
   const businessTypes = useMemo(() => {
     if (!industryId) return [];
 
@@ -200,31 +194,12 @@ export default function AssessmentPage() {
   const entryPoints = useMemo(() => {
     if (businessTypeId !== "EDU-SCH") return [];
 
-    return getSchoolEntryPoints(processId || undefined);
+    return getSchoolEntryPoints(
+      processId || undefined
+    );
   }, [businessTypeId, processId]);
 
-  /* =========================================================
-     RESET FUNCTIONS
-     ========================================================= */
-
-  function resetStep6() {
-    setCollectorRoles([]);
-    setDataSubjectTypes([]);
-    setCollectionMethods([]);
-    setStorageLocations([]);
-    setStorageEnvironments([]);
-    setEncryptionStatuses([]);
-    setAccessRoles("");
-    setSharingStatuses([]);
-    setRetentionPeriod("");
-    setDeletionMethod("");
-    setPrivacyNotice("");
-    setConsentStatus("");
-    setParentalConsent("");
-    setCrossBorderTransfer("");
-  }
-
-  function resetFromIndustry() {
+  function resetAssessment() {
     setBusinessTypeId("");
     setProcessId("");
 
@@ -236,7 +211,22 @@ export default function AssessmentPage() {
     setCustomFields([]);
     setCustomField("");
 
-    resetStep6();
+    setCollectorRoles([]);
+    setDataSubjectTypes([]);
+    setCollectionFormats([]);
+    setStorageLocations([]);
+    setStorageEnvironments([]);
+    setEncryptionStatuses([]);
+    setAccessRoles([]);
+    setSharingStatuses([]);
+    setRetentionPeriods([]);
+    setDeletionMethods([]);
+    setPrivacyNotices([]);
+    setConsentStatuses([]);
+    setParentalConsentStatuses([]);
+    setCrossBorderTransfers([]);
+
+    setRiskResult(null);
   }
 
   function resetFromBusinessType() {
@@ -250,7 +240,22 @@ export default function AssessmentPage() {
     setCustomFields([]);
     setCustomField("");
 
-    resetStep6();
+    setCollectorRoles([]);
+    setDataSubjectTypes([]);
+    setCollectionFormats([]);
+    setStorageLocations([]);
+    setStorageEnvironments([]);
+    setEncryptionStatuses([]);
+    setAccessRoles([]);
+    setSharingStatuses([]);
+    setRetentionPeriods([]);
+    setDeletionMethods([]);
+    setPrivacyNotices([]);
+    setConsentStatuses([]);
+    setParentalConsentStatuses([]);
+    setCrossBorderTransfers([]);
+
+    setRiskResult(null);
   }
 
   function resetFromProcess() {
@@ -262,12 +267,69 @@ export default function AssessmentPage() {
     setCustomFields([]);
     setCustomField("");
 
-    resetStep6();
+    setCollectorRoles([]);
+    setDataSubjectTypes([]);
+    setCollectionFormats([]);
+    setStorageLocations([]);
+    setStorageEnvironments([]);
+    setEncryptionStatuses([]);
+    setAccessRoles([]);
+    setSharingStatuses([]);
+    setRetentionPeriods([]);
+    setDeletionMethods([]);
+    setPrivacyNotices([]);
+    setConsentStatuses([]);
+    setParentalConsentStatuses([]);
+    setCrossBorderTransfers([]);
+
+    setRiskResult(null);
   }
 
-  /* =========================================================
-     RENDER
-     ========================================================= */
+  function runPrivacyRiskAssessment() {
+    const result = calculatePrivacyRisk({
+      selectedEntryPoints,
+      customEntryPoints,
+
+      selectedFields,
+      customFields,
+
+      collectorRoles,
+      dataSubjectTypes,
+      collectionFormats,
+
+      storageLocations,
+      storageEnvironments,
+
+      encryptionStatuses,
+
+      accessRoles,
+
+      sharingStatuses,
+
+      retentionPeriods,
+
+      deletionMethods,
+
+      privacyNotices,
+
+      consentStatuses,
+
+      parentalConsentStatuses,
+
+      crossBorderTransfers,
+    });
+
+    setRiskResult(result);
+
+    setTimeout(() => {
+      document
+        .getElementById("privacy-risk-result")
+        ?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+    }, 100);
+  }
 
   return (
     <main
@@ -275,7 +337,8 @@ export default function AssessmentPage() {
         minHeight: "100vh",
         background: "#f8fafc",
         padding: "60px 24px",
-        fontFamily: "Arial, Helvetica, sans-serif",
+        fontFamily:
+          "Arial, Helvetica, sans-serif",
       }}
     >
       <div
@@ -284,8 +347,6 @@ export default function AssessmentPage() {
           margin: "0 auto",
         }}
       >
-        {/* HEADER */}
-
         <p
           style={{
             fontSize: "13px",
@@ -315,14 +376,13 @@ export default function AssessmentPage() {
             marginBottom: "40px",
           }}
         >
-          Start by identifying your industry, business type and
-          the processes where personal data enters your
-          organisation.
+          Identify where personal data enters your
+          organisation, what information is collected,
+          how it is handled and where privacy risks
+          may exist.
         </p>
 
-        {/* =====================================================
-            STEP 1
-            ===================================================== */}
+        {/* STEP 1 */}
 
         <section style={cardStyle}>
           <StepNumber number="1" />
@@ -335,7 +395,7 @@ export default function AssessmentPage() {
             value={industryId}
             onChange={(event) => {
               setIndustryId(event.target.value);
-              resetFromIndustry();
+              resetAssessment();
             }}
             style={selectStyle}
           >
@@ -344,7 +404,10 @@ export default function AssessmentPage() {
             </option>
 
             {kb.industries
-              .filter((item) => item.status === "active")
+              .filter(
+                (item) =>
+                  item.status === "active"
+              )
               .map((industry) => (
                 <option
                   key={industry.id}
@@ -356,9 +419,7 @@ export default function AssessmentPage() {
           </select>
         </section>
 
-        {/* =====================================================
-            STEP 2
-            ===================================================== */}
+        {/* STEP 2 */}
 
         {industryId && (
           <section style={cardStyle}>
@@ -371,7 +432,9 @@ export default function AssessmentPage() {
             <select
               value={businessTypeId}
               onChange={(event) => {
-                setBusinessTypeId(event.target.value);
+                setBusinessTypeId(
+                  event.target.value
+                );
                 resetFromBusinessType();
               }}
               style={selectStyle}
@@ -380,29 +443,30 @@ export default function AssessmentPage() {
                 Select business type...
               </option>
 
-              {businessTypes.map((businessType) => (
-                <option
-                  key={businessType.id}
-                  value={businessType.id}
-                >
-                  {businessType.name}
-                </option>
-              ))}
+              {businessTypes.map(
+                (businessType) => (
+                  <option
+                    key={businessType.id}
+                    value={businessType.id}
+                  >
+                    {businessType.name}
+                  </option>
+                )
+              )}
             </select>
 
             {businessTypes.length === 0 && (
               <p style={noticeStyle}>
-                A detailed assessment pack for this business
-                type is not available yet. More sector packs
-                will be added progressively.
+                A detailed assessment pack for
+                this business type is not available
+                yet. More sector packs will be added
+                progressively.
               </p>
             )}
           </section>
         )}
 
-        {/* =====================================================
-            STEP 3
-            ===================================================== */}
+        {/* STEP 3 */}
 
         {businessTypeId === "EDU-SCH" && (
           <section style={cardStyle}>
@@ -415,7 +479,9 @@ export default function AssessmentPage() {
             <select
               value={processId}
               onChange={(event) => {
-                setProcessId(event.target.value);
+                setProcessId(
+                  event.target.value
+                );
                 resetFromProcess();
               }}
               style={selectStyle}
@@ -436,9 +502,7 @@ export default function AssessmentPage() {
           </section>
         )}
 
-        {/* =====================================================
-            STEP 4
-            ===================================================== */}
+        {/* STEP 4 */}
 
         {businessTypeId === "EDU-SCH" && (
           <section style={cardStyle}>
@@ -454,9 +518,9 @@ export default function AssessmentPage() {
                 marginBottom: "20px",
               }}
             >
-              Select all the channels through which your
-              organisation may collect personal data for this
-              process.
+              Select all channels through which
+              your organisation may collect
+              personal data.
             </p>
 
             <div
@@ -467,69 +531,84 @@ export default function AssessmentPage() {
                 gap: "12px",
               }}
             >
-              {entryPoints.map((entryPoint) => {
-                const isSelected =
-                  selectedEntryPoints.includes(
-                    entryPoint.id
-                  );
+              {entryPoints.map(
+                (entryPoint) => {
+                  const isSelected =
+                    selectedEntryPoints.includes(
+                      entryPoint.id
+                    );
 
-                return (
-                  <label
-                    key={entryPoint.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "flex-start",
-                      gap: "12px",
-                      padding: "16px",
-                      border: isSelected
-                        ? "2px solid #1d4ed8"
-                        : "1px solid #e2e8f0",
-                      borderRadius: "10px",
-                      background: isSelected
-                        ? "#eff6ff"
-                        : "#f8fafc",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() =>
-                        toggleEntryPoint(
-                          entryPoint.id
-                        )
-                      }
+                  return (
+                    <label
+                      key={entryPoint.id}
                       style={{
-                        marginTop: "3px",
-                        width: "18px",
-                        height: "18px",
+                        display: "flex",
+                        alignItems:
+                          "flex-start",
+                        gap: "12px",
+                        padding: "16px",
+                        border:
+                          isSelected
+                            ? "2px solid #1d4ed8"
+                            : "1px solid #e2e8f0",
+                        borderRadius: "10px",
+                        background:
+                          isSelected
+                            ? "#eff6ff"
+                            : "#f8fafc",
+                        cursor:
+                          "pointer",
                       }}
-                    />
-
-                    <span>
-                      <strong>
-                        {entryPoint.name}
-                      </strong>
-
-                      <span
-                        style={{
-                          display: "block",
-                          fontSize: "13px",
-                          color: "#64748b",
-                          marginTop: "5px",
-                        }}
-                      >
-                        {
-                          entryPoint.collection_method
+                    >
+                      <input
+                        type="checkbox"
+                        checked={
+                          isSelected
                         }
-                      </span>
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
+                        onChange={() =>
+                          toggleEntryPoint(
+                            entryPoint.id
+                          )
+                        }
+                        style={{
+                          marginTop:
+                            "3px",
+                          width:
+                            "18px",
+                          height:
+                            "18px",
+                        }}
+                      />
 
-            {/* CUSTOM ENTRY POINT */}
+                      <span>
+                        <strong>
+                          {
+                            entryPoint.name
+                          }
+                        </strong>
+
+                        <span
+                          style={{
+                            display:
+                              "block",
+                            fontSize:
+                              "13px",
+                            color:
+                              "#64748b",
+                            marginTop:
+                              "5px",
+                          }}
+                        >
+                          {
+                            entryPoint.collection_method
+                          }
+                        </span>
+                      </span>
+                    </label>
+                  );
+                }
+              )}
+            </div>
 
             <div
               style={{
@@ -543,15 +622,14 @@ export default function AssessmentPage() {
                 style={{
                   color: "#0f172a",
                   fontSize: "17px",
-                  marginBottom: "8px",
                 }}
               >
                 Don't see your data entry point?
               </h3>
 
               <p style={noticeStyle}>
-                Add a custom channel used by your
-                organisation.
+                Add a custom channel used by
+                your organisation.
               </p>
 
               <div
@@ -564,7 +642,9 @@ export default function AssessmentPage() {
               >
                 <input
                   type="text"
-                  value={customEntryPoint}
+                  value={
+                    customEntryPoint
+                  }
                   onChange={(event) =>
                     setCustomEntryPoint(
                       event.target.value
@@ -576,10 +656,12 @@ export default function AssessmentPage() {
                       "1 1 300px",
                     padding:
                       "12px 14px",
-                    borderRadius: "8px",
+                    borderRadius:
+                      "8px",
                     border:
                       "1px solid #cbd5e1",
-                    fontSize: "15px",
+                    fontSize:
+                      "15px",
                   }}
                 />
 
@@ -588,7 +670,9 @@ export default function AssessmentPage() {
                   onClick={
                     addCustomEntryPoint
                   }
-                  style={buttonStyle}
+                  style={
+                    secondaryButtonStyle
+                  }
                 >
                   Add
                 </button>
@@ -598,15 +682,19 @@ export default function AssessmentPage() {
                 0 && (
                 <div
                   style={{
-                    marginTop: "16px",
+                    marginTop:
+                      "16px",
                   }}
                 >
                   {customEntryPoints.map(
                     (entryPoint) => (
                       <div
-                        key={entryPoint.id}
+                        key={
+                          entryPoint.id
+                        }
                         style={{
-                          display: "flex",
+                          display:
+                            "flex",
                           alignItems:
                             "center",
                           justifyContent:
@@ -623,29 +711,11 @@ export default function AssessmentPage() {
                             "8px",
                         }}
                       >
-                        <span>
-                          <strong>
-                            {
-                              entryPoint.name
-                            }
-                          </strong>
-
-                          <span
-                            style={{
-                              display:
-                                "block",
-                              fontSize:
-                                "12px",
-                              color:
-                                "#64748b",
-                              marginTop:
-                                "3px",
-                            }}
-                          >
-                            Custom entry
-                            point
-                          </span>
-                        </span>
+                        <strong>
+                          {
+                            entryPoint.name
+                          }
+                        </strong>
 
                         <button
                           type="button"
@@ -682,9 +752,7 @@ export default function AssessmentPage() {
           </section>
         )}
 
-        {/* =====================================================
-            STEP 5
-            ===================================================== */}
+        {/* STEP 5 */}
 
         {businessTypeId === "EDU-SCH" &&
           (selectedEntryPoints.length > 0 ||
@@ -702,9 +770,8 @@ export default function AssessmentPage() {
                   marginBottom: "20px",
                 }}
               >
-                Select all personal-data fields that your
-                organisation collects through the selected
-                entry points.
+                Select all personal-data fields
+                that your organisation collects.
               </p>
 
               <div
@@ -769,7 +836,9 @@ export default function AssessmentPage() {
 
                         <span>
                           <strong>
-                            {field.name}
+                            {
+                              field.name
+                            }
                           </strong>
 
                           <span
@@ -807,7 +876,6 @@ export default function AssessmentPage() {
                             {field.typical_data_subjects.join(
                               ", "
                             )}
-
                             {field.child_relevant
                               ? " • Child-relevant"
                               : ""}
@@ -818,8 +886,6 @@ export default function AssessmentPage() {
                   }
                 )}
               </div>
-
-              {/* CUSTOM FIELD */}
 
               <div
                 style={{
@@ -833,15 +899,14 @@ export default function AssessmentPage() {
                   style={{
                     color: "#0f172a",
                     fontSize: "17px",
-                    marginBottom: "8px",
                   }}
                 >
                   Don't see your data field?
                 </h3>
 
                 <p style={noticeStyle}>
-                  Add a custom personal-data field
-                  used by your organisation.
+                  Add a custom personal-data
+                  field.
                 </p>
 
                 <div
@@ -870,7 +935,8 @@ export default function AssessmentPage() {
                         "8px",
                       border:
                         "1px solid #cbd5e1",
-                      fontSize: "15px",
+                      fontSize:
+                        "15px",
                     }}
                   />
 
@@ -879,7 +945,9 @@ export default function AssessmentPage() {
                     onClick={
                       addCustomField
                     }
-                    style={buttonStyle}
+                    style={
+                      secondaryButtonStyle
+                    }
                   >
                     Add
                   </button>
@@ -896,16 +964,14 @@ export default function AssessmentPage() {
                     {customFields.map(
                       (field) => (
                         <div
-                          key={
-                            field.id
-                          }
+                          key={field.id}
                           style={{
                             display:
                               "flex",
-                            alignItems:
-                              "center",
                             justifyContent:
                               "space-between",
+                            alignItems:
+                              "center",
                             padding:
                               "12px 14px",
                             marginBottom:
@@ -918,28 +984,11 @@ export default function AssessmentPage() {
                               "8px",
                           }}
                         >
-                          <span>
-                            <strong>
-                              {
-                                field.name
-                              }
-                            </strong>
-
-                            <span
-                              style={{
-                                display:
-                                  "block",
-                                fontSize:
-                                  "12px",
-                                color:
-                                  "#64748b",
-                                marginTop:
-                                  "3px",
-                              }}
-                            >
-                              Custom field
-                            </span>
-                          </span>
+                          <strong>
+                            {
+                              field.name
+                            }
+                          </strong>
 
                           <button
                             type="button"
@@ -976,20 +1025,15 @@ export default function AssessmentPage() {
             </section>
           )}
 
-        {/* =====================================================
-            STEP 6
-            MULTI-VALUE DATA FLOW ATTRIBUTES
-            ===================================================== */}
+        {/* STEP 6 */}
 
         {businessTypeId === "EDU-SCH" &&
-          (selectedFields.length > 0 ||
-            customFields.length > 0) && (
+          selectedFields.length > 0 && (
             <section style={cardStyle}>
               <StepNumber number="6" />
 
               <h2 style={headingStyle}>
-                How is this personal data collected
-                and handled?
+                How is this personal data collected and handled?
               </h2>
 
               <p
@@ -998,22 +1042,15 @@ export default function AssessmentPage() {
                   marginBottom: "24px",
                 }}
               >
-                A business process may have multiple
-                collection, handling and storage
-                scenarios. Select all options that apply.
-                For example, admission data may be
-                collected by both the receptionist and
-                admissions team, through both paper and
-                online forms, and stored in both physical
-                files and digital systems.
+                Select all options that apply.
+                Real-world processes often use
+                multiple people, channels and
+                storage locations.
               </p>
-
-              {/* =================================================
-                  COLLECTOR
-                  ================================================= */}
 
               <MultiSelectField
                 label="Who collects this data?"
+                values={collectorRoles}
                 options={[
                   "Admissions Executive",
                   "Teacher",
@@ -1027,21 +1064,17 @@ export default function AssessmentPage() {
                   "Third-party Service Provider",
                   "Other",
                 ]}
-                selected={collectorRoles}
                 onToggle={(value) =>
-                  toggleMultiSelect(
+                  toggleArrayValue(
                     value,
                     setCollectorRoles
                   )
                 }
               />
 
-              {/* =================================================
-                  DATA SUBJECT
-                  ================================================= */}
-
               <MultiSelectField
                 label="Who is the data subject?"
+                values={dataSubjectTypes}
                 options={[
                   "Student",
                   "Parent / Guardian",
@@ -1051,52 +1084,41 @@ export default function AssessmentPage() {
                   "Vendor / Service Provider",
                   "Other",
                 ]}
-                selected={dataSubjectTypes}
                 onToggle={(value) =>
-                  toggleMultiSelect(
+                  toggleArrayValue(
                     value,
                     setDataSubjectTypes
                   )
                 }
               />
 
-              {/* =================================================
-                  COLLECTION METHOD
-                  ================================================= */}
-
               <MultiSelectField
                 label="How is the data collected?"
+                values={collectionFormats}
                 options={[
-                  "Physical Form",
                   "Website Form",
                   "Google Form",
                   "Mobile / School App",
                   "WhatsApp",
                   "Email",
                   "Telephone",
+                  "Paper / Physical Form",
                   "In Person / Verbal",
                   "Excel / Spreadsheet",
-                  "Paper Register",
-                  "Admission Kiosk",
                   "Other",
                 ]}
-                selected={collectionMethods}
                 onToggle={(value) =>
-                  toggleMultiSelect(
+                  toggleArrayValue(
                     value,
-                    setCollectionMethods
+                    setCollectionFormats
                   )
                 }
               />
 
-              {/* =================================================
-                  STORAGE LOCATION
-                  ================================================= */}
-
               <MultiSelectField
                 label="Where is the data stored?"
+                values={storageLocations}
                 options={[
-                  "Physical / Paper File",
                   "School Management System",
                   "Student Information System",
                   "CRM",
@@ -1106,394 +1128,215 @@ export default function AssessmentPage() {
                   "Email Mailbox",
                   "WhatsApp Account",
                   "Local Computer",
-                  "Local Server",
-                  "Paper Register",
+                  "Paper File / Physical Record",
                   "Third-party Vendor System",
-                  "Unknown",
                   "Other",
+                  "Unknown",
                 ]}
-                selected={storageLocations}
                 onToggle={(value) =>
-                  toggleMultiSelect(
+                  toggleArrayValue(
                     value,
                     setStorageLocations
                   )
                 }
               />
 
-              {/* =================================================
-                  STORAGE ENVIRONMENT
-                  ================================================= */}
-
               <MultiSelectField
-                label="What type of storage environment is involved?"
+                label="Where is the storage environment?"
+                values={storageEnvironments}
                 options={[
-                  "Physical",
                   "Cloud",
                   "On-Premises",
                   "Employee Device",
                   "Mobile Device",
+                  "Physical Storage",
                   "Third-party Hosted",
-                  "Hybrid",
                   "Unknown",
                 ]}
-                selected={storageEnvironments}
                 onToggle={(value) =>
-                  toggleMultiSelect(
+                  toggleArrayValue(
                     value,
                     setStorageEnvironments
                   )
                 }
               />
 
-              {/* =================================================
-                  ENCRYPTION
-                  ================================================= */}
-
               <MultiSelectField
                 label="How is the stored data protected?"
+                values={encryptionStatuses}
                 options={[
-                  "Encrypted at rest",
-                  "Encrypted in transit",
                   "Encrypted at rest and in transit",
+                  "Encrypted at rest only",
+                  "Encrypted in transit only",
                   "Clear text / Not encrypted",
-                  "Physical security controls",
-                  "Access-controlled",
                   "Unknown",
                 ]}
-                selected={encryptionStatuses}
                 onToggle={(value) =>
-                  toggleMultiSelect(
+                  toggleArrayValue(
                     value,
                     setEncryptionStatuses
                   )
                 }
               />
 
-              {/* =================================================
-                  ACCESS
-                  ================================================= */}
-
-              <FormField label="Who can access the data?">
-                <input
-                  type="text"
-                  value={accessRoles}
-                  onChange={(event) =>
-                    setAccessRoles(
-                      event.target.value
-                    )
-                  }
-                  placeholder="e.g. Admissions team, Principal, IT administrator"
-                  style={inputStyle}
-                />
-              </FormField>
-
-              {/* =================================================
-                  SHARING
-                  ================================================= */}
+              <MultiSelectField
+                label="Who can access the data?"
+                values={accessRoles}
+                options={[
+                  "Admissions Executive",
+                  "Teacher",
+                  "Class Teacher",
+                  "Administrative Staff",
+                  "Accounts Staff",
+                  "HR / HR Administrator",
+                  "IT / System Administrator",
+                  "Principal / Management",
+                  "Reception / Front Desk",
+                  "Third-party Service Provider",
+                  "Other",
+                ]}
+                onToggle={(value) =>
+                  toggleArrayValue(
+                    value,
+                    setAccessRoles
+                  )
+                }
+              />
 
               <MultiSelectField
                 label="Is the data shared with anyone else?"
+                values={sharingStatuses}
                 options={[
                   "No external sharing",
                   "Shared internally only",
                   "Shared with service provider",
-                  "Shared with school group / management",
-                  "Shared with government / regulatory authority",
                   "Shared with multiple third parties",
                   "Unknown",
                 ]}
-                selected={sharingStatuses}
                 onToggle={(value) =>
-                  toggleMultiSelect(
+                  toggleArrayValue(
                     value,
                     setSharingStatuses
                   )
                 }
               />
 
-              {/* =================================================
-                  RETENTION
-                  ================================================= */}
+              <MultiSelectField
+                label="How long is the data retained?"
+                values={retentionPeriods}
+                options={[
+                  "Less than 30 days",
+                  "30 days – 1 year",
+                  "1 – 3 years",
+                  "3 – 5 years",
+                  "More than 5 years",
+                  "Indefinitely",
+                  "No defined retention period",
+                  "Unknown",
+                ]}
+                onToggle={(value) =>
+                  toggleArrayValue(
+                    value,
+                    setRetentionPeriods
+                  )
+                }
+              />
 
-              <FormField label="How long is the data retained?">
-                <select
-                  value={retentionPeriod}
-                  onChange={(event) =>
-                    setRetentionPeriod(
-                      event.target.value
-                    )
-                  }
-                  style={selectStyle}
-                >
-                  <option value="">
-                    Select retention period...
-                  </option>
+              <MultiSelectField
+                label="How is the data deleted?"
+                values={deletionMethods}
+                options={[
+                  "Automatic deletion",
+                  "Manual deletion",
+                  "Periodic review and deletion",
+                  "On request",
+                  "No defined deletion process",
+                  "Unknown",
+                ]}
+                onToggle={(value) =>
+                  toggleArrayValue(
+                    value,
+                    setDeletionMethods
+                  )
+                }
+              />
 
-                  <option>
-                    Less than 30 days
-                  </option>
+              <MultiSelectField
+                label="Is a privacy notice provided?"
+                values={privacyNotices}
+                options={[
+                  "Yes",
+                  "No",
+                  "Partially",
+                  "Unknown",
+                ]}
+                onToggle={(value) =>
+                  toggleArrayValue(
+                    value,
+                    setPrivacyNotices
+                  )
+                }
+              />
 
-                  <option>
-                    30 days – 1 year
-                  </option>
+              <MultiSelectField
+                label="Is consent obtained where required?"
+                values={consentStatuses}
+                options={[
+                  "Yes",
+                  "No",
+                  "Partially",
+                  "Not applicable / Other lawful basis",
+                  "Unknown",
+                ]}
+                onToggle={(value) =>
+                  toggleArrayValue(
+                    value,
+                    setConsentStatuses
+                  )
+                }
+              />
 
-                  <option>
-                    1 – 3 years
-                  </option>
+              <MultiSelectField
+                label="For minors, is parent / guardian involvement addressed?"
+                values={
+                  parentalConsentStatuses
+                }
+                options={[
+                  "Yes",
+                  "No",
+                  "Partially",
+                  "Not applicable",
+                  "Unknown",
+                ]}
+                onToggle={(value) =>
+                  toggleArrayValue(
+                    value,
+                    setParentalConsentStatuses
+                  )
+                }
+              />
 
-                  <option>
-                    3 – 5 years
-                  </option>
-
-                  <option>
-                    More than 5 years
-                  </option>
-
-                  <option>
-                    Indefinitely
-                  </option>
-
-                  <option>
-                    No defined retention period
-                  </option>
-
-                  <option>
-                    Unknown
-                  </option>
-                </select>
-              </FormField>
-
-              {/* =================================================
-                  DELETION
-                  ================================================= */}
-
-              <FormField label="How is the data deleted?">
-                <select
-                  value={deletionMethod}
-                  onChange={(event) =>
-                    setDeletionMethod(
-                      event.target.value
-                    )
-                  }
-                  style={selectStyle}
-                >
-                  <option value="">
-                    Select deletion method...
-                  </option>
-
-                  <option>
-                    Automatic deletion
-                  </option>
-
-                  <option>
-                    Manual deletion
-                  </option>
-
-                  <option>
-                    Periodic review and deletion
-                  </option>
-
-                  <option>
-                    On request
-                  </option>
-
-                  <option>
-                    No defined deletion process
-                  </option>
-
-                  <option>
-                    Unknown
-                  </option>
-                </select>
-              </FormField>
-
-              {/* =================================================
-                  PRIVACY NOTICE
-                  ================================================= */}
-
-              <FormField label="Is a privacy notice provided to the data subject?">
-                <select
-                  value={privacyNotice}
-                  onChange={(event) =>
-                    setPrivacyNotice(
-                      event.target.value
-                    )
-                  }
-                  style={selectStyle}
-                >
-                  <option value="">
-                    Select...
-                  </option>
-
-                  <option>
-                    Yes
-                  </option>
-
-                  <option>
-                    No
-                  </option>
-
-                  <option>
-                    Partially
-                  </option>
-
-                  <option>
-                    Unknown
-                  </option>
-                </select>
-              </FormField>
-
-              {/* =================================================
-                  CONSENT
-                  ================================================= */}
-
-              <FormField label="Is consent obtained where required?">
-                <select
-                  value={consentStatus}
-                  onChange={(event) =>
-                    setConsentStatus(
-                      event.target.value
-                    )
-                  }
-                  style={selectStyle}
-                >
-                  <option value="">
-                    Select...
-                  </option>
-
-                  <option>
-                    Yes
-                  </option>
-
-                  <option>
-                    No
-                  </option>
-
-                  <option>
-                    Partially
-                  </option>
-
-                  <option>
-                    Not applicable / Other lawful basis
-                  </option>
-
-                  <option>
-                    Unknown
-                  </option>
-                </select>
-              </FormField>
-
-              {/* =================================================
-                  PARENT / GUARDIAN
-                  ================================================= */}
-
-              <FormField label="For minors, is parent / guardian involvement addressed?">
-                <select
-                  value={parentalConsent}
-                  onChange={(event) =>
-                    setParentalConsent(
-                      event.target.value
-                    )
-                  }
-                  style={selectStyle}
-                >
-                  <option value="">
-                    Select...
-                  </option>
-
-                  <option>
-                    Yes
-                  </option>
-
-                  <option>
-                    No
-                  </option>
-
-                  <option>
-                    Partially
-                  </option>
-
-                  <option>
-                    Not applicable
-                  </option>
-
-                  <option>
-                    Unknown
-                  </option>
-                </select>
-              </FormField>
-
-              {/* =================================================
-                  CROSS BORDER
-                  ================================================= */}
-
-              <FormField label="Is the data transferred outside India?">
-                <select
-                  value={crossBorderTransfer}
-                  onChange={(event) =>
-                    setCrossBorderTransfer(
-                      event.target.value
-                    )
-                  }
-                  style={selectStyle}
-                >
-                  <option value="">
-                    Select...
-                  </option>
-
-                  <option>
-                    No
-                  </option>
-
-                  <option>
-                    Yes
-                  </option>
-
-                  <option>
-                    Unknown
-                  </option>
-                </select>
-              </FormField>
-
-              {/* =================================================
-                  SUMMARY
-                  ================================================= */}
+              <MultiSelectField
+                label="Is the data transferred outside India?"
+                values={
+                  crossBorderTransfers
+                }
+                options={[
+                  "No",
+                  "Yes",
+                  "Unknown",
+                ]}
+                onToggle={(value) =>
+                  toggleArrayValue(
+                    value,
+                    setCrossBorderTransfers
+                  )
+                }
+              />
 
               <div
                 style={{
                   marginTop: "28px",
-                  padding: "18px",
-                  background: "#f0fdf4",
-                  border:
-                    "1px solid #bbf7d0",
-                  borderRadius: "10px",
-                  color: "#166534",
-                  lineHeight: 1.7,
-                }}
-              >
-                <strong>
-                  Multiple data-flow scenarios supported
-                </strong>
-
-                <div
-                  style={{
-                    marginTop: "8px",
-                    fontSize: "14px",
-                  }}
-                >
-                  Your assessment can now represent
-                  situations where the same personal
-                  data is collected by multiple people,
-                  through multiple channels, and stored
-                  in multiple physical or digital
-                  environments.
-                </div>
-              </div>
-
-              <div
-                style={{
-                  marginTop: "20px",
                   padding: "16px",
                   background: "#f8fafc",
                   border:
@@ -1506,17 +1349,94 @@ export default function AssessmentPage() {
                 <strong>
                   Assessment guidance:
                 </strong>{" "}
-                If you don't know the answer, select
-                <strong> Unknown</strong>. Unknown or
-                missing information can later be
-                highlighted as a privacy governance gap.
+                Select all options that apply.
+                If you don't know the answer,
+                select <strong>Unknown</strong>.
               </div>
             </section>
           )}
 
-        {/* =====================================================
-            PRIVACY-BY-DESIGN NOTICE
-            ===================================================== */}
+        {/* STEP 7 */}
+
+        {businessTypeId === "EDU-SCH" &&
+          selectedFields.length > 0 && (
+            <section style={cardStyle}>
+              <StepNumber number="7" />
+
+              <h2 style={headingStyle}>
+                Privacy Risk Assessment
+              </h2>
+
+              <p
+                style={{
+                  ...noticeStyle,
+                  marginBottom: "24px",
+                }}
+              >
+                PrivacyMap will analyse the
+                information entered above and
+                identify potential privacy,
+                security and governance risks.
+              </p>
+
+              <div
+                style={{
+                  padding: "20px",
+                  background: "#eff6ff",
+                  border:
+                    "1px solid #bfdbfe",
+                  borderRadius: "12px",
+                  marginBottom: "20px",
+                  color: "#1e3a8a",
+                  lineHeight: 1.6,
+                }}
+              >
+                <strong>
+                  Important:
+                </strong>{" "}
+                This is a preliminary
+                privacy-risk assessment based
+                on the information provided.
+                It is not a legal opinion or a
+                determination of DPDPA compliance.
+              </div>
+
+              <button
+                type="button"
+                onClick={
+                  runPrivacyRiskAssessment
+                }
+                style={{
+                  width: "100%",
+                  padding: "16px",
+                  border: "none",
+                  borderRadius: "10px",
+                  background:
+                    "#1d4ed8",
+                  color: "white",
+                  fontSize: "17px",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                Analyse Privacy Risks
+              </button>
+            </section>
+          )}
+
+        {/* RISK RESULT */}
+
+        {riskResult && (
+          <div
+            id="privacy-risk-result"
+          >
+            <RiskDashboard
+              result={riskResult}
+            />
+          </div>
+        )}
+
+        {/* PRIVACY BY DESIGN */}
 
         <div
           style={{
@@ -1533,29 +1453,424 @@ export default function AssessmentPage() {
           <strong>
             Privacy-by-design:
           </strong>{" "}
-          PrivacyMap does not require your customers'
-          personal data. Assessment responses will remain
-          in your browser and will be used locally to
-          generate your reports.
+          PrivacyMap does not require your
+          customers' personal data.
+          Assessment responses remain in
+          your browser and are used locally
+          to generate assessment results
+          and reports.
         </div>
       </div>
     </main>
   );
 }
 
-/* ===========================================================
-   MULTI-SELECT COMPONENT
-   =========================================================== */
+/*
+ * ---------------------------------------------------------
+ * RISK DASHBOARD
+ * ---------------------------------------------------------
+ */
+
+function RiskDashboard({
+  result,
+}: {
+  result: RiskResult;
+}) {
+  return (
+    <section
+      style={{
+        marginTop: "24px",
+        marginBottom: "24px",
+      }}
+    >
+      <div
+        style={{
+          background: "white",
+          border:
+            "1px solid #e2e8f0",
+          borderRadius: "14px",
+          padding: "28px",
+        }}
+      >
+        <h2
+          style={{
+            color: "#0f172a",
+            marginTop: 0,
+          }}
+        >
+          Privacy Risk Dashboard
+        </h2>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: "16px",
+            marginTop: "20px",
+          }}
+        >
+          <div
+            style={{
+              padding: "22px",
+              borderRadius: "12px",
+              background:
+                riskBackground(
+                  result.overallLevel
+                ),
+            }}
+          >
+            <div
+              style={{
+                fontSize: "13px",
+                fontWeight: 700,
+                color: "#475569",
+              }}
+            >
+              OVERALL RISK
+            </div>
+
+            <div
+              style={{
+                fontSize: "32px",
+                fontWeight: 800,
+                marginTop: "8px",
+                color:
+                  riskColor(
+                    result.overallLevel
+                  ),
+              }}
+            >
+              {result.overallLevel}
+            </div>
+
+            <div
+              style={{
+                marginTop: "5px",
+                color: "#475569",
+              }}
+            >
+              Risk score:{" "}
+              {result.score}/100
+            </div>
+          </div>
+
+          <div
+            style={{
+              padding: "22px",
+              borderRadius: "12px",
+              background:
+                "#f8fafc",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "13px",
+                fontWeight: 700,
+                color: "#475569",
+              }}
+            >
+              FINDINGS
+            </div>
+
+            <div
+              style={{
+                fontSize: "32px",
+                fontWeight: 800,
+                marginTop: "8px",
+                color: "#0f172a",
+              }}
+            >
+              {result.findings.length}
+            </div>
+
+            <div
+              style={{
+                marginTop: "5px",
+                color: "#475569",
+              }}
+            >
+              Potential issues identified
+            </div>
+          </div>
+        </div>
+
+        <h3
+          style={{
+            marginTop: "32px",
+            color: "#0f172a",
+          }}
+        >
+          Risk by category
+        </h3>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(auto-fit, minmax(250px, 1fr))",
+            gap: "12px",
+          }}
+        >
+          {result.categoryScores.map(
+            (category) => (
+              <div
+                key={
+                  category.category
+                }
+                style={{
+                  padding: "16px",
+                  border:
+                    "1px solid #e2e8f0",
+                  borderRadius: "10px",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent:
+                      "space-between",
+                    gap: "10px",
+                  }}
+                >
+                  <strong>
+                    {category.category}
+                  </strong>
+
+                  <strong
+                    style={{
+                      color:
+                        riskColor(
+                          category.level
+                        ),
+                    }}
+                  >
+                    {category.level}
+                  </strong>
+                </div>
+
+                <div
+                  style={{
+                    marginTop: "10px",
+                    height: "8px",
+                    background:
+                      "#e2e8f0",
+                    borderRadius:
+                      "20px",
+                    overflow:
+                      "hidden",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: `${category.score}%`,
+                      height: "100%",
+                      background:
+                        riskColor(
+                          category.level
+                        ),
+                    }}
+                  />
+                </div>
+
+                <div
+                  style={{
+                    marginTop: "6px",
+                    fontSize: "12px",
+                    color:
+                      "#64748b",
+                  }}
+                >
+                  {category.score}/100
+                </div>
+              </div>
+            )
+          )}
+        </div>
+      </div>
+
+      {/* FINDINGS */}
+
+      <div
+        style={{
+          background: "white",
+          border:
+            "1px solid #e2e8f0",
+          borderRadius: "14px",
+          padding: "28px",
+          marginTop: "20px",
+        }}
+      >
+        <h2
+          style={{
+            marginTop: 0,
+            color: "#0f172a",
+          }}
+        >
+          Key Privacy Findings
+        </h2>
+
+        {result.findings.length ===
+        0 ? (
+          <div
+            style={{
+              padding: "18px",
+              background:
+                "#f0fdf4",
+              border:
+                "1px solid #bbf7d0",
+              borderRadius:
+                "10px",
+              color:
+                "#166534",
+            }}
+          >
+            No significant privacy
+            risk signals were identified
+            from the information provided.
+          </div>
+        ) : (
+          result.findings.map(
+            (finding) => (
+              <div
+                key={finding.id}
+                style={{
+                  padding: "20px",
+                  marginBottom: "14px",
+                  border:
+                    "1px solid #e2e8f0",
+                  borderRadius:
+                    "10px",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent:
+                      "space-between",
+                    alignItems:
+                      "flex-start",
+                    gap: "15px",
+                    flexWrap:
+                      "wrap",
+                  }}
+                >
+                  <div>
+                    <div
+                      style={{
+                        fontSize:
+                          "12px",
+                        fontWeight:
+                          700,
+                        color:
+                          "#64748b",
+                        textTransform:
+                          "uppercase",
+                        letterSpacing:
+                          "1px",
+                      }}
+                    >
+                      {
+                        finding.category
+                      }
+                    </div>
+
+                    <h3
+                      style={{
+                        margin:
+                          "6px 0",
+                        color:
+                          "#0f172a",
+                      }}
+                    >
+                      {
+                        finding.title
+                      }
+                    </h3>
+                  </div>
+
+                  <span
+                    style={{
+                      padding:
+                        "6px 10px",
+                      borderRadius:
+                        "20px",
+                      background:
+                        riskBackground(
+                          finding.level
+                        ),
+                      color:
+                        riskColor(
+                          finding.level
+                        ),
+                      fontWeight:
+                        700,
+                      fontSize:
+                        "12px",
+                    }}
+                  >
+                    {finding.level}
+                  </span>
+                </div>
+
+                <p
+                  style={{
+                    color:
+                      "#475569",
+                    lineHeight:
+                      1.6,
+                  }}
+                >
+                  {
+                    finding.explanation
+                  }
+                </p>
+
+                <div
+                  style={{
+                    padding:
+                      "14px",
+                    background:
+                      "#f8fafc",
+                    borderRadius:
+                      "8px",
+                    color:
+                      "#334155",
+                    lineHeight:
+                      1.6,
+                  }}
+                >
+                  <strong>
+                    Recommended action:
+                  </strong>{" "}
+                  {
+                    finding.recommendation
+                  }
+                </div>
+              </div>
+            )
+          )
+        )}
+      </div>
+    </section>
+  );
+}
+
+/*
+ * ---------------------------------------------------------
+ * MULTI SELECT FIELD
+ * ---------------------------------------------------------
+ */
 
 function MultiSelectField({
   label,
+  values,
   options,
-  selected,
   onToggle,
 }: {
   label: string;
+  values: string[];
   options: string[];
-  selected: string[];
   onToggle: (value: string) => void;
 }) {
   return (
@@ -1580,12 +1895,12 @@ function MultiSelectField({
           display: "grid",
           gridTemplateColumns:
             "repeat(auto-fit, minmax(240px, 1fr))",
-          gap: "10px",
+          gap: "8px",
         }}
       >
         {options.map((option) => {
-          const checked =
-            selected.includes(option);
+          const selected =
+            values.includes(option);
 
           return (
             <label
@@ -1596,25 +1911,24 @@ function MultiSelectField({
                   "center",
                 gap: "10px",
                 padding:
-                  "12px 14px",
-                border: checked
-                  ? "2px solid #1d4ed8"
-                  : "1px solid #e2e8f0",
+                  "11px 12px",
+                border:
+                  selected
+                    ? "2px solid #1d4ed8"
+                    : "1px solid #cbd5e1",
                 borderRadius:
                   "8px",
                 background:
-                  checked
+                  selected
                     ? "#eff6ff"
                     : "white",
                 cursor:
                   "pointer",
-                color: "#334155",
-                fontSize: "14px",
               }}
             >
               <input
                 type="checkbox"
-                checked={checked}
+                checked={selected}
                 onChange={() =>
                   onToggle(option)
                 }
@@ -1626,7 +1940,14 @@ function MultiSelectField({
                 }}
               />
 
-              <span>
+              <span
+                style={{
+                  fontSize:
+                    "14px",
+                  color:
+                    "#334155",
+                }}
+              >
                 {option}
               </span>
             </label>
@@ -1634,87 +1955,26 @@ function MultiSelectField({
         })}
       </div>
 
-      {selected.length > 0 && (
+      {values.length > 0 && (
         <div
           style={{
             marginTop: "8px",
-            fontSize: "13px",
-            color: "#1d4ed8",
-            fontWeight: 600,
+            fontSize: "12px",
+            color: "#64748b",
           }}
         >
-          {selected.length} selected
+          {values.length} selected
         </div>
       )}
     </div>
   );
 }
 
-/* ===========================================================
-   FORM FIELD
-   =========================================================== */
-
-function FormField({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      style={{
-        marginBottom: "22px",
-      }}
-    >
-      <label
-        style={{
-          display: "block",
-          fontWeight: 700,
-          color: "#0f172a",
-          marginBottom: "8px",
-        }}
-      >
-        {label}
-      </label>
-
-      {children}
-    </div>
-  );
-}
-
-/* ===========================================================
-   STEP NUMBER
-   =========================================================== */
-
-function StepNumber({
-  number,
-}: {
-  number: string;
-}) {
-  return (
-    <div
-      style={{
-        width: "34px",
-        height: "34px",
-        borderRadius: "50%",
-        background: "#1d4ed8",
-        color: "white",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontWeight: 700,
-        marginBottom: "16px",
-      }}
-    >
-      {number}
-    </div>
-  );
-}
-
-/* ===========================================================
-   SELECTION SUMMARY
-   =========================================================== */
+/*
+ * ---------------------------------------------------------
+ * SUPPORTING COMPONENTS
+ * ---------------------------------------------------------
+ */
 
 function SelectionSummary({
   count,
@@ -1743,13 +2003,71 @@ function SelectionSummary({
   );
 }
 
-/* ===========================================================
-   STYLES
-   =========================================================== */
+function StepNumber({
+  number,
+}: {
+  number: string;
+}) {
+  return (
+    <div
+      style={{
+        width: "34px",
+        height: "34px",
+        borderRadius: "50%",
+        background: "#1d4ed8",
+        color: "white",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontWeight: 700,
+        marginBottom: "16px",
+      }}
+    >
+      {number}
+    </div>
+  );
+}
+
+function riskColor(
+  level: RiskLevel
+) {
+  switch (level) {
+    case "Critical":
+      return "#991b1b";
+
+    case "High":
+      return "#dc2626";
+
+    case "Medium":
+      return "#d97706";
+
+    case "Low":
+      return "#15803d";
+  }
+}
+
+function riskBackground(
+  level: RiskLevel
+) {
+  switch (level) {
+    case "Critical":
+      return "#fee2e2";
+
+    case "High":
+      return "#fef2f2";
+
+    case "Medium":
+      return "#fffbeb";
+
+    case "Low":
+      return "#f0fdf4";
+  }
+}
 
 const cardStyle = {
   background: "white",
-  border: "1px solid #e2e8f0",
+  border:
+    "1px solid #e2e8f0",
   borderRadius: "14px",
   padding: "28px",
   marginBottom: "20px",
@@ -1765,21 +2083,11 @@ const selectStyle = {
   width: "100%",
   padding: "13px 14px",
   borderRadius: "8px",
-  border: "1px solid #cbd5e1",
+  border:
+    "1px solid #cbd5e1",
   background: "white",
   fontSize: "16px",
   color: "#0f172a",
-};
-
-const inputStyle = {
-  width: "100%",
-  padding: "13px 14px",
-  borderRadius: "8px",
-  border: "1px solid #cbd5e1",
-  background: "white",
-  fontSize: "16px",
-  color: "#0f172a",
-  boxSizing: "border-box" as const,
 };
 
 const noticeStyle = {
@@ -1787,7 +2095,7 @@ const noticeStyle = {
   lineHeight: 1.6,
 };
 
-const buttonStyle = {
+const secondaryButtonStyle = {
   padding: "12px 18px",
   borderRadius: "8px",
   border: "none",
