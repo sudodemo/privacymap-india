@@ -12,7 +12,7 @@ import type {
 } from "./riskTreatment";
 
 /* =========================================================
-   RESIDUAL RISK TYPES
+   TYPES
    ========================================================= */
 
 export type ResidualRiskLevel =
@@ -52,14 +52,8 @@ export type ResidualRiskAssessment = {
 
   riskTitle: string;
 
-  /*
-   * Original risk before treatment.
-   */
   inherentRisk: RiskLevel;
 
-  /*
-   * Treatment information.
-   */
   treatmentAction: string;
 
   treatmentRationale: string;
@@ -74,14 +68,8 @@ export type ResidualRiskAssessment = {
 
   treatmentStatus: TreatmentStatus;
 
-  /*
-   * Control assessment.
-   */
   controlEffectiveness: ControlEffectiveness;
 
-  /*
-   * Residual risk after considering treatment.
-   */
   residualRisk: ResidualRiskLevel;
 
   riskReduction: RiskReduction;
@@ -90,19 +78,12 @@ export type ResidualRiskAssessment = {
 
   inherentRiskScore: number;
 
-  /*
-   * Management interpretation.
-   */
   residualRiskRationale: string;
 
   recommendedNextAction: string;
 
   status: ResidualRiskStatus;
 
-  /*
-   * Evidence expected to demonstrate
-   * treatment/control effectiveness.
-   */
   evidence: string;
 };
 
@@ -110,7 +91,9 @@ export type ResidualRiskAssessment = {
    RISK SCORE
    ========================================================= */
 
-function riskScore(level: RiskLevel): number {
+function getRiskScore(
+  level: RiskLevel
+): number {
   switch (level) {
     case "Critical":
       return 4;
@@ -130,10 +113,10 @@ function riskScore(level: RiskLevel): number {
 }
 
 /* =========================================================
-   RESIDUAL RISK LEVEL
+   RESIDUAL RISK FROM SCORE
    ========================================================= */
 
-function residualRiskFromScore(
+function getResidualRiskLevel(
   score: number
 ): ResidualRiskLevel {
   if (score >= 4) {
@@ -155,10 +138,10 @@ function residualRiskFromScore(
    CONTROL EFFECTIVENESS SCORE
    ========================================================= */
 
-function effectivenessScore(
-  effectiveness: ControlEffectiveness
+function getEffectivenessScore(
+  controlEffectiveness: ControlEffectiveness
 ): number {
-  switch (effectiveness) {
+  switch (controlEffectiveness) {
     case "Not Implemented":
       return 0;
 
@@ -178,18 +161,6 @@ function effectivenessScore(
 
 /* =========================================================
    ESTIMATE CONTROL EFFECTIVENESS
-   =========================================================
-
-   Step 8 treatment status is used as the primary
-   indicator for estimating the current effectiveness
-   of the recommended treatment.
-
-   Important:
-   This is an assessment estimate, not evidence that
-   a control has actually been implemented.
-
-   Actual control evidence can later override this
-   estimate.
    ========================================================= */
 
 function estimateControlEffectiveness(
@@ -203,6 +174,12 @@ function estimateControlEffectiveness(
       return "Partially Effective";
 
     case "Accepted":
+      /*
+       * Risk acceptance does not mean that the
+       * control is effective. The control may still
+       * be incomplete, but management has accepted
+       * the remaining risk.
+       */
       return "Partially Effective";
 
     case "Open":
@@ -212,55 +189,32 @@ function estimateControlEffectiveness(
 }
 
 /* =========================================================
-   CALCULATE RESIDUAL SCORE
-   =========================================================
-
-   The model reduces the original risk based on the
-   estimated effectiveness of treatment.
-
-   Critical:
-     - Highly Effective  -> 1
-     - Effective         -> 2
-     - Partially Effective -> 3
-     - Not Implemented   -> 4
-
-   High:
-     - Highly Effective  -> 1
-     - Effective         -> 1
-     - Partially Effective -> 2
-     - Not Implemented   -> 3
-
-   Medium:
-     - Highly Effective  -> 1
-     - Effective         -> 1
-     - Partially Effective -> 2
-     - Not Implemented   -> 2
-
-   Low:
-     - Always remains Low
+   CALCULATE RESIDUAL RISK SCORE
    ========================================================= */
 
 function calculateResidualScore(
   inherentRisk: RiskLevel,
-  effectiveness: ControlEffectiveness
+  controlEffectiveness: ControlEffectiveness
 ): number {
   const inherentScore =
-    riskScore(inherentRisk);
+    getRiskScore(inherentRisk);
 
-  const effectiveness =
-    effectivenessScore(effectiveness);
+  const effectivenessScore =
+    getEffectivenessScore(
+      controlEffectiveness
+    );
 
   /*
-   * No implemented control.
+   * No effective treatment.
    */
-  if (effectiveness === 0) {
+  if (effectivenessScore === 0) {
     return inherentScore;
   }
 
   /*
-   * Partially effective control.
+   * Partially effective treatment.
    */
-  if (effectiveness === 1) {
+  if (effectivenessScore === 1) {
     return Math.max(
       1,
       inherentScore - 1
@@ -268,9 +222,9 @@ function calculateResidualScore(
   }
 
   /*
-   * Effective control.
+   * Effective treatment.
    */
-  if (effectiveness === 2) {
+  if (effectivenessScore === 2) {
     return Math.max(
       1,
       inherentScore - 2
@@ -278,7 +232,7 @@ function calculateResidualScore(
   }
 
   /*
-   * Highly effective control.
+   * Highly effective treatment.
    */
   return Math.max(
     1,
@@ -320,37 +274,41 @@ function calculateRiskReduction(
    RESIDUAL RISK RATIONALE
    ========================================================= */
 
-function residualRiskRationale(
+function getResidualRiskRationale(
   inherentRisk: RiskLevel,
   residualRisk: ResidualRiskLevel,
-  effectiveness: ControlEffectiveness
+  controlEffectiveness: ControlEffectiveness
 ): string {
   if (
-    effectiveness === "Not Implemented"
+    controlEffectiveness ===
+    "Not Implemented"
   ) {
     return (
       `The original ${inherentRisk} risk remains ` +
       `substantially unchanged because the recommended ` +
       `treatment has not yet been implemented. ` +
-      `The residual risk should therefore be actively ` +
-      `tracked until remediation is completed.`
+      `The residual risk should remain actively tracked ` +
+      `until remediation is completed.`
     );
   }
 
   if (
-    effectiveness === "Partially Effective"
+    controlEffectiveness ===
+    "Partially Effective"
   ) {
     return (
       `The recommended treatment is partially implemented ` +
       `or operating with limited effectiveness. The risk ` +
       `has been reduced from ${inherentRisk} to ` +
-      `${residualRisk}, but additional remediation is ` +
-      `required before the control can be considered fully effective.`
+      `${residualRisk}, but additional remediation may ` +
+      `be required before the control can be considered ` +
+      `fully effective.`
     );
   }
 
   if (
-    effectiveness === "Effective"
+    controlEffectiveness ===
+    "Effective"
   ) {
     return (
       `The treatment is considered effective and materially ` +
@@ -363,8 +321,8 @@ function residualRiskRationale(
   return (
     `The treatment is considered highly effective and has ` +
     `significantly reduced the original ${inherentRisk} risk. ` +
-    `The remaining ${residualRisk} risk should be monitored ` +
-    `to ensure continued control effectiveness.`
+    `The remaining ${residualRisk} risk should continue to ` +
+    `be monitored for ongoing control effectiveness.`
   );
 }
 
@@ -372,12 +330,13 @@ function residualRiskRationale(
    RECOMMENDED NEXT ACTION
    ========================================================= */
 
-function recommendedNextAction(
+function getRecommendedNextAction(
   residualRisk: ResidualRiskLevel,
-  effectiveness: ControlEffectiveness
+  controlEffectiveness: ControlEffectiveness
 ): string {
   if (
-    effectiveness === "Not Implemented"
+    controlEffectiveness ===
+    "Not Implemented"
   ) {
     return (
       "Implement the recommended treatment and reassess " +
@@ -387,7 +346,8 @@ function recommendedNextAction(
   }
 
   if (
-    effectiveness === "Partially Effective"
+    controlEffectiveness ===
+    "Partially Effective"
   ) {
     return (
       "Complete the remaining remediation activities and " +
@@ -400,8 +360,8 @@ function recommendedNextAction(
   ) {
     return (
       "Escalate immediately to senior management and " +
-      "consider formal risk acceptance or additional " +
-      "risk-reduction measures."
+      "consider additional risk-reduction measures or " +
+      "formal risk acceptance."
     );
   }
 
@@ -432,7 +392,7 @@ function recommendedNextAction(
    RESIDUAL RISK STATUS
    ========================================================= */
 
-function residualStatus(
+function getResidualRiskStatus(
   residualRisk: ResidualRiskLevel,
   treatmentStatus: TreatmentStatus
 ): ResidualRiskStatus {
@@ -454,10 +414,6 @@ function residualStatus(
     return "Accepted";
   }
 
-  /*
-   * Critical / High risks with no treatment
-   * remain open.
-   */
   if (
     residualRisk === "Critical" ||
     residualRisk === "High"
@@ -476,21 +432,20 @@ export function generateResidualRiskAssessment(
   result: RiskResult,
   treatmentPlan: RiskTreatmentAction[]
 ): ResidualRiskAssessment[] {
-  /*
-   * Create a quick lookup table so that each finding
-   * can be matched to its Step 8 treatment.
-   */
   const treatmentByFinding =
-    new Map<string, RiskTreatmentAction>();
+    new Map<
+      string,
+      RiskTreatmentAction
+    >();
 
-  treatmentPlan.forEach(
-    (treatment) => {
-      treatmentByFinding.set(
-        treatment.findingId,
-        treatment
-      );
-    }
-  );
+  for (
+    const treatment of treatmentPlan
+  ) {
+    treatmentByFinding.set(
+      treatment.findingId,
+      treatment
+    );
+  }
 
   return result.findings
     .map(
@@ -502,11 +457,6 @@ export function generateResidualRiskAssessment(
             finding.id
           );
 
-        /*
-         * A residual-risk assessment cannot be
-         * generated without the corresponding
-         * Step 8 treatment record.
-         */
         if (!treatment) {
           return null;
         }
@@ -515,7 +465,9 @@ export function generateResidualRiskAssessment(
           finding.level;
 
         const inherentScore =
-          riskScore(inherentRisk);
+          getRiskScore(
+            inherentRisk
+          );
 
         const controlEffectiveness =
           estimateControlEffectiveness(
@@ -529,7 +481,7 @@ export function generateResidualRiskAssessment(
           );
 
         const residualRisk =
-          residualRiskFromScore(
+          getResidualRiskLevel(
             residualScore
           );
 
@@ -591,20 +543,20 @@ export function generateResidualRiskAssessment(
             inherentScore,
 
           residualRiskRationale:
-            residualRiskRationale(
+            getResidualRiskRationale(
               inherentRisk,
               residualRisk,
               controlEffectiveness
             ),
 
           recommendedNextAction:
-            recommendedNextAction(
+            getRecommendedNextAction(
               residualRisk,
               controlEffectiveness
             ),
 
           status:
-            residualStatus(
+            getResidualRiskStatus(
               residualRisk,
               treatment.status
             ),
@@ -628,7 +580,7 @@ export function generateResidualRiskAssessment(
 }
 
 /* =========================================================
-   SUMMARY
+   SUMMARY TYPE
    ========================================================= */
 
 export type ResidualRiskSummary = {
@@ -652,7 +604,7 @@ export type ResidualRiskSummary = {
 };
 
 /* =========================================================
-   GENERATE RESIDUAL RISK SUMMARY
+   GENERATE SUMMARY
    ========================================================= */
 
 export function generateResidualRiskSummary(
