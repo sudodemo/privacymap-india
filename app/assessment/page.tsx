@@ -1,101 +1,84 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { ReactNode } from "react";
-import {
-  getBusinessTypes,
-  getSchoolEntryPoints,
-  kb,
-} from "../../lib/kb";
+import { getBusinessTypes, getSchoolEntryPoints, kb } from "../../lib/kb";
+
+type CustomEntryPoint = {
+  id: string;
+  name: string;
+  collection_method: string;
+  custom: boolean;
+};
+
+type CustomField = {
+  id: string;
+  name: string;
+  custom: boolean;
+};
+
+type CollectionPath = {
+  id: string;
+  name: string;
+  entryPoint: string;
+  collectorRole: string;
+  dataSubjectType: string;
+  collectionFormat: string;
+  storageLocation: string;
+  storageEnvironment: string;
+  encryptionStatus: string;
+  accessRoles: string;
+  sharingStatus: string;
+  retentionPeriod: string;
+  deletionMethod: string;
+  privacyNotice: string;
+  consentStatus: string;
+  parentalConsent: string;
+  crossBorderTransfer: string;
+};
 
 export default function AssessmentPage() {
-  /* =========================================================
-     STEP 1–6 STATE
-     ========================================================= */
-
   const [industryId, setIndustryId] = useState("");
   const [businessTypeId, setBusinessTypeId] = useState("");
   const [processId, setProcessId] = useState("");
 
-  /* Step 4 */
   const [selectedEntryPoints, setSelectedEntryPoints] =
+    useState<string[]>([]);
+
+  const [selectedFields, setSelectedFields] =
     useState<string[]>([]);
 
   const [customEntryPoint, setCustomEntryPoint] =
     useState("");
 
   const [customEntryPoints, setCustomEntryPoints] =
-    useState<
-      {
-        id: string;
-        name: string;
-        collection_method: string;
-        custom: boolean;
-      }[]
-    >([]);
-
-  /* Step 5 */
-  const [selectedFields, setSelectedFields] =
-    useState<string[]>([]);
+    useState<CustomEntryPoint[]>([]);
 
   const [customField, setCustomField] =
     useState("");
 
   const [customFields, setCustomFields] =
-    useState<
-      {
-        id: string;
-        name: string;
-        custom: boolean;
-      }[]
-    >([]);
+    useState<CustomField[]>([]);
 
-  /* Step 6 */
-  const [collectorRole, setCollectorRole] =
-    useState("");
+  const [collectionPaths, setCollectionPaths] =
+    useState<CollectionPath[]>([]);
 
-  const [dataSubjectType, setDataSubjectType] =
-    useState("");
+  const [pathName, setPathName] = useState("");
+  const [pathEntryPoint, setPathEntryPoint] = useState("");
 
-  const [collectionFormat, setCollectionFormat] =
-    useState("");
-
-  const [storageLocation, setStorageLocation] =
-    useState("");
-
-  const [storageEnvironment, setStorageEnvironment] =
-    useState("");
-
-  const [encryptionStatus, setEncryptionStatus] =
-    useState("");
-
-  const [accessRoles, setAccessRoles] =
-    useState("");
-
-  const [sharingStatus, setSharingStatus] =
-    useState("");
-
-  const [retentionPeriod, setRetentionPeriod] =
-    useState("");
-
-  const [deletionMethod, setDeletionMethod] =
-    useState("");
-
-  const [privacyNotice, setPrivacyNotice] =
-    useState("");
-
-  const [consentStatus, setConsentStatus] =
-    useState("");
-
-  const [parentalConsent, setParentalConsent] =
-    useState("");
-
-  const [crossBorderTransfer, setCrossBorderTransfer] =
-    useState("");
-
-  /* =========================================================
-     DATA
-     ========================================================= */
+  const [collectorRole, setCollectorRole] = useState("");
+  const [dataSubjectType, setDataSubjectType] = useState("");
+  const [collectionFormat, setCollectionFormat] = useState("");
+  const [storageLocation, setStorageLocation] = useState("");
+  const [storageEnvironment, setStorageEnvironment] = useState("");
+  const [encryptionStatus, setEncryptionStatus] = useState("");
+  const [accessRoles, setAccessRoles] = useState("");
+  const [sharingStatus, setSharingStatus] = useState("");
+  const [retentionPeriod, setRetentionPeriod] = useState("");
+  const [deletionMethod, setDeletionMethod] = useState("");
+  const [privacyNotice, setPrivacyNotice] = useState("");
+  const [consentStatus, setConsentStatus] = useState("");
+  const [parentalConsent, setParentalConsent] = useState("");
+  const [crossBorderTransfer, setCrossBorderTransfer] = useState("");
 
   const businessTypes = useMemo(() => {
     if (!industryId) return [];
@@ -117,11 +100,9 @@ export default function AssessmentPage() {
     return getSchoolEntryPoints(processId || undefined);
   }, [businessTypeId, processId]);
 
-  /* =========================================================
-     RESET FUNCTIONS
-     ========================================================= */
-
-  function resetStep6() {
+  function resetCollectionPathForm() {
+    setPathName("");
+    setPathEntryPoint("");
     setCollectorRole("");
     setDataSubjectType("");
     setCollectionFormat("");
@@ -141,47 +122,41 @@ export default function AssessmentPage() {
   function resetFromIndustry() {
     setBusinessTypeId("");
     setProcessId("");
-
     setSelectedEntryPoints([]);
     setCustomEntryPoints([]);
     setCustomEntryPoint("");
-
     setSelectedFields([]);
     setCustomFields([]);
     setCustomField("");
+    setCollectionPaths([]);
 
-    resetStep6();
+    resetCollectionPathForm();
   }
 
   function resetFromBusinessType() {
     setProcessId("");
-
     setSelectedEntryPoints([]);
     setCustomEntryPoints([]);
     setCustomEntryPoint("");
-
     setSelectedFields([]);
     setCustomFields([]);
     setCustomField("");
+    setCollectionPaths([]);
 
-    resetStep6();
+    resetCollectionPathForm();
   }
 
   function resetFromProcess() {
     setSelectedEntryPoints([]);
     setCustomEntryPoints([]);
     setCustomEntryPoint("");
-
     setSelectedFields([]);
     setCustomFields([]);
     setCustomField("");
+    setCollectionPaths([]);
 
-    resetStep6();
+    resetCollectionPathForm();
   }
-
-  /* =========================================================
-     ENTRY POINT FUNCTIONS
-     ========================================================= */
 
   function toggleEntryPoint(id: string) {
     setSelectedEntryPoints((current) =>
@@ -196,7 +171,7 @@ export default function AssessmentPage() {
 
     if (!name) return;
 
-    const newEntryPoint = {
+    const newEntryPoint: CustomEntryPoint = {
       id: `CUSTOM-${Date.now()}`,
       name,
       collection_method: "Custom",
@@ -215,11 +190,11 @@ export default function AssessmentPage() {
     setCustomEntryPoints((current) =>
       current.filter((item) => item.id !== id)
     );
-  }
 
-  /* =========================================================
-     FIELD FUNCTIONS
-     ========================================================= */
+    setSelectedEntryPoints((current) =>
+      current.filter((item) => item !== id)
+    );
+  }
 
   function toggleField(id: string) {
     setSelectedFields((current) =>
@@ -234,7 +209,7 @@ export default function AssessmentPage() {
 
     if (!name) return;
 
-    const newField = {
+    const newField: CustomField = {
       id: `CUSTOM-FIELD-${Date.now()}`,
       name,
       custom: true,
@@ -252,23 +227,59 @@ export default function AssessmentPage() {
     setCustomFields((current) =>
       current.filter((item) => item.id !== id)
     );
+
+    setSelectedFields((current) =>
+      current.filter((item) => item !== id)
+    );
   }
 
-  /* =========================================================
-     DERIVED STATE
-     ========================================================= */
+  function addCollectionPath() {
+    if (!pathName.trim()) return;
 
-  const totalEntryPoints =
-    selectedEntryPoints.length +
-    customEntryPoints.length;
+    const newPath: CollectionPath = {
+      id: `PATH-${Date.now()}`,
+      name: pathName.trim(),
+      entryPoint: pathEntryPoint,
+      collectorRole,
+      dataSubjectType,
+      collectionFormat,
+      storageLocation,
+      storageEnvironment,
+      encryptionStatus,
+      accessRoles,
+      sharingStatus,
+      retentionPeriod,
+      deletionMethod,
+      privacyNotice,
+      consentStatus,
+      parentalConsent,
+      crossBorderTransfer,
+    };
 
-  const totalFields =
-    selectedFields.length +
-    customFields.length;
+    setCollectionPaths((current) => [
+      ...current,
+      newPath,
+    ]);
 
-  /* =========================================================
-     UI
-     ========================================================= */
+    resetCollectionPathForm();
+  }
+
+  function removeCollectionPath(id: string) {
+    setCollectionPaths((current) =>
+      current.filter((item) => item.id !== id)
+    );
+  }
+
+  const availableEntryPoints = [
+    ...entryPoints.map((item) => ({
+      id: item.id,
+      name: item.name,
+    })),
+    ...customEntryPoints.map((item) => ({
+      id: item.id,
+      name: item.name,
+    })),
+  ];
 
   return (
     <main
@@ -285,8 +296,6 @@ export default function AssessmentPage() {
           margin: "0 auto",
         }}
       >
-        {/* Header */}
-
         <p
           style={{
             fontSize: "13px",
@@ -316,15 +325,12 @@ export default function AssessmentPage() {
             marginBottom: "40px",
           }}
         >
-          Start by identifying your industry, business type and
-          the processes where personal data enters your
-          organisation.
+          Map your personal-data entry points, understand how
+          information moves through your business, identify
+          privacy risks, and create a practical data inventory.
         </p>
 
-        {/* =====================================================
-            STEP 1
-            ===================================================== */}
-
+        {/* STEP 1 */}
         <section style={cardStyle}>
           <StepNumber number="1" />
 
@@ -359,10 +365,7 @@ export default function AssessmentPage() {
           </select>
         </section>
 
-        {/* =====================================================
-            STEP 2
-            ===================================================== */}
-
+        {/* STEP 2 */}
         {industryId && (
           <section style={cardStyle}>
             <StepNumber number="2" />
@@ -374,9 +377,7 @@ export default function AssessmentPage() {
             <select
               value={businessTypeId}
               onChange={(event) => {
-                setBusinessTypeId(
-                  event.target.value
-                );
+                setBusinessTypeId(event.target.value);
                 resetFromBusinessType();
               }}
               style={selectStyle}
@@ -385,16 +386,14 @@ export default function AssessmentPage() {
                 Select business type...
               </option>
 
-              {businessTypes.map(
-                (businessType) => (
-                  <option
-                    key={businessType.id}
-                    value={businessType.id}
-                  >
-                    {businessType.name}
-                  </option>
-                )
-              )}
+              {businessTypes.map((businessType) => (
+                <option
+                  key={businessType.id}
+                  value={businessType.id}
+                >
+                  {businessType.name}
+                </option>
+              ))}
             </select>
 
             {businessTypes.length === 0 && (
@@ -408,10 +407,7 @@ export default function AssessmentPage() {
           </section>
         )}
 
-        {/* =====================================================
-            STEP 3
-            ===================================================== */}
-
+        {/* STEP 3 */}
         {businessTypeId === "EDU-SCH" && (
           <section style={cardStyle}>
             <StepNumber number="3" />
@@ -423,9 +419,7 @@ export default function AssessmentPage() {
             <select
               value={processId}
               onChange={(event) => {
-                setProcessId(
-                  event.target.value
-                );
+                setProcessId(event.target.value);
                 resetFromProcess();
               }}
               style={selectStyle}
@@ -446,10 +440,7 @@ export default function AssessmentPage() {
           </section>
         )}
 
-        {/* =====================================================
-            STEP 4
-            ===================================================== */}
-
+        {/* STEP 4 */}
         {businessTypeId === "EDU-SCH" && (
           <section style={cardStyle}>
             <StepNumber number="4" />
@@ -464,9 +455,8 @@ export default function AssessmentPage() {
                 marginBottom: "20px",
               }}
             >
-              Select all the channels through which
-              your organisation may collect personal
-              data for this process.
+              Select all channels through which your
+              organisation may collect personal data.
             </p>
 
             <div
@@ -488,18 +478,16 @@ export default function AssessmentPage() {
                     key={entryPoint.id}
                     style={{
                       display: "flex",
-                      alignItems:
-                        "flex-start",
+                      alignItems: "flex-start",
                       gap: "12px",
                       padding: "16px",
                       border: isSelected
                         ? "2px solid #1d4ed8"
                         : "1px solid #e2e8f0",
                       borderRadius: "10px",
-                      background:
-                        isSelected
-                          ? "#eff6ff"
-                          : "#f8fafc",
+                      background: isSelected
+                        ? "#eff6ff"
+                        : "#f8fafc",
                       cursor: "pointer",
                     }}
                   >
@@ -541,8 +529,7 @@ export default function AssessmentPage() {
               })}
             </div>
 
-            {/* Custom entry point */}
-
+            {/* CUSTOM ENTRY POINT */}
             <div
               style={{
                 marginTop: "24px",
@@ -558,12 +545,13 @@ export default function AssessmentPage() {
                   marginBottom: "8px",
                 }}
               >
-                Don't see your data entry point?
+                Don't see your data entry
+                point?
               </h3>
 
               <p style={noticeStyle}>
-                Add a custom channel used by your
-                organisation.
+                Add a custom channel used by
+                your organisation.
               </p>
 
               <div
@@ -588,7 +576,8 @@ export default function AssessmentPage() {
                       "1 1 300px",
                     padding:
                       "12px 14px",
-                    borderRadius: "8px",
+                    borderRadius:
+                      "8px",
                     border:
                       "1px solid #cbd5e1",
                     fontSize: "15px",
@@ -600,17 +589,7 @@ export default function AssessmentPage() {
                   onClick={
                     addCustomEntryPoint
                   }
-                  style={{
-                    padding:
-                      "12px 18px",
-                    borderRadius: "8px",
-                    border: "none",
-                    background:
-                      "#0f172a",
-                    color: "white",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                  }}
+                  style={buttonStyle}
                 >
                   Add
                 </button>
@@ -667,7 +646,8 @@ export default function AssessmentPage() {
                                 "3px",
                             }}
                           >
-                            Custom entry
+                            Custom
+                            entry
                             point
                           </span>
                         </span>
@@ -679,18 +659,9 @@ export default function AssessmentPage() {
                               entryPoint.id
                             )
                           }
-                          style={{
-                            border:
-                              "none",
-                            background:
-                              "transparent",
-                            color:
-                              "#64748b",
-                            cursor:
-                              "pointer",
-                            fontSize:
-                              "13px",
-                          }}
+                          style={
+                            removeButtonStyle
+                          }
                         >
                           Remove
                         </button>
@@ -701,41 +672,31 @@ export default function AssessmentPage() {
               )}
             </div>
 
-            {/* Selection summary */}
-
-            {totalEntryPoints > 0 && (
-              <div
-                style={{
-                  marginTop: "24px",
-                  padding: "16px",
-                  background:
-                    "#f0fdf4",
-                  border:
-                    "1px solid #bbf7d0",
-                  borderRadius: "10px",
-                  color: "#166534",
-                }}
-              >
-                <strong>
-                  {totalEntryPoints} data
-                  entry point
-                  {totalEntryPoints !==
-                  1
-                    ? "s"
-                    : ""}{" "}
-                  selected
-                </strong>
-              </div>
+            {(selectedEntryPoints.length >
+              0 ||
+              customEntryPoints.length >
+                0) && (
+              <SummaryBox>
+                {selectedEntryPoints.length +
+                  customEntryPoints.length}{" "}
+                data entry point
+                {selectedEntryPoints.length +
+                  customEntryPoints.length !==
+                1
+                  ? "s"
+                  : ""}{" "}
+                selected
+              </SummaryBox>
             )}
           </section>
         )}
 
-        {/* =====================================================
-            STEP 5
-            ===================================================== */}
-
+        {/* STEP 5 */}
         {businessTypeId === "EDU-SCH" &&
-          totalEntryPoints > 0 && (
+          (selectedEntryPoints.length >
+            0 ||
+            customEntryPoints.length >
+              0) && (
             <section style={cardStyle}>
               <StepNumber number="5" />
 
@@ -751,7 +712,7 @@ export default function AssessmentPage() {
                 }}
               >
                 Select the personal-data fields
-                that your organisation collects
+                your organisation collects
                 through the selected entry
                 points.
               </p>
@@ -854,8 +815,7 @@ export default function AssessmentPage() {
                                 "4px",
                             }}
                           >
-                            Data
-                            subject:{" "}
+                            Data subject:{" "}
                             {field.typical_data_subjects.join(
                               ", "
                             )}
@@ -870,8 +830,7 @@ export default function AssessmentPage() {
                 )}
               </div>
 
-              {/* Custom field */}
-
+              {/* CUSTOM FIELD */}
               <div
                 style={{
                   marginTop: "24px",
@@ -882,19 +841,22 @@ export default function AssessmentPage() {
               >
                 <h3
                   style={{
-                    color: "#0f172a",
-                    fontSize: "17px",
+                    color:
+                      "#0f172a",
+                    fontSize:
+                      "17px",
                     marginBottom:
                       "8px",
                   }}
                 >
-                  Don't see your data field?
+                  Don't see your
+                  data field?
                 </h3>
 
                 <p style={noticeStyle}>
-                  Add a custom personal-data
-                  field used by your
-                  organisation.
+                  Add a custom
+                  personal-data
+                  field.
                 </p>
 
                 <div
@@ -902,7 +864,8 @@ export default function AssessmentPage() {
                     display:
                       "flex",
                     gap: "10px",
-                    marginTop: "12px",
+                    marginTop:
+                      "12px",
                     flexWrap:
                       "wrap",
                   }}
@@ -916,7 +879,8 @@ export default function AssessmentPage() {
                       event
                     ) =>
                       setCustomField(
-                        event.target
+                        event
+                          .target
                           .value
                       )
                     }
@@ -940,19 +904,9 @@ export default function AssessmentPage() {
                     onClick={
                       addCustomField
                     }
-                    style={{
-                      padding:
-                        "12px 18px",
-                      borderRadius:
-                        "8px",
-                      border: "none",
-                      background:
-                        "#0f172a",
-                      color: "white",
-                      fontWeight: 600,
-                      cursor:
-                        "pointer",
-                    }}
+                    style={
+                      buttonStyle
+                    }
                   >
                     Add
                   </button>
@@ -1022,18 +976,9 @@ export default function AssessmentPage() {
                                 field.id
                               )
                             }
-                            style={{
-                              border:
-                                "none",
-                              background:
-                                "transparent",
-                              color:
-                                "#64748b",
-                              cursor:
-                                "pointer",
-                              fontSize:
-                                "13px",
-                            }}
+                            style={
+                              removeButtonStyle
+                            }
                           >
                             Remove
                           </button>
@@ -1044,71 +989,147 @@ export default function AssessmentPage() {
                 )}
               </div>
 
-              {totalFields > 0 && (
-                <div
-                  style={{
-                    marginTop: "24px",
-                    padding: "16px",
-                    background:
-                      "#f0fdf4",
-                    border:
-                      "1px solid #bbf7d0",
-                    borderRadius: "10px",
-                    color: "#166534",
-                  }}
-                >
-                  <strong>
-                    {totalFields} data
-                    field
-                    {totalFields !== 1
-                      ? "s"
-                      : ""}{" "}
-                    selected
-                  </strong>
-                </div>
+              {(selectedFields.length >
+                0 ||
+                customFields.length >
+                  0) && (
+                <SummaryBox>
+                  {selectedFields.length +
+                    customFields.length}{" "}
+                  data field
+                  {selectedFields.length +
+                    customFields.length !==
+                  1
+                    ? "s"
+                    : ""}{" "}
+                  selected
+                </SummaryBox>
               )}
             </section>
           )}
 
-        {/* =====================================================
-            STEP 6
-            ===================================================== */}
-
+        {/* STEP 6 */}
         {businessTypeId === "EDU-SCH" &&
-          totalFields > 0 && (
+          selectedFields.length > 0 && (
             <section style={cardStyle}>
               <StepNumber number="6" />
 
               <h2 style={headingStyle}>
-                How is this personal data
-                collected and handled?
+                Map your collection
+                paths
               </h2>
 
               <p
                 style={{
                   ...noticeStyle,
-                  marginBottom: "24px",
+                  marginBottom:
+                    "24px",
                 }}
               >
-                Tell us how your organisation
-                actually collects, stores,
-                protects and retains the
-                selected personal data. Select
-                "Unknown" where the current
-                practice is not known.
+                The same personal data may
+                enter your organisation
+                through multiple channels.
+                Create one collection path
+                for each real-world way
+                the data is collected,
+                stored or handled.
               </p>
 
-              {/* Collector */}
+              <div
+                style={{
+                  padding:
+                    "16px",
+                  background:
+                    "#eff6ff",
+                  border:
+                    "1px solid #bfdbfe",
+                  borderRadius:
+                    "10px",
+                  marginBottom:
+                    "24px",
+                  color:
+                    "#1e3a8a",
+                  lineHeight:
+                    1.6,
+                }}
+              >
+                <strong>
+                  Example:
+                </strong>{" "}
+                Admission data could
+                arrive through a physical
+                form, Google Form, website,
+                WhatsApp or email. Each
+                should be recorded as a
+                separate collection path.
+              </div>
 
-              <FormField label="Who collects this data?">
-                <select
-                  value={collectorRole}
+              <FormField
+                label="Collection path name"
+              >
+                <input
+                  type="text"
+                  value={pathName}
                   onChange={(event) =>
-                    setCollectorRole(
+                    setPathName(
+                      event.target.value
+                    )
+                  }
+                  placeholder="e.g. Physical Admission Form"
+                  style={inputStyle}
+                />
+              </FormField>
+
+              <FormField
+                label="Which data entry point does this path use?"
+              >
+                <select
+                  value={pathEntryPoint}
+                  onChange={(event) =>
+                    setPathEntryPoint(
                       event.target.value
                     )
                   }
                   style={selectStyle}
+                >
+                  <option value="">
+                    Select entry point...
+                  </option>
+
+                  {availableEntryPoints.map(
+                    (item) => (
+                      <option
+                        key={item.id}
+                        value={
+                          item.id
+                        }
+                      >
+                        {item.name}
+                      </option>
+                    )
+                  )}
+                </select>
+              </FormField>
+
+              <FormField
+                label="Who collects this data?"
+              >
+                <select
+                  value={
+                    collectorRole
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setCollectorRole(
+                      event
+                        .target
+                        .value
+                    )
+                  }
+                  style={
+                    selectStyle
+                  }
                 >
                   <option value="">
                     Select role...
@@ -1116,7 +1137,9 @@ export default function AssessmentPage() {
                   <option>
                     Admissions Executive
                   </option>
-                  <option>Teacher</option>
+                  <option>
+                    Teacher
+                  </option>
                   <option>
                     Class Teacher
                   </option>
@@ -1141,23 +1164,31 @@ export default function AssessmentPage() {
                   <option>
                     Third-party Service Provider
                   </option>
-                  <option>Other</option>
+                  <option>
+                    Other
+                  </option>
                 </select>
               </FormField>
 
-              {/* Data subject */}
-
-              <FormField label="Who is the data subject?">
+              <FormField
+                label="Who is the data subject?"
+              >
                 <select
                   value={
                     dataSubjectType
                   }
-                  onChange={(event) =>
+                  onChange={(
+                    event
+                  ) =>
                     setDataSubjectType(
-                      event.target.value
+                      event
+                        .target
+                        .value
                     )
                   }
-                  style={selectStyle}
+                  style={
+                    selectStyle
+                  }
                 >
                   <option value="">
                     Select data subject...
@@ -1180,23 +1211,31 @@ export default function AssessmentPage() {
                   <option>
                     Vendor / Service Provider
                   </option>
-                  <option>Other</option>
+                  <option>
+                    Other
+                  </option>
                 </select>
               </FormField>
 
-              {/* Collection format */}
-
-              <FormField label="How is the data collected?">
+              <FormField
+                label="How is the data collected?"
+              >
                 <select
                   value={
                     collectionFormat
                   }
-                  onChange={(event) =>
+                  onChange={(
+                    event
+                  ) =>
                     setCollectionFormat(
-                      event.target.value
+                      event
+                        .target
+                        .value
                     )
                   }
-                  style={selectStyle}
+                  style={
+                    selectStyle
+                  }
                 >
                   <option value="">
                     Select collection method...
@@ -1213,7 +1252,9 @@ export default function AssessmentPage() {
                   <option>
                     WhatsApp
                   </option>
-                  <option>Email</option>
+                  <option>
+                    Email
+                  </option>
                   <option>
                     Telephone
                   </option>
@@ -1226,23 +1267,31 @@ export default function AssessmentPage() {
                   <option>
                     Excel / Spreadsheet
                   </option>
-                  <option>Other</option>
+                  <option>
+                    Other
+                  </option>
                 </select>
               </FormField>
 
-              {/* Storage location */}
-
-              <FormField label="Where is the data stored?">
+              <FormField
+                label="Where is the data stored?"
+              >
                 <select
                   value={
                     storageLocation
                   }
-                  onChange={(event) =>
+                  onChange={(
+                    event
+                  ) =>
                     setStorageLocation(
-                      event.target.value
+                      event
+                        .target
+                        .value
                     )
                   }
-                  style={selectStyle}
+                  style={
+                    selectStyle
+                  }
                 >
                   <option value="">
                     Select storage location...
@@ -1253,7 +1302,9 @@ export default function AssessmentPage() {
                   <option>
                     Student Information System
                   </option>
-                  <option>CRM</option>
+                  <option>
+                    CRM
+                  </option>
                   <option>
                     Google Drive
                   </option>
@@ -1281,28 +1332,41 @@ export default function AssessmentPage() {
                   <option>
                     Unknown
                   </option>
-                  <option>Other</option>
+                  <option>
+                    Other
+                  </option>
                 </select>
               </FormField>
 
-              {/* Storage environment */}
-
-              <FormField label="Where is the storage environment?">
+              <FormField
+                label="Where is the storage environment?"
+              >
                 <select
                   value={
                     storageEnvironment
                   }
-                  onChange={(event) =>
+                  onChange={(
+                    event
+                  ) =>
                     setStorageEnvironment(
-                      event.target.value
+                      event
+                        .target
+                        .value
                     )
                   }
-                  style={selectStyle}
+                  style={
+                    selectStyle
+                  }
                 >
                   <option value="">
                     Select environment...
                   </option>
-                  <option>Cloud</option>
+                  <option>
+                    Physical
+                  </option>
+                  <option>
+                    Cloud
+                  </option>
                   <option>
                     On-Premises
                   </option>
@@ -1313,7 +1377,7 @@ export default function AssessmentPage() {
                     Mobile Device
                   </option>
                   <option>
-                    Physical Storage
+                    Hybrid / Physical + Logical
                   </option>
                   <option>
                     Third-party Hosted
@@ -1324,19 +1388,25 @@ export default function AssessmentPage() {
                 </select>
               </FormField>
 
-              {/* Encryption */}
-
-              <FormField label="How is the stored data protected?">
+              <FormField
+                label="How is the stored data protected?"
+              >
                 <select
                   value={
                     encryptionStatus
                   }
-                  onChange={(event) =>
+                  onChange={(
+                    event
+                  ) =>
                     setEncryptionStatus(
-                      event.target.value
+                      event
+                        .target
+                        .value
                     )
                   }
-                  style={selectStyle}
+                  style={
+                    selectStyle
+                  }
                 >
                   <option value="">
                     Select protection status...
@@ -1354,20 +1424,29 @@ export default function AssessmentPage() {
                     Clear text / Not encrypted
                   </option>
                   <option>
+                    Not applicable - physical only
+                  </option>
+                  <option>
                     Unknown
                   </option>
                 </select>
               </FormField>
 
-              {/* Access */}
-
-              <FormField label="Who can access the data?">
+              <FormField
+                label="Who can access the data?"
+              >
                 <input
                   type="text"
-                  value={accessRoles}
-                  onChange={(event) =>
+                  value={
+                    accessRoles
+                  }
+                  onChange={(
+                    event
+                  ) =>
                     setAccessRoles(
-                      event.target.value
+                      event
+                        .target
+                        .value
                     )
                   }
                   placeholder="e.g. Admissions team, Principal, IT administrator"
@@ -1375,19 +1454,25 @@ export default function AssessmentPage() {
                 />
               </FormField>
 
-              {/* Sharing */}
-
-              <FormField label="Is the data shared with anyone else?">
+              <FormField
+                label="Is the data shared with anyone else?"
+              >
                 <select
                   value={
                     sharingStatus
                   }
-                  onChange={(event) =>
+                  onChange={(
+                    event
+                  ) =>
                     setSharingStatus(
-                      event.target.value
+                      event
+                        .target
+                        .value
                     )
                   }
-                  style={selectStyle}
+                  style={
+                    selectStyle
+                  }
                 >
                   <option value="">
                     Select...
@@ -1410,19 +1495,25 @@ export default function AssessmentPage() {
                 </select>
               </FormField>
 
-              {/* Retention */}
-
-              <FormField label="How long is the data retained?">
+              <FormField
+                label="How long is the data retained?"
+              >
                 <select
                   value={
                     retentionPeriod
                   }
-                  onChange={(event) =>
+                  onChange={(
+                    event
+                  ) =>
                     setRetentionPeriod(
-                      event.target.value
+                      event
+                        .target
+                        .value
                     )
                   }
-                  style={selectStyle}
+                  style={
+                    selectStyle
+                  }
                 >
                   <option value="">
                     Select retention period...
@@ -1454,19 +1545,25 @@ export default function AssessmentPage() {
                 </select>
               </FormField>
 
-              {/* Deletion */}
-
-              <FormField label="How is the data deleted?">
+              <FormField
+                label="How is the data deleted?"
+              >
                 <select
                   value={
                     deletionMethod
                   }
-                  onChange={(event) =>
+                  onChange={(
+                    event
+                  ) =>
                     setDeletionMethod(
-                      event.target.value
+                      event
+                        .target
+                        .value
                     )
                   }
-                  style={selectStyle}
+                  style={
+                    selectStyle
+                  }
                 >
                   <option value="">
                     Select deletion method...
@@ -1492,25 +1589,35 @@ export default function AssessmentPage() {
                 </select>
               </FormField>
 
-              {/* Privacy notice */}
-
-              <FormField label="Is a privacy notice provided to the data subject?">
+              <FormField
+                label="Is a privacy notice provided?"
+              >
                 <select
                   value={
                     privacyNotice
                   }
-                  onChange={(event) =>
+                  onChange={(
+                    event
+                  ) =>
                     setPrivacyNotice(
-                      event.target.value
+                      event
+                        .target
+                        .value
                     )
                   }
-                  style={selectStyle}
+                  style={
+                    selectStyle
+                  }
                 >
                   <option value="">
                     Select...
                   </option>
-                  <option>Yes</option>
-                  <option>No</option>
+                  <option>
+                    Yes
+                  </option>
+                  <option>
+                    No
+                  </option>
                   <option>
                     Partially
                   </option>
@@ -1520,25 +1627,35 @@ export default function AssessmentPage() {
                 </select>
               </FormField>
 
-              {/* Consent */}
-
-              <FormField label="Is consent obtained where required?">
+              <FormField
+                label="Is consent obtained where required?"
+              >
                 <select
                   value={
                     consentStatus
                   }
-                  onChange={(event) =>
+                  onChange={(
+                    event
+                  ) =>
                     setConsentStatus(
-                      event.target.value
+                      event
+                        .target
+                        .value
                     )
                   }
-                  style={selectStyle}
+                  style={
+                    selectStyle
+                  }
                 >
                   <option value="">
                     Select...
                   </option>
-                  <option>Yes</option>
-                  <option>No</option>
+                  <option>
+                    Yes
+                  </option>
+                  <option>
+                    No
+                  </option>
                   <option>
                     Partially
                   </option>
@@ -1551,25 +1668,35 @@ export default function AssessmentPage() {
                 </select>
               </FormField>
 
-              {/* Parent / Guardian */}
-
-              <FormField label="For minors, is parent / guardian involvement addressed?">
+              <FormField
+                label="For minors, is parent / guardian involvement addressed?"
+              >
                 <select
                   value={
                     parentalConsent
                   }
-                  onChange={(event) =>
+                  onChange={(
+                    event
+                  ) =>
                     setParentalConsent(
-                      event.target.value
+                      event
+                        .target
+                        .value
                     )
                   }
-                  style={selectStyle}
+                  style={
+                    selectStyle
+                  }
                 >
                   <option value="">
                     Select...
                   </option>
-                  <option>Yes</option>
-                  <option>No</option>
+                  <option>
+                    Yes
+                  </option>
+                  <option>
+                    No
+                  </option>
                   <option>
                     Partially
                   </option>
@@ -1582,30 +1709,54 @@ export default function AssessmentPage() {
                 </select>
               </FormField>
 
-              {/* Cross-border */}
-
-              <FormField label="Is the data transferred outside India?">
+              <FormField
+                label="Is the data transferred outside India?"
+              >
                 <select
                   value={
                     crossBorderTransfer
                   }
-                  onChange={(event) =>
+                  onChange={(
+                    event
+                  ) =>
                     setCrossBorderTransfer(
-                      event.target.value
+                      event
+                        .target
+                        .value
                     )
                   }
-                  style={selectStyle}
+                  style={
+                    selectStyle
+                  }
                 >
                   <option value="">
                     Select...
                   </option>
-                  <option>No</option>
-                  <option>Yes</option>
+                  <option>
+                    No
+                  </option>
+                  <option>
+                    Yes
+                  </option>
                   <option>
                     Unknown
                   </option>
                 </select>
               </FormField>
+
+              <button
+                type="button"
+                onClick={
+                  addCollectionPath
+                }
+                style={{
+                  ...buttonStyle,
+                  marginTop: "8px",
+                  width: "100%",
+                }}
+              >
+                + Add Collection Path
+              </button>
 
               <div
                 style={{
@@ -1615,9 +1766,12 @@ export default function AssessmentPage() {
                     "#f8fafc",
                   border:
                     "1px solid #e2e8f0",
-                  borderRadius: "10px",
-                  color: "#475569",
-                  lineHeight: 1.6,
+                  borderRadius:
+                    "10px",
+                  color:
+                    "#475569",
+                  lineHeight:
+                    1.6,
                 }}
               >
                 <strong>
@@ -1628,54 +1782,189 @@ export default function AssessmentPage() {
                 <strong>
                   Unknown
                 </strong>
-                . Unknown or missing
-                information can later be
-                highlighted as a privacy
-                governance gap.
+                . Unknown information
+                can later be highlighted
+                as a privacy governance
+                gap.
               </div>
+
+              {/* PATH LIST */}
+              {collectionPaths.length >
+                0 && (
+                <div
+                  style={{
+                    marginTop:
+                      "30px",
+                  }}
+                >
+                  <h3
+                    style={{
+                      color:
+                        "#0f172a",
+                      marginBottom:
+                        "14px",
+                    }}
+                  >
+                    Collection paths
+                    added
+                  </h3>
+
+                  {collectionPaths.map(
+                    (path) => (
+                      <div
+                        key={
+                          path.id
+                        }
+                        style={{
+                          padding:
+                            "18px",
+                          marginBottom:
+                            "12px",
+                          border:
+                            "1px solid #cbd5e1",
+                          borderRadius:
+                            "10px",
+                          background:
+                            "white",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display:
+                              "flex",
+                            justifyContent:
+                              "space-between",
+                            gap:
+                              "12px",
+                          }}
+                        >
+                          <div>
+                            <strong
+                              style={{
+                                fontSize:
+                                  "17px",
+                                color:
+                                  "#0f172a",
+                              }}
+                            >
+                              {
+                                path.name
+                              }
+                            </strong>
+
+                            <p
+                              style={{
+                                margin:
+                                  "8px 0 0",
+                                color:
+                                  "#64748b",
+                                lineHeight:
+                                  1.6,
+                              }}
+                            >
+                              Entry point:{" "}
+                              {
+                                availableEntryPoints.find(
+                                  (
+                                    item
+                                  ) =>
+                                    item.id ===
+                                    path.entryPoint
+                                )
+                                  ?.name ||
+                                "Not specified"
+                              }
+                              <br />
+                              Collection:{" "}
+                              {
+                                path.collectionFormat ||
+                                "Not specified"
+                              }
+                              <br />
+                              Storage:{" "}
+                              {
+                                path.storageLocation ||
+                                "Not specified"
+                              }
+                              <br />
+                              Environment:{" "}
+                              {
+                                path.storageEnvironment ||
+                                "Not specified"
+                              }
+                            </p>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              removeCollectionPath(
+                                path.id
+                              )
+                            }
+                            style={
+                              removeButtonStyle
+                            }
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  )}
+
+                  <SummaryBox>
+                    {collectionPaths.length}{" "}
+                    collection path
+                    {collectionPaths.length !==
+                    1
+                      ? "s"
+                      : ""}{" "}
+                    mapped
+                  </SummaryBox>
+                </div>
+              )}
             </section>
           )}
 
-        {/* =====================================================
-            PRIVACY-BY-DESIGN NOTICE
-            ===================================================== */}
-
+        {/* PRIVACY NOTICE */}
         <div
           style={{
             marginTop: "32px",
-            padding: "18px 20px",
-            background: "#eff6ff",
+            padding:
+              "18px 20px",
+            background:
+              "#eff6ff",
             border:
               "1px solid #bfdbfe",
-            borderRadius: "10px",
-            color: "#1e3a8a",
-            lineHeight: 1.6,
+            borderRadius:
+              "10px",
+            color:
+              "#1e3a8a",
+            lineHeight:
+              1.6,
           }}
         >
           <strong>
             Privacy-by-design:
           </strong>{" "}
-          PrivacyMap does not require your
-          customers' personal data. Assessment
-          responses will remain in your browser
-          and will be used locally to generate
-          your reports.
+          PrivacyMap does not require
+          your customers' personal data.
+          Assessment responses remain in
+          your browser and will be used
+          locally to generate reports.
         </div>
       </div>
     </main>
   );
 }
 
-/* =============================================================
-   FORM FIELD
-   ============================================================= */
-
 function FormField({
   label,
   children,
 }: {
   label: string;
-  children: ReactNode;
+  children: React.ReactNode;
 }) {
   return (
     <div
@@ -1698,10 +1987,6 @@ function FormField({
     </div>
   );
 }
-
-/* =============================================================
-   STEP NUMBER
-   ============================================================= */
 
 function StepNumber({
   number,
@@ -1728,9 +2013,26 @@ function StepNumber({
   );
 }
 
-/* =============================================================
-   STYLES
-   ============================================================= */
+function SummaryBox({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      style={{
+        marginTop: "24px",
+        padding: "16px",
+        background: "#f0fdf4",
+        border: "1px solid #bbf7d0",
+        borderRadius: "10px",
+        color: "#166534",
+      }}
+    >
+      <strong>{children}</strong>
+    </div>
+  );
+}
 
 const cardStyle = {
   background: "white",
@@ -1770,4 +2072,22 @@ const inputStyle = {
 const noticeStyle = {
   color: "#64748b",
   lineHeight: 1.6,
+};
+
+const buttonStyle = {
+  padding: "12px 18px",
+  borderRadius: "8px",
+  border: "none",
+  background: "#0f172a",
+  color: "white",
+  fontWeight: 600,
+  cursor: "pointer",
+};
+
+const removeButtonStyle = {
+  border: "none",
+  background: "transparent",
+  color: "#64748b",
+  cursor: "pointer",
+  fontSize: "13px",
 };
