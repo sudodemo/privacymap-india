@@ -76,9 +76,12 @@ function removeCustomEntryPoint(id: string) {
   }, [businessTypeId, processId]);
 
   function resetFromIndustry() {
-    setBusinessTypeId("");
-    setProcessId("");
-  }
+  setBusinessTypeId("");
+  setProcessId("");
+  setSelectedEntryPoints([]);
+  setCustomEntryPoints([]);
+  setCustomEntryPoint("");
+}
 
   function resetFromBusinessType() {
   setProcessId("");
@@ -211,7 +214,10 @@ function resetFromProcess() {
 
             <select
               value={processId}
-              onChange={(event) => setProcessId(event.target.value)}
+              onChange={(event) => {
+                setProcessId(event.target.value);
+                resetFromProcess();
+              }}
               style={selectStyle}
             >
               <option value="">All school processes...</option>
