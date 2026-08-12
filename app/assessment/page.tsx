@@ -49,66 +49,61 @@ export default function AssessmentPage() {
    * =========================================================
    */
 
-  function buildResidualRiskDecisions(
-    residualRisks: ResidualRiskAssessment[]
-  ): ResidualRiskDecisionRecord[] {
-    return residualRisks.map((risk) => {
-      const residualRisk =
-        risk.residualRisk ??
-        risk.residualLevel ??
-        risk.level;
+function buildResidualRiskDecisions(
+  residualRisks: ResidualRiskAssessment[]
+): ResidualRiskDecisionRecord[] {
+  return residualRisks.map((risk) => {
+    const residualRisk = risk.residualRisk;
 
-      const decision =
-        defaultResidualRiskDecision(
+    const decision =
+      defaultResidualRiskDecision(
+        residualRisk
+      );
+
+    return {
+      id: `DEC-${risk.findingId}`,
+
+      findingId:
+        risk.findingId,
+
+      riskTitle:
+        risk.findingId,
+
+      category:
+        "Privacy Risk",
+
+      inherentRisk:
+        risk.inherentRisk,
+
+      residualRisk,
+
+      decision,
+
+      rationale:
+        defaultDecisionRationale(
+          decision,
           residualRisk
-        );
+        ),
 
-      return {
-        id: `DEC-${risk.findingId}`,
+      accountableOwner:
+        "Risk Owner",
 
-        findingId:
-          risk.findingId,
+      reviewDate:
+        "",
 
-        riskTitle:
-          risk.riskTitle ??
-          risk.findingId,
+      approvalStatus:
+        decisionRequiresApproval(
+          decision,
+          residualRisk
+        )
+          ? "Pending"
+          : "Approved",
 
-        category:
-          risk.category,
-
-        inherentRisk:
-          risk.inherentRisk ??
-          risk.level,
-
-        residualRisk,
-
-        decision,
-
-        rationale:
-          defaultDecisionRationale(
-            decision,
-            residualRisk
-          ),
-
-        accountableOwner:
-          "Risk Owner",
-
-        reviewDate:
-          "",
-
-        approvalStatus:
-          decisionRequiresApproval(
-            decision,
-            residualRisk
-          )
-            ? "Pending"
-            : "Approved",
-
-        treatmentStatus:
-          "Open",
-      };
-    });
-  }
+      treatmentStatus:
+        "Open",
+    };
+  });
+}
 
   /*
    * =========================================================
