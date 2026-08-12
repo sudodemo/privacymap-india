@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function Home() {
   return (
     <main
@@ -51,21 +53,22 @@ export default function Home() {
             practical data inventory.
           </p>
 
-          <button
-            style={{
-              marginTop: "28px",
-              background: "#1d4ed8",
-              color: "white",
-              border: "none",
-              borderRadius: "8px",
-              padding: "14px 24px",
-              fontSize: "16px",
-              fontWeight: 700,
-              cursor: "pointer",
-            }}
-          >
-            Start Privacy Assessment
-          </button>
+          <Link
+              href="/assessment"
+              style={{
+                display: "inline-block",
+                marginTop: "28px",
+                background: "#1d4ed8",
+                color: "white",
+                borderRadius: "8px",
+                padding: "14px 24px",
+                fontSize: "16px",
+                fontWeight: 700,
+                textDecoration: "none",
+              }}
+            >
+              Start Privacy Assessment
+            </Link>
         </div>
 
         <div
