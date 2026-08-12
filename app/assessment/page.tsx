@@ -1,6 +1,15 @@
 "use client";
 
 import {
+  defaultResidualRiskDecision,
+  defaultDecisionRationale,
+  decisionRequiresApproval,
+  type ResidualRiskDecision,
+  type ResidualRiskDecisionRecord,
+  type DecisionApprovalStatus,
+} from "../../lib/residualDecision";
+
+import {
   useEffect,
   useMemo,
   useState,
@@ -34,6 +43,68 @@ import {
 } from "../../lib/residualRisk";
 
 export default function AssessmentPage() {
+
+  function buildResidualRiskDecisions(
+  residualRisks: any[]
+): ResidualRiskDecisionRecord[] {
+  return residualRisks.map((risk) => {
+    const residualRisk =
+      risk.residualRisk ??
+      risk.residualLevel ??
+      risk.level;
+
+    const decision =
+      defaultResidualRiskDecision(
+        residualRisk
+      );
+
+    return {
+      id: `DEC-${risk.findingId ?? risk.id}`,
+
+      findingId:
+        risk.findingId ?? risk.id,
+
+      riskTitle:
+        risk.riskTitle ??
+        risk.title,
+
+      category:
+        risk.category,
+
+      inherentRisk:
+        risk.inherentRisk ??
+        risk.level,
+
+      residualRisk,
+
+      decision,
+
+      rationale:
+        defaultDecisionRationale(
+          decision,
+          residualRisk
+        ),
+
+      accountableOwner:
+        "Risk Owner",
+
+      reviewDate:
+        "",
+
+      approvalStatus:
+        decisionRequiresApproval(
+          decision,
+          residualRisk
+        )
+          ? "Pending"
+          : "Approved",
+
+      treatmentStatus:
+        "Open",
+    };
+  });
+}
+  
   const [industryId, setIndustryId] =
     useState("");
 
@@ -172,6 +243,11 @@ export default function AssessmentPage() {
     riskResult,
     setRiskResult,
   ] = useState<RiskResult | null>(null);
+
+  const [
+  residualRiskDecisions,
+  setResidualRiskDecisions,
+] = useState<ResidualRiskDecisionRecord[]>([]);
 
   /*
    * ---------------------------------------------------------
