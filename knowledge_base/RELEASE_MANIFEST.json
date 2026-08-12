@@ -1,0 +1,16 @@
+{
+  "product": "PrivacyMap India",
+  "release": "1.6",
+  "kb_version": "1.1.0",
+  "release_date": "2026-08-12",
+  "legal_sources_verified": "2026-08-12",
+  "status": "REFERENCE_MAPPING_NOT_LEGAL_CERTIFICATION",
+  "artifacts": [
+    "dpdp_controls_v1.json",
+    "dpdp_controls_schema.json",
+    "rules_commencement_v1.json",
+    "CHANGELOG.json",
+    "RELEASE_MANIFEST.json"
+  ],
+  "regression_test": "structural schema checks included in application"
+}

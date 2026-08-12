@@ -1,0 +1,810 @@
+{
+  "business_type_id": "EDU-SCH",
+  "items": [
+    {
+      "id": "ADM-01",
+      "process_id": "SCH-01",
+      "name": "Website admission form",
+      "collection_method": "WEB_FORM",
+      "custom_allowed": true
+    },
+    {
+      "id": "ADM-02",
+      "process_id": "SCH-01",
+      "name": "Google Form",
+      "collection_method": "GOOGLE_FORM",
+      "custom_allowed": true
+    },
+    {
+      "id": "ADM-03",
+      "process_id": "SCH-01",
+      "name": "Microsoft Form",
+      "collection_method": "MICROSOFT_FORM",
+      "custom_allowed": true
+    },
+    {
+      "id": "ADM-04",
+      "process_id": "SCH-01",
+      "name": "Admission portal",
+      "collection_method": "THIRD_PARTY_PORTAL",
+      "custom_allowed": true
+    },
+    {
+      "id": "ADM-05",
+      "process_id": "SCH-01",
+      "name": "Paper admission form",
+      "collection_method": "PAPER_FORM",
+      "custom_allowed": true
+    },
+    {
+      "id": "ADM-06",
+      "process_id": "SCH-01",
+      "name": "WhatsApp",
+      "collection_method": "WHATSAPP",
+      "custom_allowed": true
+    },
+    {
+      "id": "ADM-07",
+      "process_id": "SCH-01",
+      "name": "Email",
+      "collection_method": "EMAIL",
+      "custom_allowed": true
+    },
+    {
+      "id": "ADM-08",
+      "process_id": "SCH-01",
+      "name": "Walk-in enquiry",
+      "collection_method": "WALK_IN",
+      "custom_allowed": true
+    },
+    {
+      "id": "ADM-09",
+      "process_id": "SCH-01",
+      "name": "Telephone",
+      "collection_method": "PHONE",
+      "custom_allowed": true
+    },
+    {
+      "id": "ADM-10",
+      "process_id": "SCH-01",
+      "name": "Excel registration sheet",
+      "collection_method": "EXCEL",
+      "custom_allowed": true
+    },
+    {
+      "id": "ADM-11",
+      "process_id": "SCH-01",
+      "name": "Document upload portal",
+      "collection_method": "DOCUMENT_UPLOAD",
+      "custom_allowed": true
+    },
+    {
+      "id": "ADM-12",
+      "process_id": "SCH-01",
+      "name": "Third-party admission platform",
+      "collection_method": "THIRD_PARTY_PORTAL",
+      "custom_allowed": true
+    },
+    {
+      "id": "ENQ-01",
+      "process_id": "SCH-02",
+      "name": "Website enquiry form",
+      "collection_method": "WEB_FORM",
+      "custom_allowed": true
+    },
+    {
+      "id": "ENQ-02",
+      "process_id": "SCH-02",
+      "name": "Google Form",
+      "collection_method": "GOOGLE_FORM",
+      "custom_allowed": true
+    },
+    {
+      "id": "ENQ-03",
+      "process_id": "SCH-02",
+      "name": "WhatsApp",
+      "collection_method": "WHATSAPP",
+      "custom_allowed": true
+    },
+    {
+      "id": "ENQ-04",
+      "process_id": "SCH-02",
+      "name": "WhatsApp Business",
+      "collection_method": "WHATSAPP_BUSINESS",
+      "custom_allowed": true
+    },
+    {
+      "id": "ENQ-05",
+      "process_id": "SCH-02",
+      "name": "Phone call",
+      "collection_method": "PHONE",
+      "custom_allowed": true
+    },
+    {
+      "id": "ENQ-06",
+      "process_id": "SCH-02",
+      "name": "Email",
+      "collection_method": "EMAIL",
+      "custom_allowed": true
+    },
+    {
+      "id": "ENQ-07",
+      "process_id": "SCH-02",
+      "name": "Walk-in register",
+      "collection_method": "PAPER_REGISTER",
+      "custom_allowed": true
+    },
+    {
+      "id": "ENQ-08",
+      "process_id": "SCH-02",
+      "name": "Social media lead form",
+      "collection_method": "SOCIAL_MEDIA",
+      "custom_allowed": true
+    },
+    {
+      "id": "ENQ-09",
+      "process_id": "SCH-02",
+      "name": "Education portal",
+      "collection_method": "THIRD_PARTY_PORTAL",
+      "custom_allowed": true
+    },
+    {
+      "id": "ENQ-10",
+      "process_id": "SCH-02",
+      "name": "Excel lead sheet",
+      "collection_method": "EXCEL",
+      "custom_allowed": true
+    },
+    {
+      "id": "ENQ-11",
+      "process_id": "SCH-02",
+      "name": "CRM",
+      "collection_method": "CRM",
+      "custom_allowed": true
+    },
+    {
+      "id": "ONB-01",
+      "process_id": "SCH-03",
+      "name": "Admission portal",
+      "collection_method": "THIRD_PARTY_PORTAL",
+      "custom_allowed": true
+    },
+    {
+      "id": "ONB-02",
+      "process_id": "SCH-03",
+      "name": "Paper onboarding form",
+      "collection_method": "PAPER_FORM",
+      "custom_allowed": true
+    },
+    {
+      "id": "ONB-03",
+      "process_id": "SCH-03",
+      "name": "Google Form",
+      "collection_method": "GOOGLE_FORM",
+      "custom_allowed": true
+    },
+    {
+      "id": "ONB-04",
+      "process_id": "SCH-03",
+      "name": "School ERP",
+      "collection_method": "ERP",
+      "custom_allowed": true
+    },
+    {
+      "id": "ONB-05",
+      "process_id": "SCH-03",
+      "name": "Email",
+      "collection_method": "EMAIL",
+      "custom_allowed": true
+    },
+    {
+      "id": "ONB-06",
+      "process_id": "SCH-03",
+      "name": "Document upload",
+      "collection_method": "DOCUMENT_UPLOAD",
+      "custom_allowed": true
+    },
+    {
+      "id": "ONB-07",
+      "process_id": "SCH-03",
+      "name": "WhatsApp",
+      "collection_method": "WHATSAPP",
+      "custom_allowed": true
+    },
+    {
+      "id": "ATT-01",
+      "process_id": "SCH-04",
+      "name": "Manual attendance register",
+      "collection_method": "PAPER_REGISTER",
+      "custom_allowed": true
+    },
+    {
+      "id": "ATT-02",
+      "process_id": "SCH-04",
+      "name": "School ERP",
+      "collection_method": "ERP",
+      "custom_allowed": true
+    },
+    {
+      "id": "ATT-03",
+      "process_id": "SCH-04",
+      "name": "Biometric system",
+      "collection_method": "BIOMETRIC",
+      "custom_allowed": true
+    },
+    {
+      "id": "ATT-04",
+      "process_id": "SCH-04",
+      "name": "RFID card system",
+      "collection_method": "RFID",
+      "custom_allowed": true
+    },
+    {
+      "id": "ATT-05",
+      "process_id": "SCH-04",
+      "name": "Mobile application",
+      "collection_method": "MOBILE_APP",
+      "custom_allowed": true
+    },
+    {
+      "id": "ATT-06",
+      "process_id": "SCH-04",
+      "name": "Teacher application",
+      "collection_method": "MOBILE_APP",
+      "custom_allowed": true
+    },
+    {
+      "id": "ATT-07",
+      "process_id": "SCH-04",
+      "name": "Excel",
+      "collection_method": "EXCEL",
+      "custom_allowed": true
+    },
+    {
+      "id": "EXM-01",
+      "process_id": "SCH-05",
+      "name": "Examination software",
+      "collection_method": "THIRD_PARTY_PORTAL",
+      "custom_allowed": true
+    },
+    {
+      "id": "EXM-02",
+      "process_id": "SCH-05",
+      "name": "School ERP",
+      "collection_method": "ERP",
+      "custom_allowed": true
+    },
+    {
+      "id": "EXM-03",
+      "process_id": "SCH-05",
+      "name": "Excel",
+      "collection_method": "EXCEL",
+      "custom_allowed": true
+    },
+    {
+      "id": "EXM-04",
+      "process_id": "SCH-05",
+      "name": "Paper answer sheets",
+      "collection_method": "PAPER_FILE",
+      "custom_allowed": true
+    },
+    {
+      "id": "EXM-05",
+      "process_id": "SCH-05",
+      "name": "Online examination platform",
+      "collection_method": "THIRD_PARTY_PORTAL",
+      "custom_allowed": true
+    },
+    {
+      "id": "EXM-06",
+      "process_id": "SCH-05",
+      "name": "Google Forms",
+      "collection_method": "GOOGLE_FORM",
+      "custom_allowed": true
+    },
+    {
+      "id": "EXM-07",
+      "process_id": "SCH-05",
+      "name": "Teacher application",
+      "collection_method": "MOBILE_APP",
+      "custom_allowed": true
+    },
+    {
+      "id": "FEE-01",
+      "process_id": "SCH-06",
+      "name": "School ERP",
+      "collection_method": "ERP",
+      "custom_allowed": true
+    },
+    {
+      "id": "FEE-02",
+      "process_id": "SCH-06",
+      "name": "Payment gateway",
+      "collection_method": "API",
+      "custom_allowed": true
+    },
+    {
+      "id": "FEE-03",
+      "process_id": "SCH-06",
+      "name": "Bank transfer",
+      "collection_method": "OTHER",
+      "custom_allowed": true
+    },
+    {
+      "id": "FEE-04",
+      "process_id": "SCH-06",
+      "name": "Cash register",
+      "collection_method": "PAPER_REGISTER",
+      "custom_allowed": true
+    },
+    {
+      "id": "FEE-05",
+      "process_id": "SCH-06",
+      "name": "Excel",
+      "collection_method": "EXCEL",
+      "custom_allowed": true
+    },
+    {
+      "id": "FEE-06",
+      "process_id": "SCH-06",
+      "name": "Email",
+      "collection_method": "EMAIL",
+      "custom_allowed": true
+    },
+    {
+      "id": "FEE-07",
+      "process_id": "SCH-06",
+      "name": "WhatsApp",
+      "collection_method": "WHATSAPP",
+      "custom_allowed": true
+    },
+    {
+      "id": "FEE-08",
+      "process_id": "SCH-06",
+      "name": "Paper receipt",
+      "collection_method": "PAPER_FILE",
+      "custom_allowed": true
+    },
+    {
+      "id": "TRN-01",
+      "process_id": "SCH-07",
+      "name": "Transport registration form",
+      "collection_method": "WEB_FORM",
+      "custom_allowed": true
+    },
+    {
+      "id": "TRN-02",
+      "process_id": "SCH-07",
+      "name": "School ERP",
+      "collection_method": "ERP",
+      "custom_allowed": true
+    },
+    {
+      "id": "TRN-03",
+      "process_id": "SCH-07",
+      "name": "Google Form",
+      "collection_method": "GOOGLE_FORM",
+      "custom_allowed": true
+    },
+    {
+      "id": "TRN-04",
+      "process_id": "SCH-07",
+      "name": "WhatsApp",
+      "collection_method": "WHATSAPP",
+      "custom_allowed": true
+    },
+    {
+      "id": "TRN-05",
+      "process_id": "SCH-07",
+      "name": "Paper register",
+      "collection_method": "PAPER_REGISTER",
+      "custom_allowed": true
+    },
+    {
+      "id": "TRN-06",
+      "process_id": "SCH-07",
+      "name": "GPS/transport platform",
+      "collection_method": "THIRD_PARTY_PORTAL",
+      "custom_allowed": true
+    },
+    {
+      "id": "LIB-01",
+      "process_id": "SCH-08",
+      "name": "Library management system",
+      "collection_method": "THIRD_PARTY_PORTAL",
+      "custom_allowed": true
+    },
+    {
+      "id": "LIB-02",
+      "process_id": "SCH-08",
+      "name": "School ERP",
+      "collection_method": "ERP",
+      "custom_allowed": true
+    },
+    {
+      "id": "LIB-03",
+      "process_id": "SCH-08",
+      "name": "Barcode/RFID",
+      "collection_method": "RFID",
+      "custom_allowed": true
+    },
+    {
+      "id": "LIB-04",
+      "process_id": "SCH-08",
+      "name": "Manual register",
+      "collection_method": "PAPER_REGISTER",
+      "custom_allowed": true
+    },
+    {
+      "id": "LIB-05",
+      "process_id": "SCH-08",
+      "name": "Excel",
+      "collection_method": "EXCEL",
+      "custom_allowed": true
+    },
+    {
+      "id": "MED-01",
+      "process_id": "SCH-09",
+      "name": "Medical form",
+      "collection_method": "PAPER_FORM",
+      "custom_allowed": true
+    },
+    {
+      "id": "MED-02",
+      "process_id": "SCH-09",
+      "name": "Admission form",
+      "collection_method": "PAPER_FORM",
+      "custom_allowed": true
+    },
+    {
+      "id": "MED-03",
+      "process_id": "SCH-09",
+      "name": "School ERP",
+      "collection_method": "ERP",
+      "custom_allowed": true
+    },
+    {
+      "id": "MED-04",
+      "process_id": "SCH-09",
+      "name": "Nurse register",
+      "collection_method": "PAPER_REGISTER",
+      "custom_allowed": true
+    },
+    {
+      "id": "MED-05",
+      "process_id": "SCH-09",
+      "name": "Paper medical file",
+      "collection_method": "PAPER_FILE",
+      "custom_allowed": true
+    },
+    {
+      "id": "MED-06",
+      "process_id": "SCH-09",
+      "name": "Email",
+      "collection_method": "EMAIL",
+      "custom_allowed": true
+    },
+    {
+      "id": "MED-07",
+      "process_id": "SCH-09",
+      "name": "WhatsApp",
+      "collection_method": "WHATSAPP",
+      "custom_allowed": true
+    },
+    {
+      "id": "MED-08",
+      "process_id": "SCH-09",
+      "name": "Emergency contact form",
+      "collection_method": "WEB_FORM",
+      "custom_allowed": true
+    },
+    {
+      "id": "EVT-01",
+      "process_id": "SCH-10",
+      "name": "Event registration",
+      "collection_method": "WEB_FORM",
+      "custom_allowed": true
+    },
+    {
+      "id": "EVT-02",
+      "process_id": "SCH-10",
+      "name": "Google Form",
+      "collection_method": "GOOGLE_FORM",
+      "custom_allowed": true
+    },
+    {
+      "id": "EVT-03",
+      "process_id": "SCH-10",
+      "name": "WhatsApp",
+      "collection_method": "WHATSAPP",
+      "custom_allowed": true
+    },
+    {
+      "id": "EVT-04",
+      "process_id": "SCH-10",
+      "name": "Paper registration",
+      "collection_method": "PAPER_FORM",
+      "custom_allowed": true
+    },
+    {
+      "id": "EVT-05",
+      "process_id": "SCH-10",
+      "name": "School ERP",
+      "collection_method": "ERP",
+      "custom_allowed": true
+    },
+    {
+      "id": "EVT-06",
+      "process_id": "SCH-10",
+      "name": "Social media",
+      "collection_method": "SOCIAL_MEDIA",
+      "custom_allowed": true
+    },
+    {
+      "id": "COM-01",
+      "process_id": "SCH-11",
+      "name": "WhatsApp",
+      "collection_method": "WHATSAPP",
+      "custom_allowed": true
+    },
+    {
+      "id": "COM-02",
+      "process_id": "SCH-11",
+      "name": "WhatsApp Business",
+      "collection_method": "WHATSAPP_BUSINESS",
+      "custom_allowed": true
+    },
+    {
+      "id": "COM-03",
+      "process_id": "SCH-11",
+      "name": "SMS",
+      "collection_method": "SMS",
+      "custom_allowed": true
+    },
+    {
+      "id": "COM-04",
+      "process_id": "SCH-11",
+      "name": "Email",
+      "collection_method": "EMAIL",
+      "custom_allowed": true
+    },
+    {
+      "id": "COM-05",
+      "process_id": "SCH-11",
+      "name": "School app",
+      "collection_method": "MOBILE_APP",
+      "custom_allowed": true
+    },
+    {
+      "id": "COM-06",
+      "process_id": "SCH-11",
+      "name": "Parent portal",
+      "collection_method": "THIRD_PARTY_PORTAL",
+      "custom_allowed": true
+    },
+    {
+      "id": "COM-07",
+      "process_id": "SCH-11",
+      "name": "Telephone",
+      "collection_method": "PHONE",
+      "custom_allowed": true
+    },
+    {
+      "id": "VIS-01",
+      "process_id": "SCH-12",
+      "name": "Visitor register",
+      "collection_method": "PAPER_REGISTER",
+      "custom_allowed": true
+    },
+    {
+      "id": "VIS-02",
+      "process_id": "SCH-12",
+      "name": "Digital visitor system",
+      "collection_method": "THIRD_PARTY_PORTAL",
+      "custom_allowed": true
+    },
+    {
+      "id": "VIS-03",
+      "process_id": "SCH-12",
+      "name": "Security application",
+      "collection_method": "MOBILE_APP",
+      "custom_allowed": true
+    },
+    {
+      "id": "VIS-04",
+      "process_id": "SCH-12",
+      "name": "QR registration",
+      "collection_method": "WEB_FORM",
+      "custom_allowed": true
+    },
+    {
+      "id": "VIS-05",
+      "process_id": "SCH-12",
+      "name": "ID card scanner",
+      "collection_method": "OTHER",
+      "custom_allowed": true
+    },
+    {
+      "id": "VIS-06",
+      "process_id": "SCH-12",
+      "name": "Paper form",
+      "collection_method": "PAPER_FORM",
+      "custom_allowed": true
+    },
+    {
+      "id": "CCTV-01",
+      "process_id": "SCH-13",
+      "name": "CCTV camera",
+      "collection_method": "CCTV",
+      "custom_allowed": true
+    },
+    {
+      "id": "REC-01",
+      "process_id": "SCH-14",
+      "name": "Careers webpage",
+      "collection_method": "WEB_FORM",
+      "custom_allowed": true
+    },
+    {
+      "id": "REC-02",
+      "process_id": "SCH-14",
+      "name": "Job portal",
+      "collection_method": "THIRD_PARTY_PORTAL",
+      "custom_allowed": true
+    },
+    {
+      "id": "REC-03",
+      "process_id": "SCH-14",
+      "name": "Email",
+      "collection_method": "EMAIL",
+      "custom_allowed": true
+    },
+    {
+      "id": "REC-04",
+      "process_id": "SCH-14",
+      "name": "WhatsApp",
+      "collection_method": "WHATSAPP",
+      "custom_allowed": true
+    },
+    {
+      "id": "REC-05",
+      "process_id": "SCH-14",
+      "name": "Recruitment agency",
+      "collection_method": "THIRD_PARTY_PORTAL",
+      "custom_allowed": true
+    },
+    {
+      "id": "REC-06",
+      "process_id": "SCH-14",
+      "name": "Google Form",
+      "collection_method": "GOOGLE_FORM",
+      "custom_allowed": true
+    },
+    {
+      "id": "REC-07",
+      "process_id": "SCH-14",
+      "name": "Paper CV",
+      "collection_method": "PAPER_FILE",
+      "custom_allowed": true
+    },
+    {
+      "id": "REC-08",
+      "process_id": "SCH-14",
+      "name": "Social platform",
+      "collection_method": "SOCIAL_MEDIA",
+      "custom_allowed": true
+    },
+    {
+      "id": "EMP-01",
+      "process_id": "SCH-15",
+      "name": "HRMS",
+      "collection_method": "HRMS",
+      "custom_allowed": true
+    },
+    {
+      "id": "EMP-02",
+      "process_id": "SCH-15",
+      "name": "Employee form",
+      "collection_method": "PAPER_FORM",
+      "custom_allowed": true
+    },
+    {
+      "id": "EMP-03",
+      "process_id": "SCH-15",
+      "name": "Email",
+      "collection_method": "EMAIL",
+      "custom_allowed": true
+    },
+    {
+      "id": "EMP-04",
+      "process_id": "SCH-15",
+      "name": "Excel",
+      "collection_method": "EXCEL",
+      "custom_allowed": true
+    },
+    {
+      "id": "EMP-05",
+      "process_id": "SCH-15",
+      "name": "Payroll system",
+      "collection_method": "THIRD_PARTY_PORTAL",
+      "custom_allowed": true
+    },
+    {
+      "id": "EMP-06",
+      "process_id": "SCH-15",
+      "name": "Attendance system",
+      "collection_method": "THIRD_PARTY_PORTAL",
+      "custom_allowed": true
+    },
+    {
+      "id": "EMP-07",
+      "process_id": "SCH-15",
+      "name": "Biometric system",
+      "collection_method": "BIOMETRIC",
+      "custom_allowed": true
+    },
+    {
+      "id": "EMP-08",
+      "process_id": "SCH-15",
+      "name": "Paper personnel file",
+      "collection_method": "PAPER_FILE",
+      "custom_allowed": true
+    },
+    {
+      "id": "MKT-01",
+      "process_id": "SCH-16",
+      "name": "Website form",
+      "collection_method": "WEB_FORM",
+      "custom_allowed": true
+    },
+    {
+      "id": "MKT-02",
+      "process_id": "SCH-16",
+      "name": "Google Form",
+      "collection_method": "GOOGLE_FORM",
+      "custom_allowed": true
+    },
+    {
+      "id": "MKT-03",
+      "process_id": "SCH-16",
+      "name": "Social media lead form",
+      "collection_method": "SOCIAL_MEDIA",
+      "custom_allowed": true
+    },
+    {
+      "id": "MKT-04",
+      "process_id": "SCH-16",
+      "name": "WhatsApp",
+      "collection_method": "WHATSAPP",
+      "custom_allowed": true
+    },
+    {
+      "id": "MKT-05",
+      "process_id": "SCH-16",
+      "name": "Email campaign",
+      "collection_method": "EMAIL",
+      "custom_allowed": true
+    },
+    {
+      "id": "MKT-06",
+      "process_id": "SCH-16",
+      "name": "Event registration",
+      "collection_method": "WEB_FORM",
+      "custom_allowed": true
+    },
+    {
+      "id": "MKT-07",
+      "process_id": "SCH-16",
+      "name": "CRM",
+      "collection_method": "CRM",
+      "custom_allowed": true
+    },
+    {
+      "id": "MKT-08",
+      "process_id": "SCH-16",
+      "name": "Education portal",
+      "collection_method": "THIRD_PARTY_PORTAL",
+      "custom_allowed": true
+    }
+  ]
+}

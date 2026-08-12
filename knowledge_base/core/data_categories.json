@@ -1,0 +1,80 @@
+{
+  "items": [
+    {
+      "id": "IDENTITY",
+      "name": "Identity"
+    },
+    {
+      "id": "CONTACT",
+      "name": "Contact"
+    },
+    {
+      "id": "ADDRESS",
+      "name": "Address"
+    },
+    {
+      "id": "EDUCATION",
+      "name": "Education"
+    },
+    {
+      "id": "EMPLOYMENT",
+      "name": "Employment"
+    },
+    {
+      "id": "FINANCIAL",
+      "name": "Financial"
+    },
+    {
+      "id": "HEALTH",
+      "name": "Health"
+    },
+    {
+      "id": "LOCATION",
+      "name": "Location"
+    },
+    {
+      "id": "COMMUNICATION",
+      "name": "Communication"
+    },
+    {
+      "id": "PHOTOGRAPH",
+      "name": "Photograph"
+    },
+    {
+      "id": "VIDEO",
+      "name": "Video"
+    },
+    {
+      "id": "BIOMETRIC",
+      "name": "Biometric"
+    },
+    {
+      "id": "GOVERNMENT_ID",
+      "name": "Government Id"
+    },
+    {
+      "id": "FAMILY",
+      "name": "Family"
+    },
+    {
+      "id": "CHILD",
+      "name": "Child"
+    },
+    {
+      "id": "BEHAVIOURAL",
+      "name": "Behavioural"
+    },
+    {
+      "id": "TECHNICAL",
+      "name": "Technical"
+    },
+    {
+      "id": "AUTHENTICATION",
+      "name": "Authentication"
+    },
+    {
+      "id": "OTHER",
+      "name": "Other"
+    }
+  ]
+}

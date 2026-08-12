@@ -1,0 +1,64 @@
+{
+  "items": [
+    {
+      "id": "STUDENT",
+      "name": "Student",
+      "potential_child_subject": true
+    },
+    {
+      "id": "PARENT",
+      "name": "Parent",
+      "potential_child_subject": false
+    },
+    {
+      "id": "GUARDIAN",
+      "name": "Guardian",
+      "potential_child_subject": false
+    },
+    {
+      "id": "TEACHER",
+      "name": "Teacher",
+      "potential_child_subject": false
+    },
+    {
+      "id": "EMPLOYEE",
+      "name": "Employee",
+      "potential_child_subject": false
+    },
+    {
+      "id": "JOB_APPLICANT",
+      "name": "Job applicant",
+      "potential_child_subject": false
+    },
+    {
+      "id": "VENDOR",
+      "name": "Vendor",
+      "potential_child_subject": false
+    },
+    {
+      "id": "VISITOR",
+      "name": "Visitor",
+      "potential_child_subject": false
+    },
+    {
+      "id": "CONTRACTOR",
+      "name": "Contractor",
+      "potential_child_subject": false
+    },
+    {
+      "id": "DRIVER",
+      "name": "Driver",
+      "potential_child_subject": false
+    },
+    {
+      "id": "PROSPECT",
+      "name": "Prospective student/parent",
+      "potential_child_subject": false
+    },
+    {
+      "id": "OTHER",
+      "name": "Other",
+      "potential_child_subject": false
+    }
+  ]
+}

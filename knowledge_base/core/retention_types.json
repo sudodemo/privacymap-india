@@ -1,0 +1,48 @@
+{
+  "items": [
+    {
+      "id": "LESS_THAN_30_DAYS",
+      "name": "Less Than 30 Days"
+    },
+    {
+      "id": "30_TO_90_DAYS",
+      "name": "30 To 90 Days"
+    },
+    {
+      "id": "3_TO_12_MONTHS",
+      "name": "3 To 12 Months"
+    },
+    {
+      "id": "1_TO_3_YEARS",
+      "name": "1 To 3 Years"
+    },
+    {
+      "id": "MORE_THAN_3_YEARS",
+      "name": "More Than 3 Years"
+    },
+    {
+      "id": "UNTIL_PURPOSE_COMPLETE",
+      "name": "Until Purpose Complete"
+    },
+    {
+      "id": "STATUTORY_PERIOD",
+      "name": "Statutory Period"
+    },
+    {
+      "id": "INDEFINITE",
+      "name": "Indefinite"
+    },
+    {
+      "id": "UNKNOWN",
+      "name": "Unknown"
+    },
+    {
+      "id": "NOT_APPLICABLE",
+      "name": "Not Applicable"
+    },
+    {
+      "id": "CUSTOM",
+      "name": "Custom"
+    }
+  ]
+}

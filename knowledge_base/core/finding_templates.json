@@ -1,0 +1,58 @@
+{
+  "items": [
+    {
+      "id": "FND-SEC-001",
+      "rule_id": "SEC-001",
+      "title": "Personal data may be stored on an unmanaged personal device",
+      "default_action": "Identify whether the device is organisation-managed and apply appropriate access, encryption, backup and remote-wipe controls where applicable."
+    },
+    {
+      "id": "FND-SEC-003",
+      "rule_id": "SEC-003",
+      "title": "Encryption control reported absent",
+      "default_action": "Review the storage/transport architecture and implement appropriate security safeguards based on the nature and risk of the personal data."
+    },
+    {
+      "id": "FND-RET-002",
+      "rule_id": "RET-002",
+      "title": "Retention period is unknown",
+      "default_action": "Define the purpose-driven retention period and the deletion/archive process, taking applicable legal and operational requirements into account."
+    },
+    {
+      "id": "FND-CHD-001",
+      "rule_id": "CHD-001",
+      "title": "Child-data processing requires review",
+      "default_action": "Verify whether the individual is a child, identify the applicable legal basis/consent mechanism and review the specific child-data requirements and exemptions that apply."
+    },
+    {
+      "id": "FND-THP-001",
+      "rule_id": "THP-001",
+      "title": "Third-party sharing is not fully understood",
+      "default_action": "Identify every external recipient, purpose, role, contractual arrangement and relevant security/privacy controls."
+    },
+    {
+      "id": "FND-NOT-001",
+      "rule_id": "NOT-001",
+      "title": "Privacy notice may be missing",
+      "default_action": "Review whether an appropriate notice is provided at or before collection as applicable, including the relevant personal-data and purpose information."
+    },
+    {
+      "id": "FND-MIN-001",
+      "rule_id": "MIN-001",
+      "title": "Government identification information requires necessity review",
+      "default_action": "Document the specific purpose and legal/business necessity for collecting the identifier and review whether a less intrusive alternative is appropriate."
+    },
+    {
+      "id": "FND-MIN-002",
+      "rule_id": "MIN-002",
+      "title": "Health-related information requires enhanced review",
+      "default_action": "Review purpose, access restrictions, retention, security safeguards and applicable legal requirements for the health information."
+    },
+    {
+      "id": "FND-MON-001",
+      "rule_id": "MON-001",
+      "title": "Biometric processing identified",
+      "default_action": "Document the purpose, necessity, security safeguards, retention and applicable legal requirements before relying on biometric collection."
+    }
+  ]
+}

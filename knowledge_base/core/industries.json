@@ -1,0 +1,29 @@
+{
+  "items": [
+    {
+      "id": "EDU",
+      "name": "Education",
+      "status": "active"
+    },
+    {
+      "id": "HLT",
+      "name": "Healthcare",
+      "status": "planned"
+    },
+    {
+      "id": "HOS",
+      "name": "Hospitality",
+      "status": "planned"
+    },
+    {
+      "id": "RET",
+      "name": "Retail",
+      "status": "planned"
+    },
+    {
+      "id": "PRO",
+      "name": "Professional Services",
+      "status": "planned"
+    }
+  ]
+}

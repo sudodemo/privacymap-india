@@ -1,0 +1,63 @@
+{
+  "title": "Digital Personal Data Protection Act, 2023",
+  "source": "India Code",
+  "official_source": "https://www.indiacode.nic.in/handle/123456789/22037",
+  "sections": [
+    {
+      "section": "3",
+      "topic": "Application of Act",
+      "notes": "Scope/application; consult current statutory text and exclusions."
+    },
+    {
+      "section": "4",
+      "topic": "Grounds for processing personal data",
+      "notes": "Lawful purpose; consent or certain legitimate uses."
+    },
+    {
+      "section": "5",
+      "topic": "Notice",
+      "notes": "Notice requirements before/at consent request as applicable."
+    },
+    {
+      "section": "6",
+      "topic": "Consent",
+      "notes": "Consent must meet statutory requirements."
+    },
+    {
+      "section": "7",
+      "topic": "Certain legitimate uses",
+      "notes": "Specific statutory legitimate-use grounds."
+    },
+    {
+      "section": "8",
+      "topic": "General obligations of Data Fiduciary",
+      "notes": "Includes reasonable security safeguards and other obligations."
+    },
+    {
+      "section": "9",
+      "topic": "Processing of personal data of children",
+      "notes": "Child-data requirements, including verifiable parental consent and restrictions, subject to statutory exemptions."
+    },
+    {
+      "section": "11",
+      "topic": "Right to access information about personal data",
+      "notes": "Data Principal right."
+    },
+    {
+      "section": "12",
+      "topic": "Right to correction and erasure",
+      "notes": "Data Principal rights subject to the Act."
+    },
+    {
+      "section": "13",
+      "topic": "Right of grievance redressal",
+      "notes": "Data Principal right."
+    },
+    {
+      "section": "16",
+      "topic": "Restriction on processing personal data outside India",
+      "notes": "Subject to statutory and government-specified conditions."
+    }
+  ],
+  "disclaimer": "Legal mappings are navigational references only and must be reviewed against the current official law."
+}

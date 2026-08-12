@@ -1,0 +1,88 @@
+{
+  "items": [
+    {
+      "id": "OWNER",
+      "name": "Owner"
+    },
+    {
+      "id": "PRINCIPAL",
+      "name": "Principal"
+    },
+    {
+      "id": "ADMINISTRATOR",
+      "name": "Administrator"
+    },
+    {
+      "id": "RECEPTION",
+      "name": "Reception"
+    },
+    {
+      "id": "ADMISSION_TEAM",
+      "name": "Admission Team"
+    },
+    {
+      "id": "TEACHER",
+      "name": "Teacher"
+    },
+    {
+      "id": "CLASS_TEACHER",
+      "name": "Class Teacher"
+    },
+    {
+      "id": "COUNSELLOR",
+      "name": "Counsellor"
+    },
+    {
+      "id": "ACCOUNTING",
+      "name": "Accounting"
+    },
+    {
+      "id": "HR",
+      "name": "Hr"
+    },
+    {
+      "id": "IT",
+      "name": "It"
+    },
+    {
+      "id": "SECURITY",
+      "name": "Security"
+    },
+    {
+      "id": "TRANSPORT_TEAM",
+      "name": "Transport Team"
+    },
+    {
+      "id": "NURSE",
+      "name": "Nurse"
+    },
+    {
+      "id": "LIBRARY",
+      "name": "Library"
+    },
+    {
+      "id": "MARKETING",
+      "name": "Marketing"
+    },
+    {
+      "id": "MANAGEMENT",
+      "name": "Management"
+    },
+    {
+      "id": "VENDOR",
+      "name": "Vendor"
+    },
+    {
+      "id": "THIRD_PARTY",
+      "name": "Third Party"
+    },
+    {
+      "id": "ALL_EMPLOYEES",
+      "name": "All Employees"
+    },
+    {
+      "id": "UNKNOWN",
+      "name": "Unknown"
+    }
+  ]
+}

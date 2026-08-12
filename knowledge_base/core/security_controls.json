@@ -1,0 +1,84 @@
+{
+  "items": [
+    {
+      "id": "ENCRYPTION_AT_REST",
+      "name": "Encryption At Rest"
+    },
+    {
+      "id": "ENCRYPTION_IN_TRANSIT",
+      "name": "Encryption In Transit"
+    },
+    {
+      "id": "PASSWORD",
+      "name": "Password"
+    },
+    {
+      "id": "MFA",
+      "name": "Mfa"
+    },
+    {
+      "id": "INDIVIDUAL_ACCOUNTS",
+      "name": "Individual Accounts"
+    },
+    {
+      "id": "SHARED_ACCOUNTS",
+      "name": "Shared Accounts"
+    },
+    {
+      "id": "ROLE_BASED_ACCESS",
+      "name": "Role Based Access"
+    },
+    {
+      "id": "ACCESS_REVIEW",
+      "name": "Access Review"
+    },
+    {
+      "id": "DEVICE_MANAGEMENT",
+      "name": "Device Management"
+    },
+    {
+      "id": "BACKUP",
+      "name": "Backup"
+    },
+    {
+      "id": "BACKUP_ENCRYPTION",
+      "name": "Backup Encryption"
+    },
+    {
+      "id": "AUDIT_LOGGING",
+      "name": "Audit Logging"
+    },
+    {
+      "id": "DLP",
+      "name": "Dlp"
+    },
+    {
+      "id": "ANTIVIRUS_EDR",
+      "name": "Antivirus Edr"
+    },
+    {
+      "id": "NETWORK_SECURITY",
+      "name": "Network Security"
+    },
+    {
+      "id": "PHYSICAL_SECURITY",
+      "name": "Physical Security"
+    },
+    {
+      "id": "SECURE_DELETION",
+      "name": "Secure Deletion"
+    },
+    {
+      "id": "DATA_LOSS_PREVENTION",
+      "name": "Data Loss Prevention"
+    },
+    {
+      "id": "VENDOR_SECURITY_REVIEW",
+      "name": "Vendor Security Review"
+    },
+    {
+      "id": "INCIDENT_RESPONSE",
+      "name": "Incident Response"
+    }
+  ]
+}

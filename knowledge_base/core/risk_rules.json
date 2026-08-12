@@ -1,0 +1,220 @@
+{
+  "engine_version": "1.0.0",
+  "severity_order": [
+    "CRITICAL",
+    "HIGH",
+    "MEDIUM",
+    "LOW",
+    "INFO"
+  ],
+  "logic_note": "Rules are review heuristics, not legal determinations. Rule expressions are declarative placeholders for implementation.",
+  "rules": [
+    {
+      "id": "SEC-001",
+      "title": "Personal data stored on a personal/employee device",
+      "finding_type": "SECURITY_REVIEW",
+      "severity": "HIGH",
+      "conditions": [
+        "storage in MOBILE_PHONE or storage in LAPTOP where device is personal"
+      ]
+    },
+    {
+      "id": "SEC-002",
+      "title": "Personal data stored without authentication",
+      "finding_type": "SECURITY_REVIEW",
+      "severity": "HIGH",
+      "conditions": [
+        "authentication=NO"
+      ]
+    },
+    {
+      "id": "SEC-003",
+      "title": "Encryption explicitly absent",
+      "finding_type": "SECURITY_REVIEW",
+      "severity": "HIGH",
+      "conditions": [
+        "encryption_at_rest=NO OR encryption_in_transit=NO"
+      ]
+    },
+    {
+      "id": "SEC-004",
+      "title": "Encryption status unknown",
+      "finding_type": "DISCOVERY_GAP",
+      "severity": "MEDIUM",
+      "conditions": [
+        "encryption_at_rest=UNKNOWN OR encryption_in_transit=UNKNOWN"
+      ]
+    },
+    {
+      "id": "SEC-005",
+      "title": "Shared account used for personal data",
+      "finding_type": "SECURITY_REVIEW",
+      "severity": "MEDIUM",
+      "conditions": [
+        "authentication=SHARED_ACCOUNTS"
+      ]
+    },
+    {
+      "id": "SEC-006",
+      "title": "Broad employee access",
+      "finding_type": "SECURITY_REVIEW",
+      "severity": "MEDIUM",
+      "conditions": [
+        "access=ALL_EMPLOYEES"
+      ]
+    },
+    {
+      "id": "RET-001",
+      "title": "Retention is indefinite",
+      "finding_type": "PRIVACY_REVIEW",
+      "severity": "MEDIUM",
+      "conditions": [
+        "retention=INDEFINITE"
+      ]
+    },
+    {
+      "id": "RET-002",
+      "title": "Retention period unknown",
+      "finding_type": "DISCOVERY_GAP",
+      "severity": "MEDIUM",
+      "conditions": [
+        "retention=UNKNOWN"
+      ]
+    },
+    {
+      "id": "RET-003",
+      "title": "No deletion process identified",
+      "finding_type": "PRIVACY_REVIEW",
+      "severity": "MEDIUM",
+      "conditions": [
+        "deletion_method=NOT_IDENTIFIED"
+      ]
+    },
+    {
+      "id": "CHD-001",
+      "title": "Child data with consent/processing-basis status unknown",
+      "finding_type": "LEGAL_REVIEW",
+      "severity": "HIGH",
+      "conditions": [
+        "child_data=YES AND consent_status=UNKNOWN"
+      ]
+    },
+    {
+      "id": "CHD-002",
+      "title": "Child data where required consent is reported absent",
+      "finding_type": "LEGAL_REVIEW",
+      "severity": "HIGH",
+      "conditions": [
+        "child_data=YES AND consent_status=NO"
+      ]
+    },
+    {
+      "id": "CHD-003",
+      "title": "Child tracking or behavioural monitoring identified",
+      "finding_type": "LEGAL_REVIEW",
+      "severity": "HIGH",
+      "conditions": [
+        "child_data=YES AND behavioural_monitoring=YES"
+      ]
+    },
+    {
+      "id": "THP-001",
+      "title": "Third-party sharing status unknown",
+      "finding_type": "DISCOVERY_GAP",
+      "severity": "MEDIUM",
+      "conditions": [
+        "third_party_sharing=UNKNOWN"
+      ]
+    },
+    {
+      "id": "THP-002",
+      "title": "Third-party sharing with contractual arrangement unknown",
+      "finding_type": "LEGAL_REVIEW",
+      "severity": "MEDIUM",
+      "conditions": [
+        "third_party_sharing=YES AND processor_arrangement=UNKNOWN"
+      ]
+    },
+    {
+      "id": "PUR-001",
+      "title": "Purpose not defined",
+      "finding_type": "PRIVACY_REVIEW",
+      "severity": "MEDIUM",
+      "conditions": [
+        "purpose=UNKNOWN"
+      ]
+    },
+    {
+      "id": "PUR-002",
+      "title": "Field purpose unclear",
+      "finding_type": "PRIVACY_REVIEW",
+      "severity": "MEDIUM",
+      "conditions": [
+        "field_purpose=UNKNOWN"
+      ]
+    },
+    {
+      "id": "STO-001",
+      "title": "Storage location unknown",
+      "finding_type": "DISCOVERY_GAP",
+      "severity": "MEDIUM",
+      "conditions": [
+        "storage=UNKNOWN"
+      ]
+    },
+    {
+      "id": "ACC-001",
+      "title": "Access group unknown",
+      "finding_type": "DISCOVERY_GAP",
+      "severity": "MEDIUM",
+      "conditions": [
+        "access=UNKNOWN"
+      ]
+    },
+    {
+      "id": "NOT-001",
+      "title": "Privacy notice reported absent",
+      "finding_type": "LEGAL_REVIEW",
+      "severity": "HIGH",
+      "conditions": [
+        "privacy_notice=NO"
+      ]
+    },
+    {
+      "id": "NOT-002",
+      "title": "Privacy notice status unknown",
+      "finding_type": "DISCOVERY_GAP",
+      "severity": "MEDIUM",
+      "conditions": [
+        "privacy_notice=UNKNOWN"
+      ]
+    },
+    {
+      "id": "MIN-001",
+      "title": "Government ID collected; necessity/purpose review recommended",
+      "finding_type": "PRIVACY_REVIEW",
+      "severity": "MEDIUM",
+      "conditions": [
+        "data_category=GOVERNMENT_ID"
+      ]
+    },
+    {
+      "id": "MIN-002",
+      "title": "Health information collected; enhanced purpose/access/retention review",
+      "finding_type": "PRIVACY_REVIEW",
+      "severity": "HIGH",
+      "conditions": [
+        "data_category=HEALTH"
+      ]
+    },
+    {
+      "id": "MON-001",
+      "title": "Biometric attendance identified; enhanced security/legal review",
+      "finding_type": "LEGAL_REVIEW",
+      "severity": "HIGH",
+      "conditions": [
+        "collection_method=BIOMETRIC"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "assessment_required_fields": [
+    "assessment_id",
+    "assessment_date",
+    "industry_id",
+    "business_type_id",
+    "processes",
+    "data_entry_points"
+  ],
+  "entry_point_required_fields": [
+    "id",
+    "process_id",
+    "name",
+    "collection_method",
+    "fields",
+    "data_handling"
+  ],
+  "field_required_fields": [
+    "field_id",
+    "name",
+    "data_subject",
+    "child_data",
+    "purpose",
+    "collector_role",
+    "format",
+    "storage",
+    "hosting_location",
+    "encryption_at_rest",
+    "encryption_in_transit",
+    "access",
+    "third_party_sharing",
+    "retention",
+    "deletion_method",
+    "privacy_notice",
+    "processing_basis",
+    "consent_status",
+    "confidence"
+  ],
+  "answer_enums": {
+    "binary": [
+      "YES",
+      "NO",
+      "UNKNOWN",
+      "NOT_APPLICABLE",
+      "NOT_ASSESSED"
+    ],
+    "confidence": [
+      "CONFIRMED",
+      "USER_REPORTED",
+      "UNKNOWN",
+      "NOT_ASSESSED",
+      "NOT_APPLICABLE"
+    ]
+  }
+}

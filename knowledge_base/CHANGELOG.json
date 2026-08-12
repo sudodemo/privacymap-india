@@ -1,0 +1,23 @@
+[
+  {
+    "version": "1.1.0",
+    "date": "2026-08-12",
+    "type": "LEGAL_KB_UPDATE",
+    "summary": "Added control status, effective date, effective-date basis, source verification and KB version metadata.",
+    "source_ids": [
+      "SRC-ACT-2023",
+      "SRC-RULES-2025",
+      "SRC-ACT-COMMENCEMENT-2025"
+    ]
+  },
+  {
+    "version": "1.0.0",
+    "date": "2026-08-12",
+    "type": "INITIAL",
+    "summary": "Initial V1.5 DPDP legal control mapping.",
+    "source_ids": [
+      "SRC-ACT-2023",
+      "SRC-RULES-2025"
+    ]
+  }
+]

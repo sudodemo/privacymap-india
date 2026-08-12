@@ -1,0 +1,134 @@
+{
+  "business_type_id": "EDU-SCH",
+  "items": [
+    {
+      "id": "SCH-01",
+      "name": "Admission",
+      "typical_data_subjects": [
+        "STUDENT",
+        "PARENT"
+      ]
+    },
+    {
+      "id": "SCH-02",
+      "name": "Enquiry",
+      "typical_data_subjects": [
+        "STUDENT",
+        "PARENT"
+      ]
+    },
+    {
+      "id": "SCH-03",
+      "name": "Student Onboarding",
+      "typical_data_subjects": [
+        "STUDENT",
+        "PARENT"
+      ]
+    },
+    {
+      "id": "SCH-04",
+      "name": "Attendance",
+      "typical_data_subjects": [
+        "STUDENT"
+      ]
+    },
+    {
+      "id": "SCH-05",
+      "name": "Examination & Assessment",
+      "typical_data_subjects": [
+        "STUDENT"
+      ]
+    },
+    {
+      "id": "SCH-06",
+      "name": "Fees & Payments",
+      "typical_data_subjects": [
+        "STUDENT",
+        "PARENT"
+      ]
+    },
+    {
+      "id": "SCH-07",
+      "name": "Transport",
+      "typical_data_subjects": [
+        "STUDENT",
+        "PARENT",
+        "DRIVER"
+      ]
+    },
+    {
+      "id": "SCH-08",
+      "name": "Library",
+      "typical_data_subjects": [
+        "STUDENT",
+        "EMPLOYEE"
+      ]
+    },
+    {
+      "id": "SCH-09",
+      "name": "Medical & Emergency",
+      "typical_data_subjects": [
+        "STUDENT",
+        "PARENT"
+      ]
+    },
+    {
+      "id": "SCH-10",
+      "name": "Events & Activities",
+      "typical_data_subjects": [
+        "STUDENT",
+        "PARENT"
+      ]
+    },
+    {
+      "id": "SCH-11",
+      "name": "Parent Communication",
+      "typical_data_subjects": [
+        "STUDENT",
+        "PARENT"
+      ]
+    },
+    {
+      "id": "SCH-12",
+      "name": "Visitor & Security",
+      "typical_data_subjects": [
+        "VISITOR",
+        "STUDENT",
+        "EMPLOYEE"
+      ]
+    },
+    {
+      "id": "SCH-13",
+      "name": "CCTV",
+      "typical_data_subjects": [
+        "STUDENT",
+        "EMPLOYEE",
+        "VISITOR"
+      ]
+    },
+    {
+      "id": "SCH-14",
+      "name": "Recruitment",
+      "typical_data_subjects": [
+        "JOB_APPLICANT"
+      ]
+    },
+    {
+      "id": "SCH-15",
+      "name": "Employee Management",
+      "typical_data_subjects": [
+        "TEACHER",
+        "EMPLOYEE"
+      ]
+    },
+    {
+      "id": "SCH-16",
+      "name": "Marketing & Outreach",
+      "typical_data_subjects": [
+        "PROSPECT",
+        "PARENT",
+        "STUDENT"
+      ]
+    }
+  ]
+}

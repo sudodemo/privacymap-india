@@ -1,0 +1,20 @@
+{
+  "version": "1.0",
+  "last_verified": "2026-08-12",
+  "sources": [
+    {
+      "id": "DPDP-ACT-2023",
+      "title": "Digital Personal Data Protection Act, 2023",
+      "authority": "India Code",
+      "url": "https://www.indiacode.nic.in/handle/123456789/22037?view_type=browse",
+      "note": "Primary statutory source. Use provision-level effective dates."
+    },
+    {
+      "id": "DPDP-RULES-2025",
+      "title": "Digital Personal Data Protection Rules, 2025",
+      "authority": "Ministry of Electronics and Information Technology",
+      "url": "https://www.meity.gov.in/documents/act-and-policies/digital-personal-data-protection-rules-2025-gDOxUjMtQWa",
+      "note": "Primary rules source. Check rule commencement dates and later corrigenda/notifications."
+    }
+  ]
+}

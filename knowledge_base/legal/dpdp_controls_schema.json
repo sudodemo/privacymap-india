@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "kb_version",
+    "last_verified",
+    "controls",
+    "sources"
+  ],
+  "properties": {
+    "kb_version": {
+      "type": "string"
+    },
+    "last_verified": {
+      "type": "string"
+    },
+    "controls": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "act_reference",
+          "requirement",
+          "source_url",
+          "last_verified"
+        ]
+      }
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "authority",
+          "url",
+          "last_verified"
+        ]
+      }
+    }
+  }
+}

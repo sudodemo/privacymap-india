@@ -1,0 +1,100 @@
+{
+  "items": [
+    {
+      "id": "LOCAL_PC",
+      "name": "Local Pc"
+    },
+    {
+      "id": "LAPTOP",
+      "name": "Laptop"
+    },
+    {
+      "id": "MOBILE_PHONE",
+      "name": "Mobile Phone"
+    },
+    {
+      "id": "USB",
+      "name": "Usb"
+    },
+    {
+      "id": "PAPER_FILE",
+      "name": "Paper File"
+    },
+    {
+      "id": "PAPER_REGISTER",
+      "name": "Paper Register"
+    },
+    {
+      "id": "EXCEL",
+      "name": "Excel"
+    },
+    {
+      "id": "GOOGLE_DRIVE",
+      "name": "Google Drive"
+    },
+    {
+      "id": "GOOGLE_SHEETS",
+      "name": "Google Sheets"
+    },
+    {
+      "id": "ONEDRIVE",
+      "name": "Onedrive"
+    },
+    {
+      "id": "SHAREPOINT",
+      "name": "Sharepoint"
+    },
+    {
+      "id": "EMAIL_MAILBOX",
+      "name": "Email Mailbox"
+    },
+    {
+      "id": "WHATSAPP",
+      "name": "Whatsapp"
+    },
+    {
+      "id": "SCHOOL_ERP",
+      "name": "School Erp"
+    },
+    {
+      "id": "CRM",
+      "name": "Crm"
+    },
+    {
+      "id": "HRMS",
+      "name": "Hrms"
+    },
+    {
+      "id": "DATABASE",
+      "name": "Database"
+    },
+    {
+      "id": "FILE_SERVER",
+      "name": "File Server"
+    },
+    {
+      "id": "CLOUD_STORAGE",
+      "name": "Cloud Storage"
+    },
+    {
+      "id": "THIRD_PARTY_SAAS",
+      "name": "Third Party Saas"
+    },
+    {
+      "id": "CCTV_NVR",
+      "name": "Cctv Nvr"
+    },
+    {
+      "id": "CCTV_CLOUD",
+      "name": "Cctv Cloud"
+    },
+    {
+      "id": "OTHER",
+      "name": "Other"
+    },
+    {
+      "id": "UNKNOWN",
+      "name": "Unknown"
+    }
+  ]
+}

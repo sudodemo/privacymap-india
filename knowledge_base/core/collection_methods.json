@@ -1,0 +1,104 @@
+{
+  "items": [
+    {
+      "id": "WEB_FORM",
+      "name": "Web Form"
+    },
+    {
+      "id": "GOOGLE_FORM",
+      "name": "Google Form"
+    },
+    {
+      "id": "MICROSOFT_FORM",
+      "name": "Microsoft Form"
+    },
+    {
+      "id": "MOBILE_APP",
+      "name": "Mobile App"
+    },
+    {
+      "id": "ERP",
+      "name": "Erp"
+    },
+    {
+      "id": "CRM",
+      "name": "Crm"
+    },
+    {
+      "id": "HRMS",
+      "name": "Hrms"
+    },
+    {
+      "id": "EMAIL",
+      "name": "Email"
+    },
+    {
+      "id": "WHATSAPP",
+      "name": "Whatsapp"
+    },
+    {
+      "id": "WHATSAPP_BUSINESS",
+      "name": "Whatsapp Business"
+    },
+    {
+      "id": "SMS",
+      "name": "Sms"
+    },
+    {
+      "id": "PHONE",
+      "name": "Phone"
+    },
+    {
+      "id": "PAPER_FORM",
+      "name": "Paper Form"
+    },
+    {
+      "id": "PAPER_REGISTER",
+      "name": "Paper Register"
+    },
+    {
+      "id": "WALK_IN",
+      "name": "Walk In"
+    },
+    {
+      "id": "EXCEL",
+      "name": "Excel"
+    },
+    {
+      "id": "CSV",
+      "name": "Csv"
+    },
+    {
+      "id": "API",
+      "name": "Api"
+    },
+    {
+      "id": "CCTV",
+      "name": "Cctv"
+    },
+    {
+      "id": "BIOMETRIC",
+      "name": "Biometric"
+    },
+    {
+      "id": "RFID",
+      "name": "Rfid"
+    },
+    {
+      "id": "SOCIAL_MEDIA",
+      "name": "Social Media"
+    },
+    {
+      "id": "THIRD_PARTY_PORTAL",
+      "name": "Third Party Portal"
+    },
+    {
+      "id": "DOCUMENT_UPLOAD",
+      "name": "Document Upload"
+    },
+    {
+      "id": "OTHER",
+      "name": "Other"
+    }
+  ]
+}

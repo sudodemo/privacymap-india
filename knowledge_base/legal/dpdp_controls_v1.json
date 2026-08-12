@@ -1,0 +1,184 @@
+{
+  "kb_version": "1.1.0",
+  "last_verified": "2026-08-12",
+  "status": "REFERENCE_MAPPING_NOT_LEGAL_CERTIFICATION",
+  "controls": [
+    {
+      "id": "DPDP-C01",
+      "title": "Notice at or before collection",
+      "act_reference": "DPDP Act 2023 — Section 5",
+      "rule_reference": "DPDP Rules 2025 — Rule 3 (where applicable)",
+      "applicability": [
+        "all"
+      ],
+      "data_tags": [
+        "all"
+      ],
+      "effective_date": "2027-05-13",
+      "requirement": "Provide the required notice information in the manner prescribed by the applicable provision/rules.",
+      "assessment_keys": [
+        "privacy_notice"
+      ],
+      "assessment_question": "Is a privacy notice provided at or before the relevant collection interaction?",
+      "evidence_expectation": "Current privacy notice, form/screen reference, publication/version record.",
+      "remediation": "Create or update the collection-point privacy notice and record its version/evidence.",
+      "source_url": "https://www.indiacode.nic.in/handle/123456789/22037?view_type=browse",
+      "last_verified": "2026-08-12",
+      "status": "ACTIVE",
+      "effective_date_basis": "DPDP Act commencement notification: 18 months from 13 Nov 2025",
+      "kb_version": "1.1.0"
+    },
+    {
+      "id": "DPDP-C02",
+      "title": "Consent and withdrawal mechanism",
+      "act_reference": "DPDP Act 2023 — Section 6",
+      "rule_reference": "Relevant DPDP Rules 2025 provisions",
+      "applicability": [
+        "all"
+      ],
+      "data_tags": [
+        "all"
+      ],
+      "effective_date": "2027-05-13",
+      "requirement": "Where processing relies on consent, consent must meet the Act's requirements and withdrawal must be supported as required.",
+      "assessment_keys": [
+        "consent_status"
+      ],
+      "assessment_question": "Where consent is the processing basis, is consent captured and can it be withdrawn as required?",
+      "evidence_expectation": "Consent wording, capture mechanism, consent record/process, withdrawal procedure.",
+      "remediation": "Document the processing basis and implement/verify consent and withdrawal controls where applicable.",
+      "source_url": "https://www.indiacode.nic.in/handle/123456789/22037?view_type=browse",
+      "last_verified": "2026-08-12",
+      "status": "ACTIVE",
+      "effective_date_basis": "DPDP Act commencement notification: 18 months from 13 Nov 2025",
+      "kb_version": "1.1.0"
+    },
+    {
+      "id": "DPDP-C03",
+      "title": "General security safeguards",
+      "act_reference": "DPDP Act 2023 — Section 8",
+      "rule_reference": "DPDP Rules 2025 — security safeguards provisions",
+      "applicability": [
+        "all"
+      ],
+      "data_tags": [
+        "all"
+      ],
+      "effective_date": "2027-05-13",
+      "requirement": "Implement reasonable security safeguards appropriate to protect personal data.",
+      "assessment_keys": [
+        "encryption"
+      ],
+      "assessment_question": "Are appropriate technical and organisational safeguards applied to protect personal data?",
+      "evidence_expectation": "Encryption/configuration evidence, access control, security policy, monitoring or assessment records.",
+      "remediation": "Close identified security gaps and document the implemented safeguards.",
+      "source_url": "https://www.indiacode.nic.in/handle/123456789/22037?view_type=browse",
+      "last_verified": "2026-08-12",
+      "status": "ACTIVE",
+      "effective_date_basis": "DPDP Act commencement notification: 18 months from 13 Nov 2025",
+      "kb_version": "1.1.0"
+    },
+    {
+      "id": "DPDP-C04",
+      "title": "Children's personal data",
+      "act_reference": "DPDP Act 2023 — Section 9",
+      "rule_reference": "DPDP Rules 2025 — applicable child-data provisions",
+      "applicability": [
+        "all",
+        "children"
+      ],
+      "data_tags": [
+        "CHILDREN"
+      ],
+      "effective_date": "2027-05-13",
+      "requirement": "Apply the additional statutory requirements relevant to processing children's personal data.",
+      "assessment_keys": [
+        "consent_status",
+        "privacy_notice"
+      ],
+      "assessment_question": "Does this process involve children, and have the additional requirements been addressed?",
+      "evidence_expectation": "Age/parental consent mechanism where applicable, notice, process documentation and control evidence.",
+      "remediation": "Identify child-data processing and implement the applicable enhanced controls.",
+      "source_url": "https://www.indiacode.nic.in/handle/123456789/22037?view_type=browse",
+      "last_verified": "2026-08-12",
+      "status": "ACTIVE",
+      "effective_date_basis": "DPDP Act commencement notification: 18 months from 13 Nov 2025",
+      "kb_version": "1.1.0"
+    },
+    {
+      "id": "DPDP-C05",
+      "title": "Retention and deletion governance",
+      "act_reference": "DPDP Act 2023 — Section 8",
+      "rule_reference": "Applicable DPDP Rules 2025 provisions",
+      "applicability": [
+        "all"
+      ],
+      "data_tags": [
+        "all"
+      ],
+      "effective_date": "2027-05-13",
+      "requirement": "Organisations should operationalise retention/deletion requirements applicable to their processing.",
+      "assessment_keys": [
+        "retention",
+        "deletion"
+      ],
+      "assessment_question": "Is retention defined and is deletion/erasure operationally controlled when required?",
+      "evidence_expectation": "Retention schedule, deletion procedure, system configuration or disposal record.",
+      "remediation": "Define retention triggers and implement deletion/erasure controls.",
+      "source_url": "https://www.indiacode.nic.in/handle/123456789/22037?view_type=browse",
+      "last_verified": "2026-08-12",
+      "status": "ACTIVE",
+      "effective_date_basis": "DPDP Act commencement notification: 18 months from 13 Nov 2025",
+      "kb_version": "1.1.0"
+    },
+    {
+      "id": "DPDP-C06",
+      "title": "Data Principal rights and grievance process",
+      "act_reference": "DPDP Act 2023 — Sections 11–14",
+      "rule_reference": "Relevant DPDP Rules 2025 provisions",
+      "applicability": [
+        "all"
+      ],
+      "data_tags": [
+        "all"
+      ],
+      "effective_date": "2027-05-13",
+      "requirement": "Support applicable rights and grievance redressal mechanisms.",
+      "assessment_keys": [
+        "privacy_notice"
+      ],
+      "assessment_question": "Is there a documented mechanism for applicable rights requests and grievance redressal?",
+      "evidence_expectation": "Published contact/process, workflow, SLA/owner and records.",
+      "remediation": "Document and test the rights/grievance intake and response workflow.",
+      "source_url": "https://www.indiacode.nic.in/handle/123456789/22037?view_type=browse",
+      "last_verified": "2026-08-12",
+      "status": "ACTIVE",
+      "effective_date_basis": "DPDP Act commencement notification: 18 months from 13 Nov 2025",
+      "kb_version": "1.1.0"
+    }
+  ],
+  "sources": [
+    {
+      "id": "SRC-ACT-2023",
+      "title": "Digital Personal Data Protection Act, 2023",
+      "authority": "India Code",
+      "url": "https://www.indiacode.nic.in/handle/123456789/22037?view_type=browse",
+      "last_verified": "2026-08-12"
+    },
+    {
+      "id": "SRC-RULES-2025",
+      "title": "Digital Personal Data Protection Rules, 2025",
+      "authority": "Ministry of Electronics and Information Technology",
+      "url": "https://www.meity.gov.in/documents/act-and-policies/digital-personal-data-protection-rules-2025-gDOxUjMtQWa",
+      "last_verified": "2026-08-12"
+    },
+    {
+      "id": "SRC-ACT-COMMENCEMENT-2025",
+      "title": "DPDP Act commencement notification / India Code Section 1 notes",
+      "authority": "Government of India / India Code",
+      "url": "https://www.indiacode.nic.in/show-data?abv=CEN&actid=AC_CEN_45_0_00003_2023-22_1763464807080&orderno=1&orgactid=AC_CEN_45_0_00003_2023-22_1763464807080&sectionId=101267&sectionno=1",
+      "last_verified": "2026-08-12"
+    }
+  ],
+  "change_summary": "V1.6: added effective-date metadata, status, effective-date basis and KB versioning."
+}

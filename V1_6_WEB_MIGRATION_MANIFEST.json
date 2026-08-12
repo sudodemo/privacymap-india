@@ -1,0 +1,48 @@
+{
+  "package": "PrivacyMap India V1.6 Web Migration Package",
+  "source_release": "1.6",
+  "kb_version": "1.1.0",
+  "purpose": "Merge the V1.6 knowledge/intelligence layer into the Next.js privacymap-india repository.",
+  "source_verified": "2026-08-12",
+  "excluded_streamlit_artifacts": [
+    "app/app.py",
+    "requirements.txt",
+    "render.yaml",
+    ".gitignore"
+  ],
+  "note": "Excluded artifacts belong to the previous Streamlit implementation. Do not copy them into the Next.js application.",
+  "mapping": {
+    "app/kb/industries.json": "knowledge_base/core/industries.json",
+    "app/kb/business_types.json": "knowledge_base/core/business_types.json",
+    "app/kb/processes.json": "knowledge_base/core/processes.json",
+    "app/kb/data_subjects.json": "knowledge_base/core/data_subjects.json",
+    "app/kb/data_categories.json": "knowledge_base/core/data_categories.json",
+    "app/kb/collection_methods.json": "knowledge_base/core/collection_methods.json",
+    "app/kb/storage_types.json": "knowledge_base/core/storage_types.json",
+    "app/kb/access_roles.json": "knowledge_base/core/access_roles.json",
+    "app/kb/retention_types.json": "knowledge_base/core/retention_types.json",
+    "app/kb/security_controls.json": "knowledge_base/core/security_controls.json",
+    "app/kb/finding_templates.json": "knowledge_base/core/finding_templates.json",
+    "app/kb/risk_rules.json": "knowledge_base/core/risk_rules.json",
+    "app/kb/schema.json": "schemas/assessment.schema.json",
+    "app/kb/meta.json": "knowledge_base/meta.json",
+    "app/kb/school_data_entry_points.json": "knowledge_base/sectors/education/school/data_entry_points.json",
+    "app/kb/school_data_fields.json": "knowledge_base/sectors/education/school/data_fields.json",
+    "app/kb/legal/dpdp_act.json": "knowledge_base/legal/dpdp_act.json",
+    "app/kb/legal/dpdp_rules.json": "knowledge_base/legal/dpdp_rules.json",
+    "app/kb/legal/commencement.json": "knowledge_base/legal/commencement.json",
+    "knowledge_base/dpdp_controls_v1.json": "knowledge_base/legal/dpdp_controls_v1.json",
+    "knowledge_base/dpdp_controls_schema.json": "knowledge_base/legal/dpdp_controls_schema.json",
+    "knowledge_base/legal_sources_v1.json": "knowledge_base/legal/legal_sources_v1.json",
+    "knowledge_base/rules_commencement_v1.json": "knowledge_base/legal/rules_commencement_v1.json",
+    "knowledge_base/CHANGELOG.json": "knowledge_base/CHANGELOG.json",
+    "knowledge_base/RELEASE_MANIFEST.json": "knowledge_base/RELEASE_MANIFEST.json"
+  },
+  "legal_source_priority": [
+    "Official Gazette/notification",
+    "India Code",
+    "MeitY official Rules/notifications",
+    "Secondary sources only for discovery"
+  ],
+  "product_boundary": "Reference/discovery and self-assessment tool; not legal advice, certification, audit, or compliance determination."
+}

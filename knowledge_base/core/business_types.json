@@ -1,0 +1,46 @@
+{
+  "items": [
+    {
+      "id": "EDU-SCH",
+      "industry_id": "EDU",
+      "name": "School",
+      "status": "active"
+    },
+    {
+      "id": "EDU-COL",
+      "industry_id": "EDU",
+      "name": "College",
+      "status": "planned"
+    },
+    {
+      "id": "EDU-COA",
+      "industry_id": "EDU",
+      "name": "Coaching Institute",
+      "status": "planned"
+    },
+    {
+      "id": "EDU-TUI",
+      "industry_id": "EDU",
+      "name": "Tuition Centre",
+      "status": "planned"
+    },
+    {
+      "id": "EDU-PRE",
+      "industry_id": "EDU",
+      "name": "Preschool",
+      "status": "planned"
+    },
+    {
+      "id": "EDU-SKI",
+      "industry_id": "EDU",
+      "name": "Vocational / Skill Institute",
+      "status": "planned"
+    },
+    {
+      "id": "EDU-EDT",
+      "industry_id": "EDU",
+      "name": "EdTech / Online Education",
+      "status": "planned"
+    }
+  ]
+}

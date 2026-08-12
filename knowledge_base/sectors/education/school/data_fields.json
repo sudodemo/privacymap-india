@@ -1,0 +1,1379 @@
+{
+  "business_type_id": "EDU-SCH",
+  "items": [
+    {
+      "id": "F-001",
+      "name": "Student Full Name",
+      "data_categories": [
+        "IDENTITY"
+      ],
+      "typical_data_subjects": [
+        "STUDENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "ADMISSION",
+        "STUDENT_ONBOARDING",
+        "COMMUNICATION"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-002",
+      "name": "Date of Birth",
+      "data_categories": [
+        "IDENTITY"
+      ],
+      "typical_data_subjects": [
+        "STUDENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "ADMISSION",
+        "AGE_VERIFICATION",
+        "ACADEMIC_ADMINISTRATION"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-003",
+      "name": "Gender",
+      "data_categories": [
+        "IDENTITY"
+      ],
+      "typical_data_subjects": [
+        "STUDENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "ADMISSION",
+        "STUDENT_ONBOARDING"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-004",
+      "name": "Photograph",
+      "data_categories": [
+        "PHOTOGRAPH"
+      ],
+      "typical_data_subjects": [
+        "STUDENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "IDENTIFICATION",
+        "SCHOOL_RECORDS",
+        "EVENTS"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-005",
+      "name": "Father's Name",
+      "data_categories": [
+        "FAMILY"
+      ],
+      "typical_data_subjects": [
+        "PARENT"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "ADMISSION"
+      ],
+      "customizable": true,
+      "legal_review_required": false
+    },
+    {
+      "id": "F-006",
+      "name": "Mother's Name",
+      "data_categories": [
+        "FAMILY"
+      ],
+      "typical_data_subjects": [
+        "PARENT"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "ADMISSION"
+      ],
+      "customizable": true,
+      "legal_review_required": false
+    },
+    {
+      "id": "F-007",
+      "name": "Guardian Name",
+      "data_categories": [
+        "FAMILY"
+      ],
+      "typical_data_subjects": [
+        "GUARDIAN"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "ADMISSION"
+      ],
+      "customizable": true,
+      "legal_review_required": false
+    },
+    {
+      "id": "F-008",
+      "name": "Parent Mobile",
+      "data_categories": [
+        "CONTACT"
+      ],
+      "typical_data_subjects": [
+        "PARENT"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "COMMUNICATION",
+        "ADMISSION"
+      ],
+      "customizable": true,
+      "legal_review_required": false
+    },
+    {
+      "id": "F-009",
+      "name": "Parent Email",
+      "data_categories": [
+        "CONTACT"
+      ],
+      "typical_data_subjects": [
+        "PARENT"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "COMMUNICATION",
+        "ADMISSION"
+      ],
+      "customizable": true,
+      "legal_review_required": false
+    },
+    {
+      "id": "F-010",
+      "name": "Residential Address",
+      "data_categories": [
+        "ADDRESS"
+      ],
+      "typical_data_subjects": [
+        "STUDENT",
+        "PARENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "ADMISSION",
+        "TRANSPORT"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-011",
+      "name": "Previous School",
+      "data_categories": [
+        "EDUCATION"
+      ],
+      "typical_data_subjects": [
+        "STUDENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "ADMISSION"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-012",
+      "name": "Academic Records",
+      "data_categories": [
+        "EDUCATION"
+      ],
+      "typical_data_subjects": [
+        "STUDENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "ADMISSION",
+        "EXAMINATION"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-013",
+      "name": "Transfer Certificate",
+      "data_categories": [
+        "EDUCATION"
+      ],
+      "typical_data_subjects": [
+        "STUDENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "ADMISSION"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-014",
+      "name": "Government ID",
+      "data_categories": [
+        "GOVERNMENT_ID"
+      ],
+      "typical_data_subjects": [
+        "STUDENT",
+        "PARENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "ADMISSION",
+        "IDENTITY_VERIFICATION"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-015",
+      "name": "Medical Information",
+      "data_categories": [
+        "HEALTH"
+      ],
+      "typical_data_subjects": [
+        "STUDENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "MEDICAL",
+        "EMERGENCY"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-016",
+      "name": "Blood Group",
+      "data_categories": [
+        "HEALTH"
+      ],
+      "typical_data_subjects": [
+        "STUDENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "MEDICAL",
+        "EMERGENCY"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-017",
+      "name": "Emergency Contact",
+      "data_categories": [
+        "CONTACT"
+      ],
+      "typical_data_subjects": [
+        "PARENT",
+        "GUARDIAN"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "EMERGENCY"
+      ],
+      "customizable": true,
+      "legal_review_required": false
+    },
+    {
+      "id": "F-018",
+      "name": "Sibling Information",
+      "data_categories": [
+        "FAMILY"
+      ],
+      "typical_data_subjects": [
+        "STUDENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "ADMISSION"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-019",
+      "name": "Transport Requirement",
+      "data_categories": [
+        "LOCATION"
+      ],
+      "typical_data_subjects": [
+        "STUDENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "TRANSPORT"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-020",
+      "name": "Special Assistance Information",
+      "data_categories": [
+        "HEALTH",
+        "EDUCATION"
+      ],
+      "typical_data_subjects": [
+        "STUDENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "STUDENT_SUPPORT"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-021",
+      "name": "Parent Occupation",
+      "data_categories": [
+        "EMPLOYMENT"
+      ],
+      "typical_data_subjects": [
+        "PARENT"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "ADMISSION"
+      ],
+      "customizable": true,
+      "legal_review_required": false
+    },
+    {
+      "id": "F-022",
+      "name": "Parent Employer",
+      "data_categories": [
+        "EMPLOYMENT"
+      ],
+      "typical_data_subjects": [
+        "PARENT"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "ADMISSION"
+      ],
+      "customizable": true,
+      "legal_review_required": false
+    },
+    {
+      "id": "F-023",
+      "name": "Parent PAN",
+      "data_categories": [
+        "GOVERNMENT_ID",
+        "FINANCIAL"
+      ],
+      "typical_data_subjects": [
+        "PARENT"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "FEES"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-024",
+      "name": "Parent Aadhaar",
+      "data_categories": [
+        "GOVERNMENT_ID"
+      ],
+      "typical_data_subjects": [
+        "PARENT"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "ADMISSION"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-025",
+      "name": "Student Aadhaar",
+      "data_categories": [
+        "GOVERNMENT_ID"
+      ],
+      "typical_data_subjects": [
+        "STUDENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "ADMISSION"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-026",
+      "name": "Income Information",
+      "data_categories": [
+        "FINANCIAL"
+      ],
+      "typical_data_subjects": [
+        "PARENT"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "SCHOLARSHIP",
+        "ADMISSION"
+      ],
+      "customizable": true,
+      "legal_review_required": false
+    },
+    {
+      "id": "F-027",
+      "name": "Bank Account Details",
+      "data_categories": [
+        "FINANCIAL"
+      ],
+      "typical_data_subjects": [
+        "PARENT"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "FEES",
+        "PAYROLL"
+      ],
+      "customizable": true,
+      "legal_review_required": false
+    },
+    {
+      "id": "F-028",
+      "name": "Other Documents",
+      "data_categories": [
+        "OTHER"
+      ],
+      "typical_data_subjects": [
+        "STUDENT",
+        "PARENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "ADMISSION"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-029",
+      "name": "Child Age",
+      "data_categories": [
+        "IDENTITY"
+      ],
+      "typical_data_subjects": [
+        "STUDENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "ENQUIRY"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-030",
+      "name": "Class Seeking",
+      "data_categories": [
+        "EDUCATION"
+      ],
+      "typical_data_subjects": [
+        "STUDENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "ENQUIRY",
+        "ADMISSION"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-031",
+      "name": "Current School",
+      "data_categories": [
+        "EDUCATION"
+      ],
+      "typical_data_subjects": [
+        "STUDENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "ENQUIRY"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-032",
+      "name": "Enquiry Source",
+      "data_categories": [
+        "TECHNICAL"
+      ],
+      "typical_data_subjects": [
+        "PROSPECT"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "ENQUIRY",
+        "MARKETING"
+      ],
+      "customizable": true,
+      "legal_review_required": false
+    },
+    {
+      "id": "F-033",
+      "name": "Counsellor Notes",
+      "data_categories": [
+        "COMMUNICATION",
+        "OTHER"
+      ],
+      "typical_data_subjects": [
+        "STUDENT",
+        "PARENT",
+        "PROSPECT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "ENQUIRY"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-034",
+      "name": "Student ID",
+      "data_categories": [
+        "IDENTITY"
+      ],
+      "typical_data_subjects": [
+        "STUDENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "ACADEMIC_ADMINISTRATION"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-035",
+      "name": "Class/Section",
+      "data_categories": [
+        "EDUCATION"
+      ],
+      "typical_data_subjects": [
+        "STUDENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "ATTENDANCE",
+        "EXAMINATION"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-036",
+      "name": "Attendance Status",
+      "data_categories": [
+        "EDUCATION"
+      ],
+      "typical_data_subjects": [
+        "STUDENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "ATTENDANCE"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-037",
+      "name": "Arrival/Departure Time",
+      "data_categories": [
+        "TECHNICAL"
+      ],
+      "typical_data_subjects": [
+        "STUDENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "ATTENDANCE",
+        "TRANSPORT"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-038",
+      "name": "Reason for Absence",
+      "data_categories": [
+        "HEALTH",
+        "COMMUNICATION"
+      ],
+      "typical_data_subjects": [
+        "STUDENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "ATTENDANCE"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-039",
+      "name": "Marks",
+      "data_categories": [
+        "EDUCATION"
+      ],
+      "typical_data_subjects": [
+        "STUDENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "EXAMINATION"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-040",
+      "name": "Grade/Result",
+      "data_categories": [
+        "EDUCATION"
+      ],
+      "typical_data_subjects": [
+        "STUDENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "EXAMINATION"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-041",
+      "name": "Teacher Comments",
+      "data_categories": [
+        "EDUCATION",
+        "COMMUNICATION"
+      ],
+      "typical_data_subjects": [
+        "STUDENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "EXAMINATION"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-042",
+      "name": "Answer Sheet",
+      "data_categories": [
+        "EDUCATION"
+      ],
+      "typical_data_subjects": [
+        "STUDENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "EXAMINATION"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-043",
+      "name": "Fee Amount",
+      "data_categories": [
+        "FINANCIAL"
+      ],
+      "typical_data_subjects": [
+        "PARENT"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "FEES"
+      ],
+      "customizable": true,
+      "legal_review_required": false
+    },
+    {
+      "id": "F-044",
+      "name": "Payment Status",
+      "data_categories": [
+        "FINANCIAL"
+      ],
+      "typical_data_subjects": [
+        "PARENT"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "FEES"
+      ],
+      "customizable": true,
+      "legal_review_required": false
+    },
+    {
+      "id": "F-045",
+      "name": "Transaction ID",
+      "data_categories": [
+        "FINANCIAL",
+        "TECHNICAL"
+      ],
+      "typical_data_subjects": [
+        "PARENT"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "FEES"
+      ],
+      "customizable": true,
+      "legal_review_required": false
+    },
+    {
+      "id": "F-046",
+      "name": "Payment Method",
+      "data_categories": [
+        "FINANCIAL"
+      ],
+      "typical_data_subjects": [
+        "PARENT"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "FEES"
+      ],
+      "customizable": true,
+      "legal_review_required": false
+    },
+    {
+      "id": "F-047",
+      "name": "Outstanding Amount",
+      "data_categories": [
+        "FINANCIAL"
+      ],
+      "typical_data_subjects": [
+        "PARENT"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "FEES"
+      ],
+      "customizable": true,
+      "legal_review_required": false
+    },
+    {
+      "id": "F-048",
+      "name": "Pickup Point",
+      "data_categories": [
+        "LOCATION"
+      ],
+      "typical_data_subjects": [
+        "STUDENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "TRANSPORT"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-049",
+      "name": "Drop Point",
+      "data_categories": [
+        "LOCATION"
+      ],
+      "typical_data_subjects": [
+        "STUDENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "TRANSPORT"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-050",
+      "name": "Bus Number/Route",
+      "data_categories": [
+        "LOCATION",
+        "TECHNICAL"
+      ],
+      "typical_data_subjects": [
+        "STUDENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "TRANSPORT"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-051",
+      "name": "Driver Name",
+      "data_categories": [
+        "IDENTITY"
+      ],
+      "typical_data_subjects": [
+        "DRIVER"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "TRANSPORT"
+      ],
+      "customizable": true,
+      "legal_review_required": false
+    },
+    {
+      "id": "F-052",
+      "name": "Driver Mobile",
+      "data_categories": [
+        "CONTACT"
+      ],
+      "typical_data_subjects": [
+        "DRIVER"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "TRANSPORT"
+      ],
+      "customizable": true,
+      "legal_review_required": false
+    },
+    {
+      "id": "F-053",
+      "name": "GPS Data",
+      "data_categories": [
+        "LOCATION"
+      ],
+      "typical_data_subjects": [
+        "STUDENT",
+        "DRIVER"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "TRANSPORT"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-054",
+      "name": "Book Issue/Return History",
+      "data_categories": [
+        "EDUCATION",
+        "TECHNICAL"
+      ],
+      "typical_data_subjects": [
+        "STUDENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "LIBRARY"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-055",
+      "name": "Medical Condition",
+      "data_categories": [
+        "HEALTH"
+      ],
+      "typical_data_subjects": [
+        "STUDENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "MEDICAL"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-056",
+      "name": "Allergies",
+      "data_categories": [
+        "HEALTH"
+      ],
+      "typical_data_subjects": [
+        "STUDENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "MEDICAL",
+        "EMERGENCY"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-057",
+      "name": "Medication",
+      "data_categories": [
+        "HEALTH"
+      ],
+      "typical_data_subjects": [
+        "STUDENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "MEDICAL"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-058",
+      "name": "Doctor Details",
+      "data_categories": [
+        "HEALTH",
+        "CONTACT"
+      ],
+      "typical_data_subjects": [
+        "STUDENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "MEDICAL"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-059",
+      "name": "Incident Details",
+      "data_categories": [
+        "HEALTH",
+        "COMMUNICATION"
+      ],
+      "typical_data_subjects": [
+        "STUDENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "MEDICAL",
+        "SECURITY"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-060",
+      "name": "Video Recording",
+      "data_categories": [
+        "VIDEO"
+      ],
+      "typical_data_subjects": [
+        "STUDENT",
+        "EMPLOYEE",
+        "VISITOR"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "CCTV",
+        "EVENTS"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-061",
+      "name": "Camera Location",
+      "data_categories": [
+        "LOCATION",
+        "TECHNICAL"
+      ],
+      "typical_data_subjects": [
+        "OTHER"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "CCTV"
+      ],
+      "customizable": true,
+      "legal_review_required": false
+    },
+    {
+      "id": "F-062",
+      "name": "Visitor Name",
+      "data_categories": [
+        "IDENTITY"
+      ],
+      "typical_data_subjects": [
+        "VISITOR"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "VISITOR_SECURITY"
+      ],
+      "customizable": true,
+      "legal_review_required": false
+    },
+    {
+      "id": "F-063",
+      "name": "Visitor Mobile",
+      "data_categories": [
+        "CONTACT"
+      ],
+      "typical_data_subjects": [
+        "VISITOR"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "VISITOR_SECURITY"
+      ],
+      "customizable": true,
+      "legal_review_required": false
+    },
+    {
+      "id": "F-064",
+      "name": "Visitor ID Information",
+      "data_categories": [
+        "GOVERNMENT_ID"
+      ],
+      "typical_data_subjects": [
+        "VISITOR"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "VISITOR_SECURITY"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-065",
+      "name": "Purpose of Visit",
+      "data_categories": [
+        "COMMUNICATION"
+      ],
+      "typical_data_subjects": [
+        "VISITOR"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "VISITOR_SECURITY"
+      ],
+      "customizable": true,
+      "legal_review_required": false
+    },
+    {
+      "id": "F-066",
+      "name": "Vehicle Number",
+      "data_categories": [
+        "TECHNICAL",
+        "LOCATION"
+      ],
+      "typical_data_subjects": [
+        "VISITOR",
+        "PARENT",
+        "DRIVER"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "VISITOR_SECURITY",
+        "TRANSPORT"
+      ],
+      "customizable": true,
+      "legal_review_required": false
+    },
+    {
+      "id": "F-067",
+      "name": "Resume/CV",
+      "data_categories": [
+        "EMPLOYMENT",
+        "EDUCATION",
+        "CONTACT"
+      ],
+      "typical_data_subjects": [
+        "JOB_APPLICANT"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "RECRUITMENT"
+      ],
+      "customizable": true,
+      "legal_review_required": false
+    },
+    {
+      "id": "F-068",
+      "name": "Employment History",
+      "data_categories": [
+        "EMPLOYMENT"
+      ],
+      "typical_data_subjects": [
+        "JOB_APPLICANT"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "RECRUITMENT"
+      ],
+      "customizable": true,
+      "legal_review_required": false
+    },
+    {
+      "id": "F-069",
+      "name": "References",
+      "data_categories": [
+        "CONTACT",
+        "EMPLOYMENT"
+      ],
+      "typical_data_subjects": [
+        "JOB_APPLICANT"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "RECRUITMENT"
+      ],
+      "customizable": true,
+      "legal_review_required": false
+    },
+    {
+      "id": "F-070",
+      "name": "Interview Notes",
+      "data_categories": [
+        "EMPLOYMENT",
+        "COMMUNICATION"
+      ],
+      "typical_data_subjects": [
+        "JOB_APPLICANT"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "RECRUITMENT"
+      ],
+      "customizable": true,
+      "legal_review_required": false
+    },
+    {
+      "id": "F-071",
+      "name": "Employee ID",
+      "data_categories": [
+        "IDENTITY"
+      ],
+      "typical_data_subjects": [
+        "EMPLOYEE"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "EMPLOYEE_MANAGEMENT"
+      ],
+      "customizable": true,
+      "legal_review_required": false
+    },
+    {
+      "id": "F-072",
+      "name": "Employee Government ID",
+      "data_categories": [
+        "GOVERNMENT_ID"
+      ],
+      "typical_data_subjects": [
+        "EMPLOYEE"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "EMPLOYEE_MANAGEMENT"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-073",
+      "name": "Employee PAN",
+      "data_categories": [
+        "GOVERNMENT_ID",
+        "FINANCIAL"
+      ],
+      "typical_data_subjects": [
+        "EMPLOYEE"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "PAYROLL"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-074",
+      "name": "Employee Bank Account",
+      "data_categories": [
+        "FINANCIAL"
+      ],
+      "typical_data_subjects": [
+        "EMPLOYEE"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "PAYROLL"
+      ],
+      "customizable": true,
+      "legal_review_required": false
+    },
+    {
+      "id": "F-075",
+      "name": "Employee Salary",
+      "data_categories": [
+        "FINANCIAL",
+        "EMPLOYMENT"
+      ],
+      "typical_data_subjects": [
+        "EMPLOYEE"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "PAYROLL"
+      ],
+      "customizable": true,
+      "legal_review_required": false
+    },
+    {
+      "id": "F-076",
+      "name": "Employee Attendance",
+      "data_categories": [
+        "EMPLOYMENT",
+        "TECHNICAL"
+      ],
+      "typical_data_subjects": [
+        "EMPLOYEE"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "EMPLOYEE_MANAGEMENT"
+      ],
+      "customizable": true,
+      "legal_review_required": false
+    },
+    {
+      "id": "F-077",
+      "name": "Employee Leave",
+      "data_categories": [
+        "EMPLOYMENT",
+        "HEALTH"
+      ],
+      "typical_data_subjects": [
+        "EMPLOYEE"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "EMPLOYEE_MANAGEMENT"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    },
+    {
+      "id": "F-078",
+      "name": "Performance Information",
+      "data_categories": [
+        "EMPLOYMENT"
+      ],
+      "typical_data_subjects": [
+        "EMPLOYEE"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "EMPLOYEE_MANAGEMENT"
+      ],
+      "customizable": true,
+      "legal_review_required": false
+    },
+    {
+      "id": "F-079",
+      "name": "Marketing Contact",
+      "data_categories": [
+        "CONTACT"
+      ],
+      "typical_data_subjects": [
+        "PROSPECT",
+        "PARENT"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "MARKETING"
+      ],
+      "customizable": true,
+      "legal_review_required": false
+    },
+    {
+      "id": "F-080",
+      "name": "Communication Preference",
+      "data_categories": [
+        "COMMUNICATION"
+      ],
+      "typical_data_subjects": [
+        "PROSPECT",
+        "PARENT"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "MARKETING"
+      ],
+      "customizable": true,
+      "legal_review_required": false
+    },
+    {
+      "id": "F-081",
+      "name": "Campaign/Lead Source",
+      "data_categories": [
+        "TECHNICAL",
+        "COMMUNICATION"
+      ],
+      "typical_data_subjects": [
+        "PROSPECT"
+      ],
+      "child_relevant": false,
+      "typical_purposes": [
+        "MARKETING"
+      ],
+      "customizable": true,
+      "legal_review_required": false
+    },
+    {
+      "id": "F-082",
+      "name": "Photograph/Video Consent Record",
+      "data_categories": [
+        "PHOTOGRAPH",
+        "VIDEO",
+        "COMMUNICATION"
+      ],
+      "typical_data_subjects": [
+        "STUDENT",
+        "PARENT"
+      ],
+      "child_relevant": true,
+      "typical_purposes": [
+        "EVENTS",
+        "MARKETING"
+      ],
+      "customizable": true,
+      "legal_review_required": true
+    }
+  ]
+}

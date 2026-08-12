@@ -1,0 +1,28 @@
+{
+  "title": "Digital Personal Data Protection Rules, 2025",
+  "source": "Ministry of Electronics and Information Technology",
+  "official_source": "https://www.meity.gov.in/",
+  "notes": "Use the official notified Rules and subsequent official amendments/corrigenda as the source of truth. Individual rule commencement is staggered.",
+  "topics": [
+    {
+      "id": "RULE-SEC",
+      "topic": "Security safeguards",
+      "use_in_tool": "Security assessment and breach-prevention controls."
+    },
+    {
+      "id": "RULE-CHILD",
+      "topic": "Verifiable parental consent",
+      "use_in_tool": "Child-data questionnaire and review workflow."
+    },
+    {
+      "id": "RULE-NOTICE",
+      "topic": "Notice content",
+      "use_in_tool": "Notice/collection transparency questionnaire."
+    },
+    {
+      "id": "RULE-COMM",
+      "topic": "Contact and operational requirements",
+      "use_in_tool": "Future governance modules."
+    }
+  ]
+}

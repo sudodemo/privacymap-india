@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0.0",
+  "knowledge_base_version": "1.0.0",
+  "product": "PrivacyMap India",
+  "purpose": "Client-side discovery and self-assessment of personal-data entry points, lifecycle, privacy controls and security controls for Indian MSMEs.",
+  "scope": {
+    "industry": "Education",
+    "business_type": "School"
+  },
+  "created": "2026-08-12",
+  "legal_status_note": "Informational mapping only. Not legal advice, certification, audit, or a determination of compliance.",
+  "source_priority": [
+    "India Code - Digital Personal Data Protection Act, 2023",
+    "Ministry of Electronics and Information Technology - Digital Personal Data Protection Rules, 2025",
+    "CBSE affiliation requirements and other applicable sectoral requirements"
+  ]
+}

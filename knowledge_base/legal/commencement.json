@@ -1,0 +1,16 @@
+{
+  "as_of": "2026-08-12",
+  "source": "India Code / official notification",
+  "note": "Do not hard-code a universal 'DPDP compliant' result. Store commencement status separately and evaluate only provisions that are legally operative for the assessment date and scenario.",
+  "act_commencement_summary": [
+    {
+      "effective_date": "2025-11-13",
+      "provisions": "Sections 2, 18-26, 35-43 and specified parts of Section 44, as notified."
+    },
+    {
+      "effective_date": "2027-05-13",
+      "provisions": "Sections 3-5 and 7-17, and the corresponding commencement of specified provisions, as notified."
+    }
+  ],
+  "rules_note": "The DPDP Rules, 2025 have staggered commencement dates; the application must check rule-level commencement before presenting legal status."
+}
