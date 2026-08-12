@@ -293,8 +293,6 @@ export default function AssessmentPage() {
       selectedFields,
       customFields,
 
-      collectorRoles,
-      dataSubjects: dataSubjectTypes,
       collectionFormats,
 
       storageLocations,
