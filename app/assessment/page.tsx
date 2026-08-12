@@ -77,7 +77,7 @@ function buildResidualRiskDecisions(
         risk.category,
 
       inherentRisk:
-        inherentRisk,
+        risk.inherentRisk,
 
       residualRisk:
         risk.residualRisk,
