@@ -1,4 +1,3 @@
-```tsx
 import type { AssessmentProfile } from "../types";
 
 export interface ReportFinding {
@@ -546,7 +545,6 @@ ${action.recommendedTreatment}`
     report.profile.assessmentVersion
   )} |
 
----
 
 ## Executive Summary
 
@@ -580,7 +578,6 @@ ${action.recommendedTreatment}`
 | Pending approval | ${pendingApproval} |
 | Escalation required | ${escalated} |
 
----
 
 ## Business Context
 
@@ -596,7 +593,6 @@ ${action.recommendedTreatment}`
     report.businessContext.processId
   )} |
 
----
 
 ## Data Processing Context
 
@@ -696,25 +692,21 @@ ${markdownList(
   report.dataContext.crossBorderTransfers
 )}
 
----
 
 ## Detailed Privacy Risk Findings
 
 ${findingsMarkdown}
 
----
 
 ## Remediation Plan
 
 ${treatmentMarkdown}
 
----
 
 ## Residual Risk Governance
 
 ${governanceMarkdown}
 
----
 
 ## DPDP Assessment Notice
 
@@ -724,7 +716,6 @@ It is not a legal opinion, certification, audit opinion or automatic determinati
 
 The DPDP control mappings and related references should be reviewed against the applicable official legislation, rules, notifications, amendments and other authoritative sources.
 
----
 
 ## Privacy-by-Design Notice
 
@@ -773,4 +764,3 @@ export function reportFileName(
 
   return `${organisation}-${id}.${extension}`;
 }
-```
