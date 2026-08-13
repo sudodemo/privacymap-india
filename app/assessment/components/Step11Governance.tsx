@@ -52,6 +52,7 @@ function Empty() {
         background: "#f8fafc",
         borderRadius: 10,
         color: "#64748b",
+        lineHeight: 1.6,
       }}
     >
       No residual-risk decisions are currently available.
@@ -106,6 +107,7 @@ function Meta({
           fontSize: 14,
           fontWeight: 600,
           color: "#334155",
+          lineHeight: 1.5,
         }}
       >
         {value}
@@ -301,26 +303,8 @@ function Decision({
                 e.target.value,
             })
           }
-          rows={3}
-          placeholder="Document the management decision and rationale."
-          style={{
-            ...inputStyle,
-            resize: "vertical",
-          }}
-        />
-      </Field>
-
-      <Field label="Approval notes">
-        <textarea
-          value={d.approvalNotes}
-          onChange={(e) =>
-            onUpdate(d.id, {
-              approvalNotes:
-                e.target.value,
-            })
-          }
-          rows={3}
-          placeholder="Document approval conditions, comments or rejection rationale."
+          rows={4}
+          placeholder="Document the management decision, risk rationale, conditions and relevant considerations."
           style={{
             ...inputStyle,
             resize: "vertical",
@@ -369,7 +353,7 @@ export default function Step11Governance({
           Review the residual-risk decisions generated from
           the assessment and record accountable ownership,
           decision authority, review dates and management
-          approval information.
+          decision rationale.
         </p>
       </div>
 
