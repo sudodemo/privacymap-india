@@ -1,4 +1,3 @@
-```tsx
 "use client";
 
 import type { AssessmentReportData } from "../lib/reportBuilder";
@@ -1207,4 +1206,3 @@ const secondaryButtonStyle = {
   fontWeight: 700,
   cursor: "pointer",
 };
-```
