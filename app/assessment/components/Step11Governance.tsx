@@ -1,46 +1,25 @@
-import React from "react";
+"use client";
+import type { ReactNode } from "react";
+import type { AssessmentProfile } from "../types";
 import type { ResidualRiskDecisionRecord, DecisionApprovalStatus, ReviewFrequency } from "../../../lib/residualDecision";
 import { riskBackground, riskColor, approvalBackground, approvalColor, treatmentStatusBackground, treatmentStatusColor, GovernanceSummaryCard, GovernanceField } from "./shared";
 
-export default function Step11Governance({ decisions, onUpdate }: { decisions: ResidualRiskDecisionRecord[]; onUpdate: (id:string, updates:Partial<ResidualRiskDecisionRecord>)=>void }) {
+export default function Step11Governance({assessmentProfile,decisions,onUpdate}:{assessmentProfile:AssessmentProfile;decisions:ResidualRiskDecisionRecord[];onUpdate:(id:string,updates:Partial<ResidualRiskDecisionRecord>)=>void}) {
   const pending=decisions.filter(d=>d.approvalStatus==="Pending").length;
-  const escalated=decisions.filter(d=>d.escalationRequired).length;
+   const escalated=decisions.filter(d=>d.escalationRequired).length;
   const approved=decisions.filter(d=>d.approvalStatus==="Approved").length;
-  const treatment=decisions.filter(d=>d.decision==="Treat Further").length;
-  return <section style={{marginTop:"24px",marginBottom:"24px"}}>
-    <div style={{background:"white",border:"1px solid #e2e8f0",borderRadius:"14px",padding:"28px"}}>
-      <div style={{fontSize:"13px",fontWeight:700,letterSpacing:"2px",color:"#1d4ed8"}}>STEP 11</div>
-      <h2 style={{marginTop:8,color:"#0f172a"}}>Risk Governance & Approval</h2>
-      <p style={{color:"#64748b",lineHeight:1.6,maxWidth:"760px"}}>Centralise residual-risk ownership, approval, escalation and review requirements without duplicating the Step 9 decision record.</p>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:"12px",marginTop:"24px"}}>
-        <GovernanceSummaryCard label="PENDING APPROVAL" value={pending} level={pending?"High":"Low"}/>
-        <GovernanceSummaryCard label="ESCALATED" value={escalated} level={escalated?"High":"Low"}/>
-        <GovernanceSummaryCard label="APPROVED" value={approved} level="Low"/>
-        <GovernanceSummaryCard label="TREAT FURTHER" value={treatment} level={treatment?"Medium":"Low"}/>
-      </div>
-    </div>
-    <div style={{marginTop:"16px",background:"white",border:"1px solid #e2e8f0",borderRadius:"14px",padding:"28px"}}>
-      {decisions.length===0 ? <p style={{color:"#64748b"}}>Governance records will appear after a risk assessment is completed.</p> : decisions.map(d=><div key={d.id} style={{border:"1px solid #e2e8f0",borderRadius:"12px",padding:"20px",marginBottom:"16px"}}>
-        <div style={{display:"flex",justifyContent:"space-between",gap:"12px",flexWrap:"wrap"}}>
-          <div><div style={{fontSize:"11px",fontWeight:700,color:"#64748b"}}>{d.findingId}</div><h3 style={{margin:"6px 0",color:"#0f172a"}}>{d.riskTitle}</h3></div>
-          <div style={{display:"flex",gap:"8px",flexWrap:"wrap"}}><span style={{padding:"6px 10px",borderRadius:"20px",background:riskBackground(d.residualRisk),color:riskColor(d.residualRisk),fontWeight:700,fontSize:"12px"}}>Residual: {d.residualRisk}</span><span style={{padding:"6px 10px",borderRadius:"20px",background:approvalBackground(d.approvalStatus),color:approvalColor(d.approvalStatus),fontWeight:700,fontSize:"12px"}}>{d.approvalStatus}</span><span style={{padding:"6px 10px",borderRadius:"20px",background:treatmentStatusBackground(d.treatmentStatus),color:treatmentStatusColor(d.treatmentStatus),fontWeight:700,fontSize:"12px"}}>{d.treatmentStatus}</span></div>
-        </div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:"12px",marginTop:"18px"}}>
-          <GovernanceField label="Accountable Owner" value={d.accountableOwner} onChange={v=>onUpdate(d.id,{accountableOwner:v})}/>
-          <GovernanceField label="Decision Authority" value={d.decisionAuthority} onChange={v=>onUpdate(d.id,{decisionAuthority:v})}/>
-          <GovernanceField label="Review Date" value={d.reviewDate} type="date" onChange={v=>onUpdate(d.id,{reviewDate:v})}/>
-          <GovernanceField label="Approval Date" value={d.approvalDate} type="date" onChange={v=>onUpdate(d.id,{approvalDate:v})}/>
-          <GovernanceField label="Next Review Date" value={d.nextReviewDate} type="date" onChange={v=>onUpdate(d.id,{nextReviewDate:v})}/>
-          <GovernanceField label="Target Resolution Date" value={d.targetResolutionDate} type="date" onChange={v=>onUpdate(d.id,{targetResolutionDate:v})}/>
-        </div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:"12px",marginTop:"12px"}}>
-          <div><label style={{display:"block",fontWeight:700,color:"#0f172a",marginBottom:8}}>Approval Status</label><select value={d.approvalStatus} onChange={e=>onUpdate(d.id,{approvalStatus:e.target.value as DecisionApprovalStatus})} style={{width:"100%",padding:"11px 12px",border:"1px solid #cbd5e1",borderRadius:8}}><option>Pending</option><option>Approved</option><option>Rejected</option></select></div>
-          <div><label style={{display:"block",fontWeight:700,color:"#0f172a",marginBottom:8}}>Review Frequency</label><select value={d.reviewFrequency} onChange={e=>onUpdate(d.id,{reviewFrequency:e.target.value as ReviewFrequency})} style={{width:"100%",padding:"11px 12px",border:"1px solid #cbd5e1",borderRadius:8}}><option>Monthly</option><option>Quarterly</option><option>Half-yearly</option><option>Annual</option><option>Event-driven</option></select></div>
-        </div>
-        <div style={{marginTop:14}}><label style={{display:"block",fontWeight:700,color:"#0f172a",marginBottom:8}}>Decision Rationale</label><textarea rows={3} value={d.rationale} onChange={e=>onUpdate(d.id,{rationale:e.target.value})} style={{width:"100%",boxSizing:"border-box",padding:"12px 14px",border:"1px solid #cbd5e1",borderRadius:8,resize:"vertical"}}/></div>
-        <label style={{display:"flex",alignItems:"center",gap:8,marginTop:14,fontWeight:600,color:"#334155"}}><input type="checkbox" checked={d.escalationRequired} onChange={e=>onUpdate(d.id,{escalationRequired:e.target.checked})}/> Escalation required</label>
-        {d.escalationRequired&&<div style={{marginTop:12}}><label style={{display:"block",fontWeight:700,color:"#0f172a",marginBottom:8}}>Escalation Reason</label><textarea rows={2} value={d.escalationReason} onChange={e=>onUpdate(d.id,{escalationReason:e.target.value})} style={{width:"100%",boxSizing:"border-box",padding:"12px 14px",border:"1px solid #cbd5e1",borderRadius:8,resize:"vertical"}}/></div>}
-      </div>)}
-    </div>
+  const further=decisions.filter(d=>d.decision==="Treat Further").length;
+  return <section style={{marginTop:24,marginBottom:24}}>
+    <div style={card}><Kicker>STEP 11</Kicker><h2 style={h2}>Risk Governance & Approval</h2><p style={p}>Centralise residual-risk ownership, approval, escalation and review requirements without duplicating the Step 9 decision record.</p><Profile profile={assessmentProfile}/><div style={grid}><Summary label="PENDING APPROVAL" value={pending}/><Summary label="ESCALATED" value={escalated}/><Summary label="APPROVED" value={approved}/><Summary label="TREAT FURTHER" value={further}/></div></div>
+    <div style={card}>{decisions.length===0?<Empty/>:decisions.map(d=><Decision key={d.id} d={d} onUpdate={onUpdate}/>)}</div>
   </section>;
 }
+const card={background:"white",border:"1px solid #e2e8f0",borderRadius:14,padding:28,marginBottom:20}; const h2={marginTop:0,color:"#0f172a"}; const p={color:"#64748b",lineHeight:1.6,maxWidth:760}; const grid={display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:12,marginTop:20}; const input={width:"100%",boxSizing:"border-box" as const,padding:"11px 12px",border:"1px solid #cbd5e1",borderRadius:8,background:"white",color:"#0f172a",fontSize:14}; const label={display:"block",fontWeight:700,color:"#0f172a",marginBottom:7,fontSize:13};
+function Kicker({children}:{children:ReactNode}){return <div style={{fontSize:13,fontWeight:700,letterSpacing:2,color:"#1d4ed8",marginBottom:8}}>{children}</div>}
+function Profile({profile}:{profile:AssessmentProfile}){return <div style={{marginTop:18,padding:"14px 16px",background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:10,fontSize:13,color:"#475569"}}><strong style={{color:"#0f172a"}}>{profile.organisationName}</strong> • {profile.assessmentName} • Assessment ID: {profile.assessmentId}</div>}
+function Summary({label,value}:{label:string;value:number}){return <div style={{padding:18,borderRadius:10,background:"#f8fafc",border:"1px solid #e2e8f0"}}><div style={{fontSize:11,fontWeight:700,color:"#64748b",letterSpacing:1}}>{label}</div><div style={{marginTop:6,fontSize:28,fontWeight:800,color:"#0f172a"}}>{value}</div></div>}
+function Empty(){return <div style={{padding:18,background:"#f8fafc",borderRadius:10,color:"#64748b"}}>No residual-risk decisions are currently available.</div>}
+function Decision({d,onUpdate}:{d:ResidualRiskDecisionRecord;onUpdate:(id:string,u:Partial<ResidualRiskDecisionRecord>)=>void}){return <div style={{border:"1px solid #e2e8f0",borderRadius:12,padding:22,marginBottom:18}}><div style={{display:"flex",justifyContent:"space-between",gap:15,flexWrap:"wrap"}}><div><div style={{fontSize:11,fontWeight:700,color:"#64748b",letterSpacing:1}}>{d.id}</div><h3 style={{margin:"6px 0",color:"#0f172a"}}>{d.riskTitle}</h3><div style={{fontSize:13,color:"#475569"}}>{d.findingId} • {d.category}</div></div><span style={{padding:"6px 10px",borderRadius:20,background:d.approvalStatus==="Approved"?"#f0fdf4":d.approvalStatus==="Rejected"?"#fee2e2":"#fffbeb",color:d.approvalStatus==="Approved"?"#15803d":d.approvalStatus==="Rejected"?"#dc2626":"#d97706",fontWeight:700,fontSize:12}}>{d.approvalStatus}</span></div><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:12,marginTop:18}}><Meta label="Inherent risk" value={d.inherentRisk}/><Meta label="Residual risk" value={d.residualRisk}/><Meta label="Review frequency" value={d.reviewFrequency}/><Meta label="Treatment status" value={d.treatmentStatus}/></div><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:12,marginTop:18}}><F label="Accountable owner"><input value={d.accountableOwner} onChange={e=>onUpdate(d.id,{accountableOwner:e.target.value})} placeholder="DPO / Principal / Risk Owner" style={input}/></F><F label="Decision authority"><input value={d.decisionAuthority} onChange={e=>onUpdate(d.id,{decisionAuthority:e.target.value})} placeholder="Approving authority" style={input}/></F><F label="Review date"><input type="date" value={d.reviewDate} onChange={e=>onUpdate(d.id,{reviewDate:e.target.value})} style={input}/></F><F label="Approval date"><input type="date" value={d.approvalDate} onChange={e=>onUpdate(d.id,{approvalDate:e.target.value})} style={input}/></F><F label="Next review date"><input type="date" value={d.nextReviewDate} onChange={e=>onUpdate(d.id,{nextReviewDate:e.target.value})} style={input}/></F><F label="Target resolution date"><input type="date" value={d.targetResolutionDate} onChange={e=>onUpdate(d.id,{targetResolutionDate:e.target.value})} style={input}/></F><F label="Approval status"><select value={d.approvalStatus} onChange={e=>onUpdate(d.id,{approvalStatus:e.target.value as typeof d.approvalStatus})} style={input}><option>Pending</option><option>Approved</option><option>Rejected</option></select></F></div><F label="Decision rationale"><textarea value={d.rationale} onChange={e=>onUpdate(d.id,{rationale:e.target.value})} rows={3} style={{...input,resize:"vertical"}}/></F>{d.escalationRequired&&<div style={{marginTop:14,padding:"12px 14px",background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:8,color:"#9a3412",fontSize:13}}><strong>Escalation required:</strong> {d.escalationReason||"Management review required."}</div>}</div>}
+function F({label,children}:{label:string;children:ReactNode}){return <div style={{marginTop:12}}><label style={label}>{label}</label>{children}</div>}
+function Meta({label,value}:{label:string;value:string}){return <div style={{padding:12,background:"#f8fafc",borderRadius:8}}><div style={{fontSize:11,fontWeight:700,color:"#64748b",textTransform:"uppercase",marginBottom:5}}>{label}</div><div style={{fontSize:14,fontWeight:600,color:"#334155"}}>{value}</div></div>}
+
