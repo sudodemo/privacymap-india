@@ -2530,11 +2530,12 @@ function DpdpComplianceMapping({
   parentalConsentStatuses: string[];
   crossBorderTransfers: string[];
 }) {
-  const isChildData =
-    dataSubjectTypes.includes("Student") ||
-    parentalConsentStatuses.some(
-      (value) => value !== "Not applicable"
-    );
+  // Child-data applicability must be driven by an explicit
+  // child/student data selection. A blank or non-applicable
+  // parental-consent answer must not manufacture a child-data
+  // condition. This prevents DPDP-C04 from being presented as
+  // triggered when the assessment did not identify children's data.
+  const isChildData = dataSubjectTypes.includes("Student");
 
   const context = {
     encryptionStatuses,
@@ -2547,7 +2548,10 @@ function DpdpComplianceMapping({
   };
 
   const mappings = useMemo<DpdpMappingRow[]>(() => {
-    return result.findings.flatMap((finding) => {
+    const rows: DpdpMappingRow[] = [];
+
+    // Finding-driven mappings.
+    result.findings.forEach((finding) => {
       const controls = dpdpControlsForFinding(
         finding.id,
         finding.title,
@@ -2555,29 +2559,100 @@ function DpdpComplianceMapping({
         context
       );
 
-      return controls.map((control) => ({
-        id: `${finding.id}-${control.id}`,
-        findingId: finding.id,
-        findingTitle: finding.title,
-        findingLevel: finding.level,
-        controlId: control.id,
-        controlTitle: control.title,
-        actReference: control.act_reference,
-        ruleReference: control.rule_reference,
-        requirement: control.requirement,
-        assessmentQuestion:
-          control.assessment_question,
-        evidenceExpectation:
-          control.evidence_expectation,
-        remediation: control.remediation,
-        effectiveDate: control.effective_date,
-        sourceUrl: control.source_url,
-        status: deriveDpdpStatus(
-          control.id,
-          context
-        ),
-      }));
+      controls.forEach((control) => {
+        rows.push({
+          id: `${finding.id}-${control.id}`,
+          findingId: finding.id,
+          findingTitle: finding.title,
+          findingLevel: finding.level,
+          controlId: control.id,
+          controlTitle: control.title,
+          actReference: control.act_reference,
+          ruleReference: control.rule_reference,
+          requirement: control.requirement,
+          assessmentQuestion: control.assessment_question,
+          evidenceExpectation: control.evidence_expectation,
+          remediation: control.remediation,
+          effectiveDate: control.effective_date,
+          sourceUrl: control.source_url,
+          status: deriveDpdpStatus(control.id, context),
+        });
+      });
     });
+
+    // DPDP-C06 is a baseline governance requirement for a
+    // personal-data processing activity. It should therefore be
+    // assessed even when no finding happens to contain keywords
+    // such as "rights" or "grievance".
+    const rightsControl = kb.legal.controls.find(
+      (control) => control.id === "DPDP-C06"
+    );
+
+    if (rightsControl && !rows.some((row) => row.controlId === "DPDP-C06")) {
+      const baselineFinding = result.findings[0];
+
+      if (baselineFinding) {
+        rows.push({
+          id: `BASELINE-DPDP-C06`,
+          findingId: baselineFinding.id,
+          findingTitle: "Baseline DPDP rights & grievance governance",
+          findingLevel: baselineFinding.level,
+          controlId: rightsControl.id,
+          controlTitle: rightsControl.title,
+          actReference: rightsControl.act_reference,
+          ruleReference: rightsControl.rule_reference,
+          requirement: rightsControl.requirement,
+          assessmentQuestion: rightsControl.assessment_question,
+          evidenceExpectation: rightsControl.evidence_expectation,
+          remediation: rightsControl.remediation,
+          effectiveDate: rightsControl.effective_date,
+          sourceUrl: rightsControl.source_url,
+          status: deriveDpdpStatus(rightsControl.id, context),
+        });
+      }
+    }
+
+    // Children's-data safeguards are baseline-applicable whenever
+    // the assessment explicitly identifies Student data, even if
+    // no finding title contains a child-related keyword.
+    const childControl = kb.legal.controls.find(
+      (control) => control.id === "DPDP-C04"
+    );
+
+    if (childControl && isChildData && !rows.some((row) => row.controlId === "DPDP-C04")) {
+      const baselineFinding = result.findings[0];
+
+      if (baselineFinding) {
+        rows.push({
+          id: `BASELINE-DPDP-C04`,
+          findingId: baselineFinding.id,
+          findingTitle: "Baseline children's-data safeguards",
+          findingLevel: baselineFinding.level,
+          controlId: childControl.id,
+          controlTitle: childControl.title,
+          actReference: childControl.act_reference,
+          ruleReference: childControl.rule_reference,
+          requirement: childControl.requirement,
+          assessmentQuestion: childControl.assessment_question,
+          evidenceExpectation: childControl.evidence_expectation,
+          remediation: childControl.remediation,
+          effectiveDate: childControl.effective_date,
+          sourceUrl: childControl.source_url,
+          status: deriveDpdpStatus(childControl.id, context),
+        });
+      }
+    }
+
+    // Deduplicate in case a finding-driven rule and a baseline rule
+    // identify the same control.
+    const unique = new Map<string, DpdpMappingRow>();
+    rows.forEach((row) => {
+      if (!unique.has(row.controlId)) {
+        unique.set(row.controlId, row);
+      }
+    });
+
+    return Array.from(unique.values());
   }, [
     result.findings,
     encryptionStatuses,
@@ -2586,6 +2661,7 @@ function DpdpComplianceMapping({
     privacyNotices,
     consentStatuses,
     parentalConsentStatuses,
+    dataSubjectTypes,
     isChildData,
   ]);
 
@@ -2669,11 +2745,24 @@ function DpdpComplianceMapping({
   const unassessedControls =
     dpdpControls.filter((control) => {
       const isMapped = mappings.some(
-        (mapping) =>
-          mapping.controlId === control.id
+        (mapping) => mapping.controlId === control.id
       );
+
+      // C04 is intentionally excluded from the unassessed list
+      // when children's data was not selected. It is shown below
+      // as contextually not applicable instead.
+      if (control.id === "DPDP-C04" && !isChildData) {
+        return false;
+      }
+
       return !isMapped;
     });
+
+  const contextuallyNotApplicableControls =
+    dpdpControls.filter(
+      (control) =>
+        control.id === "DPDP-C04" && !isChildData
+    );
 
   return (
     <section
@@ -3125,6 +3214,72 @@ function DpdpComplianceMapping({
         )}
       </div>
 
+      {contextuallyNotApplicableControls.length > 0 && (
+        <div
+          style={{
+            marginTop: "16px",
+            background: "white",
+            border: "1px solid #e2e8f0",
+            borderRadius: "14px",
+            padding: "28px",
+          }}
+        >
+          <h2
+            style={{
+              marginTop: 0,
+              color: "#0f172a",
+            }}
+          >
+            DPDP Controls Not Applicable From Current Data Selection
+          </h2>
+
+          <p
+            style={{
+              color: "#64748b",
+              lineHeight: 1.6,
+            }}
+          >
+            These controls are not treated as triggered because the
+            current assessment did not identify the relevant data
+            category. This is an assessment-context result, not a
+            legal conclusion that the organisation is permanently
+            outside the scope of the requirement.
+          </p>
+
+          <div
+            style={{
+              display: "grid",
+              gap: "10px",
+            }}
+          >
+            {contextuallyNotApplicableControls.map((control) => (
+              <div
+                key={control.id}
+                style={{
+                  padding: "14px",
+                  background: "#f8fafc",
+                  borderRadius: "8px",
+                  border: "1px solid #e2e8f0",
+                }}
+              >
+                <strong style={{ color: "#0f172a" }}>
+                  {control.id} — {control.title}
+                </strong>
+                <div
+                  style={{
+                    marginTop: "5px",
+                    fontSize: "13px",
+                    color: "#64748b",
+                  }}
+                >
+                  {control.act_reference}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {unassessedControls.length > 0 && (
         <div
           style={{
@@ -3141,7 +3296,7 @@ function DpdpComplianceMapping({
               color: "#0f172a",
             }}
           >
-            DPDP Controls Not Triggered by a Finding
+            Additional DPDP Controls Requiring Contextual Review
           </h2>
 
           <p
@@ -3150,9 +3305,10 @@ function DpdpComplianceMapping({
               lineHeight: 1.6,
             }}
           >
-            These controls are present in the legal knowledge base
-            but were not directly triggered by the current findings.
-            They should not be interpreted as automatically satisfied.
+            These controls are present in the legal knowledge base but
+            were not directly triggered by the current finding text.
+            They should not be interpreted as automatically satisfied;
+            review them based on the processing context.
           </p>
 
           <div
@@ -3272,7 +3428,8 @@ function dpdpControlsForFinding(
     context.isChildData &&
     (text.includes("chd-") ||
       text.includes("child") ||
-      text.includes("minor"))
+      text.includes("minor") ||
+      text.includes("student"))
   ) {
     add("DPDP-C04");
   }
@@ -3290,7 +3447,8 @@ function dpdpControlsForFinding(
     text.includes("right") ||
     text.includes("grievance") ||
     text.includes("access request") ||
-    text.includes("correction")
+    text.includes("correction") ||
+    text.includes("data principal")
   ) {
     add("DPDP-C06");
   }
@@ -3428,7 +3586,10 @@ function deriveDpdpStatus(
     }
 
     case "DPDP-C06":
-      return "NOT_ASSESSED";
+      // Step 6 does not currently capture evidence for data-principal
+      // rights and grievance handling. Therefore the safest status is
+      // Review required rather than Not assessed or Evidence recorded.
+      return "REVIEW_REQUIRED";
 
     default:
       return "NOT_ASSESSED";
