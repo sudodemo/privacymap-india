@@ -157,7 +157,7 @@ export default function AssessmentPage() {
     {riskResult&&<Step11Governance assessmentProfile={assessmentProfile} decisions={residualRiskDecisions} onUpdate={updateDecision}/>} 
     {riskResult&&<Step12RemediationTracker assessmentProfile={assessmentProfile} actions={treatmentActions} onStatusChange={updateTreatmentStatusGlobally}/>} 
     {riskResult&&<Step13EvidenceClosure assessmentProfile={assessmentProfile} actions={treatmentActions} decisions={residualRiskDecisions}/>} 
-    {assessmentReport&(<AssessmentReport report={assessmentReport}/>)}
+    {assessmentReport&&(<AssessmentReport report={assessmentReport}/>)}
     <div style={{marginTop:32,padding:"18px 20px",background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:10,color:"#1e3a8a",lineHeight:1.6}}><strong>Privacy-by-design:</strong> PrivacyMap does not require your customers' personal data. Assessment responses remain in your browser and are used locally to generate assessment results and reports.</div>
   </div></main>;
 }
