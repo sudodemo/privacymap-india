@@ -287,6 +287,23 @@ function buildResidualRiskDecisions(
 
   /*
    * =========================================================
+   * STEP 8 STATE - TREATMENT ACTIONS
+   * =========================================================
+   *
+   * Treatment status is owned by the page so Step 8,
+   * Step 9 and Step 10 share one source of truth.
+   */
+  const [
+    treatmentActions,
+    setTreatmentActions,
+  ] = useState<RiskTreatmentAction[]>([]);
+
+  useEffect(() => {
+    setTreatmentActions(treatmentPlan);
+  }, [treatmentPlan]);
+
+  /*
+   * =========================================================
    * STEP 9 - RESIDUAL RISK
    * =========================================================
    */
@@ -295,18 +312,18 @@ function buildResidualRiskDecisions(
     useMemo<ResidualRiskAssessment[]>(() => {
       if (
         !riskResult ||
-        treatmentPlan.length === 0
+        treatmentActions.length === 0
       ) {
         return [];
       }
 
       return generateResidualRiskAssessment(
         riskResult,
-        treatmentPlan
+        treatmentActions
       );
     }, [
       riskResult,
-      treatmentPlan,
+      treatmentActions,
     ]);
 
   const residualRiskSummary =
@@ -347,12 +364,123 @@ function buildResidualRiskDecisions(
       return;
     }
 
-    setResidualRiskDecisions(
-      buildResidualRiskDecisions(
-        residualRiskAssessments
-      )
-    );
-  }, [residualRiskAssessments]);
+    setResidualRiskDecisions((current) => {
+      const existingByFinding = new Map(
+        current.map((item) => [
+          item.findingId,
+          item,
+        ])
+      );
+
+      const generated =
+        buildResidualRiskDecisions(
+          residualRiskAssessments
+        );
+
+      return generated.map((next) => {
+        const existing =
+          existingByFinding.get(
+            next.findingId
+          );
+
+        const action =
+          treatmentActions.find(
+            (item) =>
+              item.riskTitle ===
+                next.riskTitle &&
+              item.category ===
+                next.category
+          );
+
+        if (!existing) {
+          return {
+            ...next,
+            treatmentStatus:
+              action?.status ??
+              next.treatmentStatus,
+          };
+        }
+
+        return {
+          ...next,
+          ...existing,
+          riskTitle: next.riskTitle,
+          category: next.category,
+          inherentRisk:
+            next.inherentRisk,
+          residualRisk:
+            next.residualRisk,
+          treatmentStatus:
+            action?.status ??
+            existing.treatmentStatus,
+        };
+      });
+    });
+  }, [
+    residualRiskAssessments,
+    treatmentActions,
+  ]);
+
+  /*
+   * =========================================================
+   * GLOBAL TREATMENT STATUS UPDATE
+   * =========================================================
+   *
+   * Step 8 supplies an action id; Step 9 supplies a finding id.
+   * Both update the same parent-owned treatment state.
+   */
+  function updateTreatmentStatusGlobally(
+    sourceId: string,
+    status: TreatmentStatus
+  ) {
+    const sourceAction =
+      treatmentActions.find(
+        (action) => action.id === sourceId
+      );
+
+    const decision =
+      sourceAction
+        ? residualRiskDecisions.find(
+            (item) =>
+              item.riskTitle ===
+                sourceAction.riskTitle &&
+              item.category ===
+                sourceAction.category
+          )
+        : residualRiskDecisions.find(
+            (item) =>
+              item.findingId ===
+              sourceId
+          );
+
+    if (sourceAction) {
+      setTreatmentActions((current) =>
+        current.map((action) =>
+          action.id === sourceId
+            ? {
+                ...action,
+                status,
+              }
+            : action
+        )
+      );
+    }
+
+    if (decision) {
+      setResidualRiskDecisions((current) =>
+        current.map((item) =>
+          item.findingId ===
+          decision.findingId
+            ? {
+                ...item,
+                treatmentStatus:
+                  status,
+              }
+            : item
+        )
+      );
+    }
+  }
 
   /*
    * =========================================================
@@ -1937,7 +2065,10 @@ function buildResidualRiskDecisions(
         {riskResult &&
           treatmentPlan.length > 0 && (
             <RiskTreatmentPlan
-              plan={treatmentPlan}
+              actions={treatmentActions}
+              onStatusChange={
+                updateTreatmentStatusGlobally
+              }
             />
           )}
 
@@ -1962,6 +2093,9 @@ function buildResidualRiskDecisions(
               setDecisions={
                 setResidualRiskDecisions
               }
+              onTreatmentStatusChange={
+                updateTreatmentStatusGlobally
+              }
             />
           )}
 
@@ -1983,6 +2117,9 @@ function buildResidualRiskDecisions(
             }
             crossBorderTransfers={
               crossBorderTransfers
+            }
+            treatmentActions={
+              treatmentActions
             }
           />
         )}
@@ -2519,6 +2656,7 @@ function DpdpComplianceMapping({
   consentStatuses,
   parentalConsentStatuses,
   crossBorderTransfers,
+  treatmentActions,
 }: {
   result: RiskResult;
   dataSubjectTypes: string[];
@@ -2529,6 +2667,7 @@ function DpdpComplianceMapping({
   consentStatuses: string[];
   parentalConsentStatuses: string[];
   crossBorderTransfers: string[];
+  treatmentActions: RiskTreatmentAction[];
 }) {
   // Child-data applicability must be driven by an explicit
   // child/student data selection. A blank or non-applicable
@@ -3019,6 +3158,46 @@ function DpdpComplianceMapping({
                     <DpdpStatusBadge
                       status={state.status}
                     />
+
+                    {(() => {
+                      const finding =
+                        result.findings.find(
+                          (item) =>
+                            item.id ===
+                            mapping.findingId
+                        );
+
+                      const treatmentAction =
+                        treatmentActions.find(
+                          (action) =>
+                            action.riskTitle ===
+                              finding?.title &&
+                            action.category ===
+                              finding?.category
+                        );
+
+                      return treatmentAction ? (
+                        <span
+                          style={{
+                            padding: "6px 10px",
+                            borderRadius: "20px",
+                            background:
+                              treatmentStatusBackground(
+                                treatmentAction.status
+                              ),
+                            color:
+                              treatmentStatusColor(
+                                treatmentAction.status
+                              ),
+                            fontWeight: 700,
+                            fontSize: "12px",
+                          }}
+                        >
+                          Treatment:{" "}
+                          {treatmentAction.status}
+                        </span>
+                      ) : null;
+                    })()}
                   </div>
                 </div>
 
@@ -3749,18 +3928,15 @@ const governanceInputStyle = {
  */
 
 function RiskTreatmentPlan({
-  plan,
+  actions,
+  onStatusChange,
 }: {
-  plan: RiskTreatmentAction[];
+  actions: RiskTreatmentAction[];
+  onStatusChange: (
+    sourceId: string,
+    status: TreatmentStatus
+  ) => void;
 }) {
-  const [actions, setActions] =
-    useState<RiskTreatmentAction[]>(
-      plan
-    );
-
-  useEffect(() => {
-    setActions(plan);
-  }, [plan]);
 
   function TreatmentSummaryCard({
     label,
@@ -3918,15 +4094,9 @@ function RiskTreatmentPlan({
     id: string,
     status: TreatmentStatus
   ) {
-    setActions((current) =>
-      current.map((action) =>
-        action.id === id
-          ? {
-              ...action,
-              status,
-            }
-          : action
-      )
+    onStatusChange(
+      id,
+      status
     );
   }
 
@@ -4294,6 +4464,7 @@ function ResidualRiskDashboard({
   summary,
   decisions,
   setDecisions,
+  onTreatmentStatusChange,
 }: {
   assessments: ResidualRiskAssessment[];
   summary: ResidualRiskSummary | null;
@@ -4303,6 +4474,10 @@ function ResidualRiskDashboard({
       ResidualRiskDecisionRecord[]
     >
   >;
+  onTreatmentStatusChange: (
+    sourceId: string,
+    status: TreatmentStatus
+  ) => void;
 }) {
   /*
    * ---------------------------------------------------------
@@ -4441,6 +4616,15 @@ function ResidualRiskDashboard({
     id: string,
     treatmentStatus: TreatmentStatus
   ) {
+    const decision =
+      decisions.find(
+        (item) => item.id === id
+      );
+
+    if (!decision) {
+      return;
+    }
+
     setDecisions((current) =>
       current.map((item) =>
         item.id === id
@@ -4450,6 +4634,11 @@ function ResidualRiskDashboard({
             }
           : item
       )
+    );
+
+    onTreatmentStatusChange(
+      decision.findingId,
+      treatmentStatus
     );
   }
 
@@ -5133,6 +5322,13 @@ function ResidualRiskDashboard({
                     label="Decision ID"
                     value={
                       decisionRecord.id
+                    }
+                  />
+
+                  <ResidualMeta
+                    label="Treatment Status"
+                    value={
+                      decisionRecord.treatmentStatus
                     }
                   />
                 </div>
@@ -6109,6 +6305,54 @@ function approvalBackground(
 
     case "Rejected":
       return "#fee2e2";
+
+    default:
+      return "#f8fafc";
+  }
+}
+
+/*
+ * =========================================================
+ * TREATMENT STATUS HELPERS
+ * =========================================================
+ */
+
+function treatmentStatusColor(
+  status: TreatmentStatus
+): string {
+  switch (status) {
+    case "Open":
+      return "#b45309";
+
+    case "In Progress":
+      return "#1d4ed8";
+
+    case "Completed":
+      return "#15803d";
+
+    case "Accepted":
+      return "#166534";
+
+    default:
+      return "#475569";
+  }
+}
+
+function treatmentStatusBackground(
+  status: TreatmentStatus
+): string {
+  switch (status) {
+    case "Open":
+      return "#fffbeb";
+
+    case "In Progress":
+      return "#eff6ff";
+
+    case "Completed":
+      return "#f0fdf4";
+
+    case "Accepted":
+      return "#dcfce7";
 
     default:
       return "#f8fafc";
