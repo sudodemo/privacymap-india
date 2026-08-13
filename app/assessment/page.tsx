@@ -22,6 +22,8 @@ import Step10DPDPMapping from "./components/Step10DPDPMapping";
 import Step11Governance from "./components/Step11Governance";
 import Step12RemediationTracker from "./components/Step12RemediationTracker";
 import Step13EvidenceClosure from "./components/Step13EvidenceClosure";
+import AssessmentReport from "./components/AssessmentReport";
+import { buildAssessmentReportData } from "./lib/reportBuilder";
 
 function buildResidualRiskDecisions(residualRisks: ResidualRiskAssessment[], treatmentActions: RiskTreatmentAction[]): ResidualRiskDecisionRecord[] {
   return residualRisks.map(risk => {
@@ -100,6 +102,44 @@ export default function AssessmentPage() {
   function updateTreatmentStatusGlobally(sourceId:string,status:TreatmentStatus){const action=treatmentActions.find(a=>a.id===sourceId);setTreatmentActions(current=>current.map(a=>a.id===sourceId?{...a,status}:a));if(action){setResidualRiskDecisions(current=>current.map(d=>d.riskTitle===action.riskTitle&&d.category===action.category?{...d,treatmentStatus:status}:d));}else{setResidualRiskDecisions(current=>current.map(d=>d.findingId===sourceId?{...d,treatmentStatus:status}:d));}}
   function updateDecision(id:string,updates:Partial<ResidualRiskDecisionRecord>){setResidualRiskDecisions(current=>current.map(d=>d.id===id?{...d,...updates}:d));}
 
+  const assessmentReport =
+  riskResult
+    ? buildAssessmentReportData({
+        profile: assessmentProfile,
+
+        industryId,
+        businessTypeId,
+        processId,
+
+        selectedEntryPoints,
+        customEntryPoints,
+
+        selectedFields,
+        customFields,
+
+        collectorRoles,
+        dataSubjectTypes,
+        collectionFormats,
+        storageLocations,
+        storageEnvironments,
+        encryptionStatuses,
+        accessRoles,
+        sharingStatuses,
+        retentionPeriods,
+        deletionMethods,
+        privacyNotices,
+        consentStatuses,
+        parentalConsentStatuses,
+        crossBorderTransfers,
+
+        riskResult,
+
+        treatmentActions,
+
+        residualRiskDecisions,
+      })
+    : null;
+  
   return <main style={{minHeight:"100vh",background:"#f8fafc",padding:"60px 24px",fontFamily:"Arial, Helvetica, sans-serif"}}><div style={{maxWidth:"900px",margin:"0 auto"}}>
     <p style={{fontSize:13,fontWeight:700,letterSpacing:3,color:"#1d4ed8"}}>PRIVACYMAP INDIA</p>
     <div id="assessment-profile"><Step0AssessmentProfile profile={assessmentProfile} setProfile={setAssessmentProfile}/></div><h1 style={{fontSize:42,color:"#0f172a",marginBottom:12}}>Privacy Assessment</h1><p style={{color:"#475569",fontSize:18,lineHeight:1.6,marginBottom:40}}>Identify where personal data enters your organisation, what information is collected, how it is handled and where privacy risks may exist.</p>
@@ -117,6 +157,7 @@ export default function AssessmentPage() {
     {riskResult&&<Step11Governance assessmentProfile={assessmentProfile} decisions={residualRiskDecisions} onUpdate={updateDecision}/>} 
     {riskResult&&<Step12RemediationTracker assessmentProfile={assessmentProfile} actions={treatmentActions} onStatusChange={updateTreatmentStatusGlobally}/>} 
     {riskResult&&<Step13EvidenceClosure assessmentProfile={assessmentProfile} actions={treatmentActions} decisions={residualRiskDecisions}/>} 
+    {assessmentReport&(<AssessmentReport report={assessmentReport}/>)}
     <div style={{marginTop:32,padding:"18px 20px",background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:10,color:"#1e3a8a",lineHeight:1.6}}><strong>Privacy-by-design:</strong> PrivacyMap does not require your customers' personal data. Assessment responses remain in your browser and are used locally to generate assessment results and reports.</div>
   </div></main>;
 }
