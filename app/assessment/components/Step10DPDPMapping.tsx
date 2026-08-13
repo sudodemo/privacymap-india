@@ -1,4 +1,5 @@
-import { useState } from "react";
+"use client";
+import { useMemo, useState } from "react";
 import type { RiskResult, RiskLevel } from "../../../lib/privacyRisk";
 import type { RiskTreatmentAction } from "../../../lib/riskTreatment";
 import { riskBackground, riskColor } from "./shared";
