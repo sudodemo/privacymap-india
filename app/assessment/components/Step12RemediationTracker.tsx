@@ -20,15 +20,15 @@ assessmentProfile,
 actions,
 onStatusChange,
 }: Step12RemediationTrackerProps) {
-const open = actions.filter(
+const openCount = actions.filter(
 (action) => action.status === "Open"
 ).length;
 
-const progress = actions.filter(
+const progressCount = actions.filter(
 (action) => action.status === "In Progress"
 ).length;
 
-const closed = actions.filter(
+const closedCount = actions.filter(
 (action) =>
 action.status === "Completed" ||
 action.status === "Accepted"
@@ -40,8 +40,15 @@ style={{
 marginTop: 24,
 marginBottom: 24,
 }}
-> <div style={cardStyle}> <div style={kickerStyle}>
-STEP 12 </div>
+>
+{/* =====================================================
+HEADER
+===================================================== */}
+
+  <div style={cardStyle}>
+    <div style={kickerStyle}>
+      STEP 12
+    </div>
 
     <h2 style={headingStyle}>
       Remediation Tracker
@@ -72,150 +79,40 @@ STEP 12 </div>
     <div style={summaryGridStyle}>
       <SummaryCard
         label="OPEN"
-        value={open}
+        value={openCount}
       />
 
       <SummaryCard
         label="IN PROGRESS"
-        value={progress}
+        value={progressCount}
       />
 
       <SummaryCard
         label="CLOSED"
-        value={closed}
+        value={closedCount}
       />
     </div>
   </div>
+
+  {/* =====================================================
+      REMEDIATION REGISTER
+      ===================================================== */}
 
   <div style={cardStyle}>
     {actions.length === 0 ? (
       <EmptyState />
     ) : (
-      actions.map((action) => {
-        return (
-          <div
-            key={action.id}
-            style={{
-              border: "1px solid #e2e8f0",
-              borderRadius: 12,
-              padding: 20,
-              marginBottom: 14,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-                gap: 15,
-                flexWrap: "wrap",
-              }}
-            >
-              <div>
-                <div style={smallTextStyle}>
-                  {action.category}
-                </div>
-
-                <h3
-                  style={{
-                    margin: "6px 0",
-                    color: "#0f172a",
-                  }}
-                >
-                  {action.riskTitle}
-                </h3>
-
-                <p
-                  style={{
-                    margin: 0,
-                    color: "#475569",
-                    lineHeight: 1.6,
-                  }}
-                >
-                  {getTreatmentDescription(action)}
-                </p>
-              </div>
-
-              <span
-                style={statusBadgeStyle(
-                  action.status
-                )}
-              >
-                {action.status}
-              </span>
-            </div>
-
-            <div style={metadataGridStyle}>
-              <Metadata
-                label="Priority"
-                value={String(
-                  action.priority || ""
-                )}
-              />
-
-              <Metadata
-                label="Owner"
-                value={String(
-                  action.owner || ""
-                )}
-              />
-
-              <Metadata
-                label="Timeframe"
-                value={String(
-                  action.timeframe || ""
-                )}
-              />
-
-              <Metadata
-                label="Effort"
-                value={String(
-                  action.effort || ""
-                )}
-              />
-            </div>
-
-            <div
-              style={{
-                marginTop: 14,
-                maxWidth: 320,
-              }}
-            >
-              <label style={labelStyle}>
-                Treatment status
-              </label>
-
-              <select
-                value={action.status}
-                onChange={(event) => {
-                  onStatusChange(
-                    action.id,
-                    event.target
-                      .value as TreatmentStatus
-                  );
-                }}
-                style={inputStyle}
-              >
-                <option value="Open">
-                  Open
-                </option>
-
-                <option value="In Progress">
-                  In Progress
-                </option>
-
-                <option value="Completed">
-                  Completed
-                </option>
-
-                <option value="Accepted">
-                  Accepted
-                </option>
-              </select>
-            </div>
-          </div>
-        );
-      })
+      <div>
+        {actions.map((action) => {
+          return (
+            <RemediationCard
+              key={action.id}
+              action={action}
+              onStatusChange={onStatusChange}
+            />
+          );
+        })}
+      </div>
     )}
   </div>
 </section>
@@ -224,24 +121,136 @@ STEP 12 </div>
 }
 
 /* ============================================================
-TREATMENT DESCRIPTION
+REMEDIATION CARD
 ============================================================ */
 
-function getTreatmentDescription(
-action: RiskTreatmentAction
-): string {
-const candidate =
-action as RiskTreatmentAction & {
-treatment?: string;
-action?: string;
-description?: string;
-};
-
+function RemediationCard({
+action,
+onStatusChange,
+}: {
+action: RiskTreatmentAction;
+onStatusChange: (
+id: string,
+status: TreatmentStatus
+) => void;
+}) {
 return (
-candidate.treatment ||
-candidate.action ||
-candidate.description ||
-"Review and implement the recommended remediation action."
+<div
+style={{
+border: "1px solid #e2e8f0",
+borderRadius: 12,
+padding: 20,
+marginBottom: 14,
+}}
+>
+<div
+style={{
+display: "flex",
+justifyContent: "space-between",
+alignItems: "flex-start",
+gap: 15,
+flexWrap: "wrap",
+}}
+> <div> <div style={smallTextStyle}>
+{action.category} </div>
+
+      <h3
+        style={{
+          margin: "6px 0",
+          color: "#0f172a",
+        }}
+      >
+        {action.riskTitle}
+      </h3>
+
+      <div
+        style={{
+          marginTop: 8,
+          fontSize: 13,
+          color: "#64748b",
+        }}
+      >
+        Remediation action generated from the
+        assessment finding.
+      </div>
+    </div>
+
+    <span
+      style={statusBadgeStyle(action.status)}
+    >
+      {action.status}
+    </span>
+  </div>
+
+  {/* =====================================================
+      METADATA
+      ===================================================== */}
+
+  <div style={metadataGridStyle}>
+    <Metadata
+      label="Finding / Action ID"
+      value={action.id}
+    />
+
+    <Metadata
+      label="Category"
+      value={action.category}
+    />
+
+    <Metadata
+      label="Priority"
+      value={String(action.priority)}
+    />
+
+    <Metadata
+      label="Current status"
+      value={action.status}
+    />
+  </div>
+
+  {/* =====================================================
+      STATUS CONTROL
+      ===================================================== */}
+
+  <div
+    style={{
+      marginTop: 18,
+      maxWidth: 320,
+    }}
+  >
+    <label style={labelStyle}>
+      Treatment status
+    </label>
+
+    <select
+      value={action.status}
+      onChange={(event) => {
+        onStatusChange(
+          action.id,
+          event.target.value as TreatmentStatus
+        );
+      }}
+      style={inputStyle}
+    >
+      <option value="Open">
+        Open
+      </option>
+
+      <option value="In Progress">
+        In Progress
+      </option>
+
+      <option value="Completed">
+        Completed
+      </option>
+
+      <option value="Accepted">
+        Accepted
+      </option>
+    </select>
+  </div>
+</div>
+
 );
 }
 
@@ -275,6 +284,7 @@ letterSpacing: 1,
 >
 {label} </div>
 
+```
   <div
     style={{
       marginTop: 6,
@@ -286,6 +296,7 @@ letterSpacing: 1,
     {value}
   </div>
 </div>
+```
 
 );
 }
@@ -325,6 +336,7 @@ marginBottom: 5,
       fontSize: 13,
       color: "#334155",
       lineHeight: 1.5,
+      wordBreak: "break-word",
     }}
   >
     {value || "Not specified"}
