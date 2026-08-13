@@ -45,7 +45,7 @@ marginBottom: 24,
 STEP 12 HEADER
 ===================================================== */} <div style={cardStyle}> <div style={kickerStyle}>STEP 12</div>
 
-```
+
     <h2 style={headingStyle}>
       Remediation Tracker
     </h2>
@@ -108,7 +108,7 @@ STEP 12 HEADER
     )}
   </div>
 </section>
-```
+
 
 );
 }
@@ -147,7 +147,7 @@ flexWrap: "wrap",
 > <div> <div style={smallTextStyle}>
 {action.category} </div>
 
-```
+
       <h3
         style={{
           margin: "6px 0",
@@ -237,7 +237,7 @@ flexWrap: "wrap",
     </select>
   </div>
 </div>
-```
+
 
 ));
 }
@@ -304,7 +304,7 @@ letterSpacing: 1,
 >
 {label} </div>
 
-```
+
   <div
     style={{
       marginTop: 6,
@@ -316,7 +316,7 @@ letterSpacing: 1,
     {value}
   </div>
 </div>
-```
+
 
 );
 }
@@ -351,7 +351,7 @@ marginBottom: 5,
 >
 {label} </div>
 
-```
+
   <div
     style={{
       fontSize: 13,
@@ -362,7 +362,7 @@ marginBottom: 5,
     {value || "Not specified"}
   </div>
 </div>
-```
+
 
 );
 }
