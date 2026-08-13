@@ -1165,6 +1165,48 @@ function deriveDpdpStatus(
   }
 }
 
+function treatmentStatusBackground(
+  status: RiskTreatmentAction["status"]
+): string {
+  switch (status) {
+    case "Open":
+      return "#f8fafc";
+
+    case "In Progress":
+      return "#eff6ff";
+
+    case "Completed":
+      return "#f0fdf4";
+
+    case "Accepted":
+      return "#fff7ed";
+
+    default:
+      return "#f8fafc";
+  }
+}
+
+function treatmentStatusColor(
+  status: RiskTreatmentAction["status"]
+): string {
+  switch (status) {
+    case "Open":
+      return "#475569";
+
+    case "In Progress":
+      return "#1d4ed8";
+
+    case "Completed":
+      return "#15803d";
+
+    case "Accepted":
+      return "#c2410c";
+
+    default:
+      return "#64748b";
+  }
+}
+
 function DpdpSummaryCard({
   label,
   value,
