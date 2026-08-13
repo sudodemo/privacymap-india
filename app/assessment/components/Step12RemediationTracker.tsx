@@ -284,7 +284,6 @@ letterSpacing: 1,
 >
 {label} </div>
 
-```
   <div
     style={{
       marginTop: 6,
@@ -296,7 +295,6 @@ letterSpacing: 1,
     {value}
   </div>
 </div>
-```
 
 );
 }
