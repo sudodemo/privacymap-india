@@ -7,6 +7,8 @@ import { generateRiskTreatmentPlan, type RiskTreatmentAction, type TreatmentStat
 import { generateResidualRiskAssessment, generateResidualRiskSummary, type ResidualRiskAssessment, type ResidualRiskSummary } from "../../lib/residualRisk";
 import { defaultResidualRiskDecision, defaultDecisionRationale, decisionRequiresApproval, type ResidualRiskDecision, type ResidualRiskDecisionRecord } from "./lib/governanceEngine";
 
+import Step0AssessmentProfile, { createDefaultAssessmentProfile } from "./components/Step0AssessmentProfile";
+import type { AssessmentProfile } from "./types";
 import Step1BusinessContext from "./components/Step1BusinessContext";
 import Step2DataInventory from "./components/Step2DataInventory";
 import Step3Processing from "./components/Step3Processing";
@@ -56,6 +58,8 @@ const headingStyle = { color: "#0f172a", marginTop: 0, marginBottom: "18px" };
 const noticeStyle = { color: "#64748b", lineHeight: 1.6 };
 
 export default function AssessmentPage() {
+  const [assessmentProfile, setAssessmentProfile] = useState<AssessmentProfile>(createDefaultAssessmentProfile);
+
   const [industryId, setIndustryId] = useState("");
   const [businessTypeId, setBusinessTypeId] = useState("");
   const [processId, setProcessId] = useState("");
@@ -97,21 +101,22 @@ export default function AssessmentPage() {
   function updateDecision(id:string,updates:Partial<ResidualRiskDecisionRecord>){setResidualRiskDecisions(current=>current.map(d=>d.id===id?{...d,...updates}:d));}
 
   return <main style={{minHeight:"100vh",background:"#f8fafc",padding:"60px 24px",fontFamily:"Arial, Helvetica, sans-serif"}}><div style={{maxWidth:"900px",margin:"0 auto"}}>
-    <p style={{fontSize:13,fontWeight:700,letterSpacing:3,color:"#1d4ed8"}}>PRIVACYMAP INDIA</p><h1 style={{fontSize:42,color:"#0f172a",marginBottom:12}}>Privacy Assessment</h1><p style={{color:"#475569",fontSize:18,lineHeight:1.6,marginBottom:40}}>Identify where personal data enters your organisation, what information is collected, how it is handled and where privacy risks may exist.</p>
+    <p style={{fontSize:13,fontWeight:700,letterSpacing:3,color:"#1d4ed8"}}>PRIVACYMAP INDIA</p>
+    <div id="assessment-profile"><Step0AssessmentProfile profile={assessmentProfile} setProfile={setAssessmentProfile}/></div><h1 style={{fontSize:42,color:"#0f172a",marginBottom:12}}>Privacy Assessment</h1><p style={{color:"#475569",fontSize:18,lineHeight:1.6,marginBottom:40}}>Identify where personal data enters your organisation, what information is collected, how it is handled and where privacy risks may exist.</p>
     <Step1BusinessContext industryId={industryId} setIndustryId={v=>{setIndustryId(v);resetAssessment();}} resetAssessment={resetAssessment}/>
     {industryId&&<Step2DataInventory industryId={industryId} businessTypeId={businessTypeId} setBusinessTypeId={setBusinessTypeId} businessTypes={businessTypes} resetFromBusinessType={resetFromBusinessType}/>} 
     {businessTypeId==="EDU-SCH"&&<Step3Processing businessTypeId={businessTypeId} processId={processId} setProcessId={setProcessId} processes={processes} resetFromProcess={resetFromProcess}/>} 
     {businessTypeId==="EDU-SCH"&&<Step4DataInventory businessTypeId={businessTypeId} selectedEntryPoints={selectedEntryPoints} customEntryPoint={customEntryPoint} customEntryPoints={customEntryPoints} entryPoints={entryPoints} setCustomEntryPoint={setCustomEntryPoint} toggleEntryPoint={toggleEntryPoint} addCustomEntryPoint={addCustomEntryPoint} removeCustomEntryPoint={removeCustomEntryPoint}/>} 
     {businessTypeId==="EDU-SCH"&&(selectedEntryPoints.length>0||customEntryPoints.length>0)&&<Step5Processing businessTypeId={businessTypeId} selectedEntryPoints={selectedEntryPoints} customEntryPoints={customEntryPoints} selectedFields={selectedFields} customField={customField} customFields={customFields} setCustomField={setCustomField} toggleField={toggleField} addCustomField={addCustomField} removeCustomField={removeCustomField}/>} 
     {businessTypeId==="EDU-SCH"&&selectedFields.length>0&&<Step6DataSubjects businessTypeId={businessTypeId} selectedFields={selectedFields} {...{collectorRoles,dataSubjectTypes,collectionFormats,storageLocations,storageEnvironments,encryptionStatuses,accessRoles,sharingStatuses,retentionPeriods,deletionMethods,privacyNotices,consentStatuses,parentalConsentStatuses,crossBorderTransfers,setCollectorRoles,setDataSubjectTypes,setCollectionFormats,setStorageLocations,setStorageEnvironments,setEncryptionStatuses,setAccessRoles,setSharingStatuses,setRetentionPeriods,setDeletionMethods,setPrivacyNotices,setConsentStatuses,setParentalConsentStatuses,setCrossBorderTransfers,toggleArrayValue}}/>}
-    {businessTypeId==="EDU-SCH"&&selectedFields.length>0&&<section style={cardStyle}><div style={{width:34,height:34,borderRadius:"50%",background:"#1d4ed8",color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,marginBottom:16}}>7</div><h2 style={headingStyle}>Privacy Risk Assessment</h2><p style={{...noticeStyle,marginBottom:24}}>PrivacyMap will analyse the information entered above and identify potential privacy, security and governance risks.</p><div style={{padding:20,background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:12,marginBottom:20,color:"#1e3a8a",lineHeight:1.6}}><strong>Important:</strong> This is a preliminary privacy-risk assessment based on the information provided. It is not a legal opinion or a determination of DPDPA compliance.</div><button type="button" onClick={runPrivacyRiskAssessment} style={{width:"100%",padding:16,border:"none",borderRadius:10,background:"#1d4ed8",color:"white",fontSize:17,fontWeight:700,cursor:"pointer"}}>Analyse Privacy Risks</button></section>}
+    {businessTypeId==="EDU-SCH"&&selectedFields.length>0&&<section style={cardStyle}><div style={{width:34,height:34,borderRadius:"50%",background:"#1d4ed8",color:"white",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,marginBottom:16}}>7</div><h2 style={headingStyle}>Privacy Risk Assessment</h2><p style={{...noticeStyle,marginBottom:24}}>PrivacyMap will analyse the information entered above and identify potential privacy, security and governance risks.</p><div style={{padding:20,background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:12,marginBottom:20,color:"#1e3a8a",lineHeight:1.6}}><strong>Important:</strong> This is a preliminary privacy-risk assessment based on the information provided. It is not a legal opinion or a determination of DPDPA compliance.</div><button type="button" onClick={runPrivacyRiskAssessment} disabled={!assessmentProfile.organisationName.trim()} style={{width:"100%",padding:16,border:"none",borderRadius:10,background:assessmentProfile.organisationName.trim()?"#1d4ed8":"#94a3b8",color:"white",fontSize:17,fontWeight:700,cursor:assessmentProfile.organisationName.trim()?"pointer":"not-allowed"}}>Analyse Privacy Risks</button></section>}
     {riskResult&&<div id="privacy-risk-result"><Step7Findings result={riskResult}/></div>}
     {riskResult&&treatmentPlan.length>0&&<Step8Remediation actions={treatmentActions} onStatusChange={updateTreatmentStatusGlobally}/>} 
     {riskResult&&treatmentPlan.length>0&&residualRiskAssessments.length>0&&<Step9ResidualRisk assessments={residualRiskAssessments} summary={residualRiskSummary} decisions={residualRiskDecisions} setDecisions={setResidualRiskDecisions} onTreatmentStatusChange={updateTreatmentStatusGlobally}/>} 
     {riskResult&&<Step10DPDPMapping result={riskResult} dataSubjectTypes={dataSubjectTypes} encryptionStatuses={encryptionStatuses} retentionPeriods={retentionPeriods} deletionMethods={deletionMethods} privacyNotices={privacyNotices} consentStatuses={consentStatuses} parentalConsentStatuses={parentalConsentStatuses} crossBorderTransfers={crossBorderTransfers} treatmentActions={treatmentActions}/>} 
-    {riskResult&&<Step11Governance decisions={residualRiskDecisions} onUpdate={updateDecision}/>} 
-    {riskResult&&<Step12RemediationTracker actions={treatmentActions} onStatusChange={updateTreatmentStatusGlobally}/>} 
-    {riskResult&&<Step13EvidenceClosure actions={treatmentActions} decisions={residualRiskDecisions}/>} 
+    {riskResult&&<Step11Governance assessmentProfile={assessmentProfile} decisions={residualRiskDecisions} onUpdate={updateDecision}/>} 
+    {riskResult&&<Step12RemediationTracker assessmentProfile={assessmentProfile} actions={treatmentActions} onStatusChange={updateTreatmentStatusGlobally}/>} 
+    {riskResult&&<Step13EvidenceClosure assessmentProfile={assessmentProfile} actions={treatmentActions} decisions={residualRiskDecisions}/>} 
     <div style={{marginTop:32,padding:"18px 20px",background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:10,color:"#1e3a8a",lineHeight:1.6}}><strong>Privacy-by-design:</strong> PrivacyMap does not require your customers' personal data. Assessment responses remain in your browser and are used locally to generate assessment results and reports.</div>
   </div></main>;
 }
