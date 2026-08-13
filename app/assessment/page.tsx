@@ -4754,6 +4754,9 @@ function riskColor(
 
     case "Low":
       return "#15803d";
+
+    default:
+      return "#334155";
   }
 }
 
@@ -4772,6 +4775,9 @@ function riskBackground(
 
     case "Low":
       return "#f0fdf4";
+
+    default:
+      return "#f8fafc";
   }
 }
 
@@ -4793,6 +4799,9 @@ function approvalColor(
 
     case "Rejected":
       return "#b91c1c";
+
+    default:
+      return "#334155";
   }
 }
 
@@ -4808,6 +4817,9 @@ function approvalBackground(
 
     case "Rejected":
       return "#fee2e2";
+
+    default:
+      return "#f8fafc";
   }
 }
 
