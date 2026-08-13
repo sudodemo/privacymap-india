@@ -2,6 +2,7 @@
 
 import React, { ReactNode } from "react";
 import type { ResidualRiskDecisionRecord } from "../types";
+import type { AssessmentProfile } from "../types";
 
 export interface Step11GovernanceProps {
   decisions: ResidualRiskDecisionRecord[];
