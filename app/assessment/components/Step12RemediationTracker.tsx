@@ -40,10 +40,8 @@ style={{
 marginTop: 24,
 marginBottom: 24,
 }}
->
-{/* =====================================================
-STEP 12 HEADER
-===================================================== */} <div style={cardStyle}> <div style={kickerStyle}>STEP 12</div>
+> <div style={cardStyle}> <div style={kickerStyle}>
+STEP 12 </div>
 
     <h2 style={headingStyle}>
       Remediation Tracker
@@ -71,7 +69,6 @@ STEP 12 HEADER
         "Assessment ID pending"}
     </div>
 
-    {/* Summary */}
     <div style={summaryGridStyle}>
       <SummaryCard
         label="OPEN"
@@ -90,20 +87,135 @@ STEP 12 HEADER
     </div>
   </div>
 
-  {/* =====================================================
-      STEP 12 ACTION REGISTER
-      ===================================================== */}
   <div style={cardStyle}>
     {actions.length === 0 ? (
       <EmptyState />
     ) : (
-      actions.map((action) => (
-        <RemediationActionCard
-          key={action.id}
-          action={action}
-          onStatusChange={onStatusChange}
-        />
-      ))
+      actions.map((action) => {
+        return (
+          <div
+            key={action.id}
+            style={{
+              border: "1px solid #e2e8f0",
+              borderRadius: 12,
+              padding: 20,
+              marginBottom: 14,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                gap: 15,
+                flexWrap: "wrap",
+              }}
+            >
+              <div>
+                <div style={smallTextStyle}>
+                  {action.category}
+                </div>
+
+                <h3
+                  style={{
+                    margin: "6px 0",
+                    color: "#0f172a",
+                  }}
+                >
+                  {action.riskTitle}
+                </h3>
+
+                <p
+                  style={{
+                    margin: 0,
+                    color: "#475569",
+                    lineHeight: 1.6,
+                  }}
+                >
+                  {getTreatmentDescription(action)}
+                </p>
+              </div>
+
+              <span
+                style={statusBadgeStyle(
+                  action.status
+                )}
+              >
+                {action.status}
+              </span>
+            </div>
+
+            <div style={metadataGridStyle}>
+              <Metadata
+                label="Priority"
+                value={String(
+                  action.priority || ""
+                )}
+              />
+
+              <Metadata
+                label="Owner"
+                value={String(
+                  action.owner || ""
+                )}
+              />
+
+              <Metadata
+                label="Timeframe"
+                value={String(
+                  action.timeframe || ""
+                )}
+              />
+
+              <Metadata
+                label="Effort"
+                value={String(
+                  action.effort || ""
+                )}
+              />
+            </div>
+
+            <div
+              style={{
+                marginTop: 14,
+                maxWidth: 320,
+              }}
+            >
+              <label style={labelStyle}>
+                Treatment status
+              </label>
+
+              <select
+                value={action.status}
+                onChange={(event) => {
+                  onStatusChange(
+                    action.id,
+                    event.target
+                      .value as TreatmentStatus
+                  );
+                }}
+                style={inputStyle}
+              >
+                <option value="Open">
+                  Open
+                </option>
+
+                <option value="In Progress">
+                  In Progress
+                </option>
+
+                <option value="Completed">
+                  Completed
+                </option>
+
+                <option value="Accepted">
+                  Accepted
+                </option>
+              </select>
+            </div>
+          </div>
+        );
+      })
     )}
   </div>
 </section>
@@ -112,155 +224,18 @@ STEP 12 HEADER
 }
 
 /* ============================================================
-REMEDIATION ACTION CARD
-============================================================ */
-
-function RemediationActionCard({
-action,
-onStatusChange,
-}: {
-action: RiskTreatmentAction;
-onStatusChange: (
-id: string,
-status: TreatmentStatus
-) => void;
-}) {
-return (
-<div
-style={{
-border: "1px solid #e2e8f0",
-borderRadius: 12,
-padding: 20,
-marginBottom: 14,
-}}
->
-<div
-style={{
-display: "flex",
-justifyContent: "space-between",
-alignItems: "flex-start",
-gap: 15,
-flexWrap: "wrap",
-}}
-> <div> <div style={smallTextStyle}>
-{action.category} </div>
-
-      <h3
-        style={{
-          margin: "6px 0",
-          color: "#0f172a",
-        }}
-      >
-        {action.riskTitle}
-      </h3>
-
-      <p
-        style={{
-          margin: 0,
-          color: "#475569",
-          lineHeight: 1.6,
-        }}
-      >
-        {getTreatmentDescription(action)}
-      </p>
-    </div>
-
-    <span
-      style={statusBadgeStyle(action.status)}
-    >
-      {action.status}
-    </span>
-  </div>
-
-  {/* Action metadata */}
-  <div style={metadataGridStyle}>
-    <Metadata
-      label="Priority"
-      value={action.priority}
-    />
-
-    <Metadata
-      label="Owner"
-      value={action.owner}
-    />
-
-    <Metadata
-      label="Timeframe"
-      value={action.timeframe}
-    />
-
-    <Metadata
-      label="Effort"
-      value={action.effort}
-    />
-  </div>
-
-  {/* Treatment status */}
-  <div
-    style={{
-      marginTop: 14,
-      maxWidth: 320,
-    }}
-  >
-    <label style={labelStyle}>
-      Treatment status
-    </label>
-
-    <select
-      value={action.status}
-      onChange={(event) =>
-        onStatusChange(
-          action.id,
-          event.target.value as TreatmentStatus
-        )
-      }
-      style={inputStyle}
-    >
-      <option value="Open">
-        Open
-      </option>
-
-      <option value="In Progress">
-        In Progress
-      </option>
-
-      <option value="Completed">
-        Completed
-      </option>
-
-      <option value="Accepted">
-        Accepted
-      </option>
-    </select>
-  </div>
-</div>
-
-));
-}
-
-/* ============================================================
 TREATMENT DESCRIPTION
-=====================
-
-The RiskTreatmentAction type used by the current application
-does not expose "recommendedTreatment".
-
-This helper therefore reads the treatment description from
-the actual action object without changing the shared type.
-
-"treatment" is the current remediation-engine field.
 ============================================================ */
 
 function getTreatmentDescription(
 action: RiskTreatmentAction
 ): string {
-const candidate = (
+const candidate =
 action as RiskTreatmentAction & {
 treatment?: string;
 action?: string;
 description?: string;
-}
-);
+};
 
 return (
 candidate.treatment ||
@@ -387,32 +362,47 @@ STATUS BADGE
 function statusBadgeStyle(
 status: TreatmentStatus
 ) {
-const configuration =
-status === "Completed"
-? {
+if (status === "Completed") {
+return {
+padding: "6px 10px",
+borderRadius: 20,
 background: "#f0fdf4",
 color: "#15803d",
+fontWeight: 700,
+fontSize: 12,
+height: "fit-content",
+};
 }
-: status === "Accepted"
-? {
+
+if (status === "Accepted") {
+return {
+padding: "6px 10px",
+borderRadius: 20,
 background: "#eff6ff",
 color: "#1d4ed8",
+fontWeight: 700,
+fontSize: 12,
+height: "fit-content",
+};
 }
-: status === "In Progress"
-? {
+
+if (status === "In Progress") {
+return {
+padding: "6px 10px",
+borderRadius: 20,
 background: "#fffbeb",
 color: "#b45309",
-}
-: {
-background: "#f8fafc",
-color: "#475569",
+fontWeight: 700,
+fontSize: 12,
+height: "fit-content",
 };
+}
 
 return {
 padding: "6px 10px",
 borderRadius: 20,
-background: configuration.background,
-color: configuration.color,
+background: "#f8fafc",
+color: "#475569",
 fontWeight: 700,
 fontSize: 12,
 height: "fit-content",
@@ -420,7 +410,7 @@ height: "fit-content",
 }
 
 /* ============================================================
-SHARED STYLES
+STYLES
 ============================================================ */
 
 const cardStyle = {
