@@ -1,4 +1,3 @@
-```tsx
 "use client";
 
 import React, { ReactNode } from "react";
@@ -426,4 +425,3 @@ export default function Step11Governance({
     </section>
   );
 }
-```
