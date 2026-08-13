@@ -1,9 +1,40 @@
-"use client";
-import { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import type { RiskResult, RiskLevel } from "../../../lib/privacyRisk";
 import type { RiskTreatmentAction } from "../../../lib/riskTreatment";
 import { riskBackground, riskColor } from "./shared";
 import { kb } from "../../../lib/kb";
+
+
+type DpdpControlStatus =
+  | "NOT_ASSESSED"
+  | "REVIEW_REQUIRED"
+  | "EVIDENCE_RECORDED";
+
+type DpdpAssessmentState = {
+  status: DpdpControlStatus;
+  owner: string;
+  evidence: string;
+  targetDate: string;
+  notes: string;
+};
+
+type DpdpMappingRow = {
+  id: string;
+  findingId: string;
+  findingTitle: string;
+  findingLevel: RiskLevel;
+  controlId: string;
+  controlTitle: string;
+  actReference: string;
+  ruleReference: string;
+  requirement: string;
+  assessmentQuestion: string;
+  evidenceExpectation: string;
+  remediation: string;
+  effectiveDate: string;
+  sourceUrl: string;
+  status: DpdpControlStatus;
+};
 
 export default function Step10DPDPMapping({
   result,
