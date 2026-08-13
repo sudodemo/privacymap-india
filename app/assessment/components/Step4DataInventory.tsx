@@ -4,7 +4,15 @@ const cardStyle={background:"white",border:"1px solid #e2e8f0",borderRadius:"14p
 export default function Step4DataInventory({businessTypeId,selectedEntryPoints,customEntryPoint,customEntryPoints,entryPoints,setCustomEntryPoint,toggleEntryPoint,addCustomEntryPoint,removeCustomEntryPoint}:Step4DataInventoryProps){ return (
 <>
 
-
+const secondaryButtonStyle = {
+  padding: "12px 18px",
+  borderRadius: "8px",
+  border: "none",
+  background: "#0f172a",
+  color: "white",
+  fontWeight: 600,
+  cursor: "pointer",
+};
         {businessTypeId ===
           "EDU-SCH" && (
           <section
