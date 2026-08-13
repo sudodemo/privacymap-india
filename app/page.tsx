@@ -48,9 +48,9 @@ export default function Home() {
               marginTop: "28px",
             }}
           >
-            Map your personal-data entry points, understand how information
-            moves through your business, identify privacy risks, and create a
-            practical data inventory.
+            Map your personal-data entry points, understand how information moves through your business, identify privacy risks, and create a
+            practical data inventory. You don't need to login or save your data on the platform to protect your Privacy. Your data will be saved 
+            in your browser only locally. You can download the report for your refernce.
           </p>
 
           <Link
@@ -92,6 +92,17 @@ export default function Home() {
           <Feature
             title="Improve"
             text="Identify privacy risks and generate practical reports for management and compliance teams."
+          />
+
+          <Feature
+            title="Secure"
+            text="No need to login or save your data on the platform to protect your Privacy. Your data can be saved 
+            in your browser only locally."
+          />
+
+           <Feature
+            title="Trust"
+            text="Built with Privacy and Security by Design. You can download the report for improvement."
           />
         </div>
       </div>
