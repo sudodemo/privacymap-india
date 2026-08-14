@@ -1,436 +1,1388 @@
-import type { AssessmentProfile, EvidenceRecord } from "../types";
+import type { AssessmentProfile } from "../types";
 import type { RiskResult } from "../lib/riskEngine";
 import type { RiskTreatmentAction } from "../lib/remediationEngine";
 import type { ResidualRiskDecisionRecord } from "../lib/governanceEngine";
 
+/* ============================================================
+   STEP 13 EVIDENCE MODEL
+
+   Kept here so the reporting layer does not require a new
+   EvidenceRecord export from types.ts.
+   ============================================================ */
+
+export type EvidenceRecord = {
+  reference: string;
+  owner: string;
+  notes: string;
+  verified: boolean;
+};
+
+export type EvidenceRecords = Record<
+  string,
+  EvidenceRecord
+>;
+
+/* ============================================================
+   REPORT DATA MODEL
+   ============================================================ */
+
 export interface AssessmentReportData {
-  profile: AssessmentProfile;
-  industryId: string;
-  businessTypeId: string;
-  processId: string;
-  selectedEntryPoints: string[];
-  customEntryPoints: Array<Record<string, unknown>>;
-  selectedFields: string[];
-  customFields: Array<Record<string, unknown>>;
-  collectorRoles: string[];
-  dataSubjectTypes: string[];
-  collectionFormats: string[];
-  storageLocations: string[];
-  storageEnvironments: string[];
-  encryptionStatuses: string[];
-  accessRoles: string[];
-  sharingStatuses: string[];
-  retentionPeriods: string[];
-  deletionMethods: string[];
-  privacyNotices: string[];
-  consentStatuses: string[];
-  parentalConsentStatuses: string[];
-  crossBorderTransfers: string[];
+  generatedAt: string;
+  assessmentProfile: AssessmentProfile;
   riskResult: RiskResult | null;
   treatmentActions: RiskTreatmentAction[];
-  residualRiskAssessments: unknown[];
-  residualRiskSummary: unknown;
   residualRiskDecisions: ResidualRiskDecisionRecord[];
-  evidence: Record<string, EvidenceRecord>;
+  evidenceRecords: EvidenceRecords;
 }
 
-export function buildReportData(input: AssessmentReportData): AssessmentReportData {
-  return JSON.parse(JSON.stringify(input)) as AssessmentReportData;
+/* ============================================================
+   SAFE VALUE HELPERS
+   ============================================================ */
+
+function text(value: unknown): string {
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return "";
+  }
+
+  return String(value);
 }
 
-export function safeFileStem(profile: AssessmentProfile): string {
-  const clean = (value: string) =>
-    value
-      .trim()
-      .replace(/[^a-zA-Z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 80);
+function resultValue(
+  result: RiskResult | null,
+  key: string
+): unknown {
+  if (!result) return "";
 
-  return `${clean(profile.organisationName) || "PrivacyMap"}-DPDP-Privacy-Assessment-${clean(profile.assessmentId) || "Assessment"}`;
+  return (
+    result as unknown as Record<
+      string,
+      unknown
+    >
+  )[key];
 }
 
-function display(value: unknown): string {
-  if (value === null || value === undefined || value === "") return "—";
-  if (typeof value === "string") return value;
-  if (typeof value === "number" || typeof value === "boolean") return String(value);
-  return JSON.stringify(value);
+function escapeCsv(value: unknown): string {
+  const s = text(value);
+
+  if (
+    s.includes(",") ||
+    s.includes('"') ||
+    s.includes("\n") ||
+    s.includes("\r")
+  ) {
+    return `"${s.replace(
+      /"/g,
+      '""'
+    )}"`;
+  }
+
+  return s;
 }
 
-function list(values: unknown[]): string {
-  return values.length ? values.map(display).join(", ") : "—";
+function escapeXml(value: unknown): string {
+  return text(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
 }
 
-export function buildMarkdownReport(data: AssessmentReportData): string {
-  const p = data.profile;
-  const lines: string[] = [];
-  const section = (n: number, title: string) => lines.push(`## ${n}. ${title}`, "");
-  const bulletList = (title: string, values: unknown[]) => {
-    lines.push(`**${title}:** ${list(values)}`, "");
+function escapeMarkdown(value: unknown): string {
+  return text(value)
+    .replace(/\|/g, "\\|")
+    .replace(/\r?\n/g, "<br>");
+}
+
+/* ============================================================
+   REPORT BUILDER
+   ============================================================ */
+
+export function buildAssessmentReport(
+  assessmentProfile: AssessmentProfile,
+  riskResult: RiskResult | null,
+  treatmentActions: RiskTreatmentAction[],
+  residualRiskDecisions: ResidualRiskDecisionRecord[],
+  evidenceRecords: EvidenceRecords
+): AssessmentReportData {
+  return {
+    generatedAt:
+      new Date().toISOString(),
+
+    assessmentProfile,
+
+    riskResult,
+
+    treatmentActions,
+
+    residualRiskDecisions,
+
+    evidenceRecords,
   };
+}
+
+/* ============================================================
+   JSON
+   ============================================================ */
+
+export function reportToJson(
+  report: AssessmentReportData
+): string {
+  return JSON.stringify(
+    report,
+    null,
+    2
+  );
+}
+
+/* ============================================================
+   CSV
+   ============================================================ */
+
+export function reportToCsv(
+  report: AssessmentReportData
+): string {
+  const rows: string[][] = [];
+
+  rows.push([
+    "Record Type",
+    "ID",
+    "Category",
+    "Risk / Title",
+    "Inherent Risk",
+    "Residual Risk",
+    "Decision",
+    "Approval Status",
+    "Treatment Status",
+    "Owner",
+    "Priority",
+    "Timeframe",
+    "Effort",
+    "Review Date",
+    "Evidence Reference",
+    "Evidence Owner",
+    "Evidence Verified",
+    "Notes",
+  ]);
+
+  for (const action of report.treatmentActions) {
+    const decision =
+      report.residualRiskDecisions.find(
+        (d) =>
+          d.riskTitle ===
+            action.riskTitle &&
+          d.category ===
+            action.category
+      );
+
+    const evidence =
+      report.evidenceRecords[
+        action.id
+      ];
+
+    rows.push([
+      "Risk Treatment",
+      text(action.id),
+      text(action.category),
+      text(action.riskTitle),
+      text(
+        decision?.inherentRisk
+      ),
+      text(
+        decision?.residualRisk
+      ),
+      text(decision?.decision),
+      text(
+        decision?.approvalStatus
+      ),
+      text(action.status),
+      text(action.owner),
+      text(action.priority),
+      text(action.timeframe),
+      text(action.effort),
+      text(
+        decision?.reviewDate
+      ),
+      text(
+        evidence?.reference
+      ),
+      text(evidence?.owner),
+      evidence?.verified
+        ? "Yes"
+        : "No",
+      text(evidence?.notes),
+    ]);
+  }
+
+  return rows
+    .map((row) =>
+      row.map(escapeCsv).join(",")
+    )
+    .join("\r\n");
+}
+
+/* ============================================================
+   XML
+   ============================================================ */
+
+export function reportToXml(
+  report: AssessmentReportData
+): string {
+  const profile =
+    report.assessmentProfile;
+
+  const result =
+    report.riskResult;
+
+  const overallRisk =
+    resultValue(
+      result,
+      "overallRisk"
+    );
+
+  const riskScore =
+    resultValue(
+      result,
+      "riskScore"
+    );
+
+  const findings =
+    resultValue(
+      result,
+      "findings"
+    );
+
+  const findingsArray =
+    Array.isArray(findings)
+      ? findings
+      : [];
+
+  const treatmentXml =
+    report.treatmentActions
+      .map((action) => {
+        const decision =
+          report.residualRiskDecisions.find(
+            (d) =>
+              d.riskTitle ===
+                action.riskTitle &&
+              d.category ===
+                action.category
+          );
+
+        const evidence =
+          report.evidenceRecords[
+            action.id
+          ];
+
+        return `
+      <treatment>
+        <id>${escapeXml(
+          action.id
+        )}</id>
+        <category>${escapeXml(
+          action.category
+        )}</category>
+        <riskTitle>${escapeXml(
+          action.riskTitle
+        )}</riskTitle>
+        <recommendedTreatment>${escapeXml(
+          action.recommendedTreatment
+        )}</recommendedTreatment>
+        <status>${escapeXml(
+          action.status
+        )}</status>
+        <priority>${escapeXml(
+          action.priority
+        )}</priority>
+        <owner>${escapeXml(
+          action.owner
+        )}</owner>
+        <timeframe>${escapeXml(
+          action.timeframe
+        )}</timeframe>
+        <effort>${escapeXml(
+          action.effort
+        )}</effort>
+        <inherentRisk>${escapeXml(
+          decision?.inherentRisk
+        )}</inherentRisk>
+        <residualRisk>${escapeXml(
+          decision?.residualRisk
+        )}</residualRisk>
+        <decision>${escapeXml(
+          decision?.decision
+        )}</decision>
+        <approvalStatus>${escapeXml(
+          decision?.approvalStatus
+        )}</approvalStatus>
+        <reviewDate>${escapeXml(
+          decision?.reviewDate
+        )}</reviewDate>
+        <evidence>
+          <reference>${escapeXml(
+            evidence?.reference
+          )}</reference>
+          <owner>${escapeXml(
+            evidence?.owner
+          )}</owner>
+          <verified>${evidence?.verified ? "true" : "false"}</verified>
+          <notes>${escapeXml(
+            evidence?.notes
+          )}</notes>
+        </evidence>
+      </treatment>`;
+      })
+      .join("");
+
+  const decisionXml =
+    report.residualRiskDecisions
+      .map(
+        (decision) => `
+      <decision>
+        <id>${escapeXml(
+          decision.id
+        )}</id>
+        <findingId>${escapeXml(
+          decision.findingId
+        )}</findingId>
+        <riskTitle>${escapeXml(
+          decision.riskTitle
+        )}</riskTitle>
+        <category>${escapeXml(
+          decision.category
+        )}</category>
+        <inherentRisk>${escapeXml(
+          decision.inherentRisk
+        )}</inherentRisk>
+        <residualRisk>${escapeXml(
+          decision.residualRisk
+        )}</residualRisk>
+        <decisionValue>${escapeXml(
+          decision.decision
+        )}</decisionValue>
+        <rationale>${escapeXml(
+          decision.rationale
+        )}</rationale>
+        <accountableOwner>${escapeXml(
+          decision.accountableOwner
+        )}</accountableOwner>
+        <decisionAuthority>${escapeXml(
+          decision.decisionAuthority
+        )}</decisionAuthority>
+        <reviewDate>${escapeXml(
+          decision.reviewDate
+        )}</reviewDate>
+        <approvalDate>${escapeXml(
+          decision.approvalDate
+        )}</approvalDate>
+        <nextReviewDate>${escapeXml(
+          decision.nextReviewDate
+        )}</nextReviewDate>
+        <approvalStatus>${escapeXml(
+          decision.approvalStatus
+        )}</approvalStatus>
+        <treatmentStatus>${escapeXml(
+          decision.treatmentStatus
+        )}</treatmentStatus>
+        <reviewFrequency>${escapeXml(
+          decision.reviewFrequency
+        )}</reviewFrequency>
+        <escalationRequired>${decision.escalationRequired ? "true" : "false"}</escalationRequired>
+        <escalationReason>${escapeXml(
+          decision.escalationReason
+        )}</escalationReason>
+      </decision>`
+      )
+      .join("");
+
+  const findingXml =
+    findingsArray
+      .map(
+        (finding) => {
+          const item =
+            finding as Record<
+              string,
+              unknown
+            >;
+
+          return `
+      <finding>
+        <id>${escapeXml(
+          item.id
+        )}</id>
+        <category>${escapeXml(
+          item.category
+        )}</category>
+        <title>${escapeXml(
+          item.title ??
+            item.riskTitle ??
+            item.name
+        )}</title>
+        <severity>${escapeXml(
+          item.severity ??
+            item.risk ??
+            item.riskLevel
+        )}</severity>
+        <description>${escapeXml(
+          item.description
+        )}</description>
+        <recommendedAction>${escapeXml(
+          item.recommendedAction ??
+            item.recommendation
+        )}</recommendedAction>
+      </finding>`;
+        }
+      )
+      .join("");
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<privacyMapAssessment>
+  <metadata>
+    <generatedAt>${escapeXml(
+      report.generatedAt
+    )}</generatedAt>
+    <organisationName>${escapeXml(
+      profile.organisationName
+    )}</organisationName>
+    <assessmentName>${escapeXml(
+      profile.assessmentName
+    )}</assessmentName>
+    <assessmentId>${escapeXml(
+      profile.assessmentId
+    )}</assessmentId>
+  </metadata>
+
+  <riskSummary>
+    <overallRisk>${escapeXml(
+      overallRisk
+    )}</overallRisk>
+    <riskScore>${escapeXml(
+      riskScore
+    )}</riskScore>
+    <findingCount>${findingsArray.length}</findingCount>
+  </riskSummary>
+
+  <findings>
+    ${findingXml}
+  </findings>
+
+  <residualRiskDecisions>
+    ${decisionXml}
+  </residualRiskDecisions>
+
+  <treatmentActions>
+    ${treatmentXml}
+  </treatmentActions>
+</privacyMapAssessment>`;
+}
+
+/* ============================================================
+   MARKDOWN
+   ============================================================ */
+
+export function reportToMarkdown(
+  report: AssessmentReportData
+): string {
+  const profile =
+    report.assessmentProfile;
+
+  const result =
+    report.riskResult;
+
+  const overallRisk =
+    text(
+      resultValue(
+        result,
+        "overallRisk"
+      )
+    );
+
+  const riskScore =
+    text(
+      resultValue(
+        result,
+        "riskScore"
+      )
+    );
+
+  const findings =
+    resultValue(
+      result,
+      "findings"
+    );
+
+  const findingsArray =
+    Array.isArray(findings)
+      ? findings
+      : [];
+
+  const lines: string[] = [];
 
   lines.push(
-    `# DPDP Privacy Assessment Report`,
-    "",
-    `**Organisation:** ${p.organisationName || "—"}`,
-    `**Assessment:** ${p.assessmentName || "—"}`,
-    `**Assessment Owner:** ${p.assessmentOwner || "—"}`,
-    `**Assessment ID:** ${p.assessmentId || "—"}`,
-    `**Assessment Date:** ${p.assessmentDate || "—"}`,
-    `**Assessment Version:** ${p.assessmentVersion || "—"}`,
-    "",
-    "---",
-    "",
-    "## Executive Summary",
-    "",
-    `This report records the DPDP privacy assessment performed for **${p.organisationName || "the organisation"}**. It consolidates the assessment profile, data-processing inputs, privacy-risk findings, treatment actions, residual-risk governance, DPDP mapping inputs, remediation status and evidence-closure records captured in PrivacyMap India.`,
-    "",
+    "# PrivacyMap India Assessment Report"
   );
 
-  section(1, "Business Context");
-  lines.push(`- Industry ID: ${display(data.industryId)}`, `- Business Type ID: ${display(data.businessTypeId)}`, `- Processing Activity ID: ${display(data.processId)}`, "");
-
-  section(2, "Business / Data Inventory");
-  bulletList("Selected data entry points", data.selectedEntryPoints);
-  bulletList("Custom data entry points", data.customEntryPoints);
-
-  section(3, "Processing Activity");
-  lines.push(`- Processing Activity ID: ${display(data.processId)}`, "");
-
-  section(4, "Data Entry Points");
-  bulletList("Selected entry points", data.selectedEntryPoints);
-  bulletList("Custom entry points", data.customEntryPoints);
-
-  section(5, "Personal Data Fields");
-  bulletList("Selected fields", data.selectedFields);
-  bulletList("Custom fields", data.customFields);
-
-  section(6, "Data Subjects, Processing & Controls");
-  bulletList("Collector roles", data.collectorRoles);
-  bulletList("Data subject types", data.dataSubjectTypes);
-  bulletList("Collection formats", data.collectionFormats);
-  bulletList("Storage locations", data.storageLocations);
-  bulletList("Storage environments", data.storageEnvironments);
-  bulletList("Encryption status", data.encryptionStatuses);
-  bulletList("Access roles", data.accessRoles);
-  bulletList("Sharing status", data.sharingStatuses);
-  bulletList("Retention periods", data.retentionPeriods);
-  bulletList("Deletion methods", data.deletionMethods);
-  bulletList("Privacy notices", data.privacyNotices);
-  bulletList("Consent status", data.consentStatuses);
-  bulletList("Parental consent status", data.parentalConsentStatuses);
-  bulletList("Cross-border transfers", data.crossBorderTransfers);
-
-  section(7, "Privacy Risk Assessment");
-  if (data.riskResult) {
-    lines.push("```json", JSON.stringify(data.riskResult, null, 2), "```", "");
-  } else {
-    lines.push("Risk assessment output was not available.", "");
-  }
-
-  section(8, "Risk Treatment & Action Plan");
-  if (data.treatmentActions.length) {
-    lines.push("| ID | Risk | Category | Status | Priority | Owner | Timeframe | Effort |", "|---|---|---|---|---|---|---|---|");
-    for (const a of data.treatmentActions) {
-      const x = a as unknown as Record<string, unknown>;
-      lines.push(`| ${display(x.id)} | ${display(x.riskTitle)} | ${display(x.category)} | ${display(x.status)} | ${display(x.priority)} | ${display(x.owner)} | ${display(x.timeframe)} | ${display(x.effort)} |`);
-    }
-    lines.push("");
-  } else lines.push("No treatment actions were recorded.", "");
-
-  section(9, "Residual Risk Decision Register");
-  if (data.residualRiskDecisions.length) {
-    lines.push("| ID | Risk | Inherent | Residual | Decision | Approval | Owner | Review Date |", "|---|---|---|---|---|---|---|---|");
-    for (const d of data.residualRiskDecisions) {
-      lines.push(`| ${d.id} | ${d.riskTitle} | ${d.inherentRisk} | ${d.residualRisk} | ${d.decision} | ${d.approvalStatus} | ${d.accountableOwner || "—"} | ${d.reviewDate || "—"} |`);
-    }
-    lines.push("");
-  } else lines.push("No residual-risk decisions were recorded.", "");
-
-  section(10, "DPDP Mapping");
-  lines.push("The DPDP mapping values captured during the assessment are included in the structured JSON/XML exports and are represented here through the assessment inputs and risk records.", "");
-  bulletList("Data subject types", data.dataSubjectTypes);
-  bulletList("Encryption statuses", data.encryptionStatuses);
-  bulletList("Retention periods", data.retentionPeriods);
-  bulletList("Deletion methods", data.deletionMethods);
-  bulletList("Privacy notices", data.privacyNotices);
-  bulletList("Consent statuses", data.consentStatuses);
-  bulletList("Parental consent statuses", data.parentalConsentStatuses);
-  bulletList("Cross-border transfers", data.crossBorderTransfers);
-
-  section(11, "Risk Governance & Approval");
-  if (data.residualRiskDecisions.length) {
-    for (const d of data.residualRiskDecisions) {
-      lines.push(
-        `### ${d.id} — ${d.riskTitle}`,
-        `- Decision: ${display(d.decision)}`,
-        `- Approval status: ${display(d.approvalStatus)}`,
-        `- Accountable owner: ${display(d.accountableOwner)}`,
-        `- Decision authority: ${display(d.decisionAuthority)}`,
-        `- Review frequency: ${display(d.reviewFrequency)}`,
-        `- Review date: ${display(d.reviewDate)}`,
-        `- Approval date: ${display(d.approvalDate)}`,
-        `- Next review date: ${display(d.nextReviewDate)}`,
-        `- Escalation required: ${display(d.escalationRequired)}`,
-        `- Rationale: ${display(d.rationale)}`,
-        "",
-      );
-    }
-  }
-
-  section(12, "Remediation Tracker");
-  if (data.treatmentActions.length) {
-    for (const a of data.treatmentActions) {
-      const x = a as unknown as Record<string, unknown>;
-      lines.push(`- ${display(x.riskTitle)} — ${display(x.status)} — Owner: ${display(x.owner)} — Priority: ${display(x.priority)}`);
-    }
-    lines.push("");
-  }
-
-  section(13, "Evidence & Closure");
-  const evidenceEntries = Object.entries(data.evidence);
-  if (evidenceEntries.length) {
-    for (const [id, e] of evidenceEntries) {
-      lines.push(`### ${id}`, `- Evidence reference: ${display(e.reference)}`, `- Evidence owner: ${display(e.owner)}`, `- Verified: ${display(e.verified)}`, `- Closure notes: ${display(e.notes)}`, "");
-    }
-  } else lines.push("No evidence records were captured.", "");
+  lines.push("");
 
   lines.push(
-    "## Report Status",
-    "",
-    "Assessment Profile is presented separately from the numbered assessment steps. The report therefore begins with the assessment identity and then uses Steps 1–13 for the assessment workflow; Step 0 is intentionally not shown as a report section.",
-    "",
-    "## Disclaimer",
-    "",
-    "This report is an assessment aid and does not constitute legal advice, a legal opinion, an audit opinion, certification, or a determination of statutory compliance. The assessment should be reviewed by the organisation's appropriate privacy, legal, security and risk stakeholders.",
-    "",
+    `**Organisation:** ${escapeMarkdown(
+      profile.organisationName
+    )}`
+  );
+
+  lines.push(
+    `**Assessment:** ${escapeMarkdown(
+      profile.assessmentName
+    )}`
+  );
+
+  lines.push(
+    `**Assessment ID:** ${escapeMarkdown(
+      profile.assessmentId
+    )}`
+  );
+
+  lines.push(
+    `**Generated:** ${escapeMarkdown(
+      report.generatedAt
+    )}`
+  );
+
+  lines.push("");
+
+  lines.push(
+    "## Executive Summary"
+  );
+
+  lines.push("");
+
+  lines.push(
+    `- Overall Risk: **${overallRisk}**`
+  );
+
+  lines.push(
+    `- Risk Score: **${riskScore}**`
+  );
+
+  lines.push(
+    `- Findings: **${findingsArray.length}**`
+  );
+
+  lines.push(
+    `- Treatment Actions: **${report.treatmentActions.length}**`
+  );
+
+  lines.push(
+    `- Residual Risk Decisions: **${report.residualRiskDecisions.length}**`
+  );
+
+  lines.push("");
+
+  lines.push(
+    "## Step 7 — Privacy Risk Findings"
+  );
+
+  lines.push("");
+
+  for (
+    const finding of findingsArray
+  ) {
+    const item =
+      finding as Record<
+        string,
+        unknown
+      >;
+
+    lines.push(
+      `### ${escapeMarkdown(
+        item.title ??
+          item.riskTitle ??
+          item.name
+      )}`
+    );
+
+    lines.push(
+      `- Category: ${escapeMarkdown(
+        item.category
+      )}`
+    );
+
+    lines.push(
+      `- Risk: ${escapeMarkdown(
+        item.severity ??
+          item.risk ??
+          item.riskLevel
+      )}`
+    );
+
+    lines.push(
+      `- Description: ${escapeMarkdown(
+        item.description
+      )}`
+    );
+
+    lines.push(
+      `- Recommended action: ${escapeMarkdown(
+        item.recommendedAction ??
+          item.recommendation
+      )}`
+    );
+
+    lines.push("");
+  }
+
+  lines.push(
+    "## Step 8 — Risk Treatment & Action Plan"
+  );
+
+  lines.push("");
+
+  lines.push(
+    "| Category | Risk | Priority | Owner | Timeframe | Effort | Status |"
+  );
+
+  lines.push(
+    "|---|---|---|---|---|---|---|"
+  );
+
+  for (
+    const action of report.treatmentActions
+  ) {
+    lines.push(
+      `| ${escapeMarkdown(
+        action.category
+      )} | ${escapeMarkdown(
+        action.riskTitle
+      )} | ${escapeMarkdown(
+        action.priority
+      )} | ${escapeMarkdown(
+        action.owner
+      )} | ${escapeMarkdown(
+        action.timeframe
+      )} | ${escapeMarkdown(
+        action.effort
+      )} | ${escapeMarkdown(
+        action.status
+      )} |`
+    );
+  }
+
+  lines.push("");
+
+  lines.push(
+    "## Residual Risk Governance"
+  );
+
+  lines.push("");
+
+  lines.push(
+    "| Risk | Inherent | Residual | Decision | Approval | Owner | Review Date |"
+  );
+
+  lines.push(
+    "|---|---|---|---|---|---|---|"
+  );
+
+  for (
+    const decision of report.residualRiskDecisions
+  ) {
+    lines.push(
+      `| ${escapeMarkdown(
+        decision.riskTitle
+      )} | ${escapeMarkdown(
+        decision.inherentRisk
+      )} | ${escapeMarkdown(
+        decision.residualRisk
+      )} | ${escapeMarkdown(
+        decision.decision
+      )} | ${escapeMarkdown(
+        decision.approvalStatus
+      )} | ${escapeMarkdown(
+        decision.accountableOwner
+      )} | ${escapeMarkdown(
+        decision.reviewDate
+      )} |`
+    );
+  }
+
+  lines.push("");
+
+  lines.push(
+    "## Step 13 — Evidence & Closure"
+  );
+
+  lines.push("");
+
+  for (
+    const action of report.treatmentActions
+  ) {
+    const evidence =
+      report.evidenceRecords[
+        action.id
+      ];
+
+    lines.push(
+      `### ${escapeMarkdown(
+        action.riskTitle
+      )}`
+    );
+
+    lines.push(
+      `- Treatment status: ${escapeMarkdown(
+        action.status
+      )}`
+    );
+
+    lines.push(
+      `- Evidence reference: ${escapeMarkdown(
+        evidence?.reference
+      )}`
+    );
+
+    lines.push(
+      `- Evidence owner: ${escapeMarkdown(
+        evidence?.owner
+      )}`
+    );
+
+    lines.push(
+      `- Evidence verified: ${
+        evidence?.verified
+          ? "Yes"
+          : "No"
+      }`
+    );
+
+    lines.push(
+      `- Closure notes: ${escapeMarkdown(
+        evidence?.notes
+      )}`
+    );
+
+    lines.push("");
+  }
+
+  lines.push(
+    "---"
+  );
+
+  lines.push("");
+
+  lines.push(
+    "PrivacyMap India assessment output is a risk-assessment and governance aid. It is not a legal opinion, certification or automatic determination of DPDP compliance."
   );
 
   return lines.join("\n");
 }
 
-export function buildCsvReport(data: AssessmentReportData): string {
-  const rows: string[][] = [["Record Type", "ID", "Risk / Item", "Category", "Status", "Priority", "Owner", "Residual Risk", "Approval Status", "Review Date", "Evidence Reference", "Evidence Verified"]];
-  for (const a of data.treatmentActions) {
-    const x = a as unknown as Record<string, unknown>;
-    const e = data.evidence[String(x.id)] || {};
-    rows.push(["Treatment Action", display(x.id), display(x.riskTitle), display(x.category), display(x.status), display(x.priority), display(x.owner), "", "", "", display(e.reference), display(e.verified)]);
+/* ============================================================
+   BROWSER DOWNLOAD
+   ============================================================ */
+
+export function downloadTextFile(
+  content: string,
+  filename: string,
+  mimeType: string
+): void {
+  if (
+    typeof window ===
+    "undefined"
+  ) {
+    return;
   }
-  for (const d of data.residualRiskDecisions) {
-    const e = data.evidence[d.id] || {};
-    rows.push(["Residual Risk Decision", d.id, d.riskTitle, d.category, display(d.decision), "", d.accountableOwner || "", d.residualRisk, d.approvalStatus, d.reviewDate || "", display(e.reference), display(e.verified)]);
-  }
-  return rows.map(row => row.map(v => `"${v.replace(/"/g, '""')}"`).join(",")).join("\r\n");
-}
 
-function xmlEscape(value: unknown): string {
-  return display(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
-}
-
-export function buildXmlReport(data: AssessmentReportData): string {
-  const json = JSON.parse(JSON.stringify(data)) as Record<string, unknown>;
-  const render = (key: string, value: unknown, indent = ""): string => {
-    const tag = key.replace(/[^A-Za-z0-9_-]/g, "_") || "item";
-    if (Array.isArray(value)) {
-      return `${indent}<${tag}>\n${value.map(v => render("item", v, indent + "  ")).join("\n")}\n${indent}</${tag}>`;
+  const blob = new Blob(
+    [content],
+    {
+      type: mimeType,
     }
-    if (value && typeof value === "object") {
-      const entries = Object.entries(value as Record<string, unknown>);
-      return `${indent}<${tag}>${entries.length ? `\n${entries.map(([k,v]) => render(k,v,indent+"  ")).join("\n")}\n${indent}` : ""}</${tag}>`;
-    }
-    return `${indent}<${tag}>${xmlEscape(value)}</${tag}>`;
-  };
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<PrivacyMapAssessment version="1.0">\n${Object.entries(json).map(([k,v]) => render(k,v,"  ")).join("\n")}\n</PrivacyMapAssessment>`;
-}
+  );
 
-export function buildJsonReport(data: AssessmentReportData): string {
-  return JSON.stringify(data, null, 2);
-}
+  const url =
+    URL.createObjectURL(blob);
 
-export function downloadTextFile(content: string, filename: string, mime: string): void {
-  const blob = new Blob([content], { type: `${mime};charset=utf-8` });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
+  const anchor =
+    document.createElement(
+      "a"
+    );
+
   anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
+  anchor.download =
+    filename;
+
+  document.body.appendChild(
+    anchor
+  );
+
   anchor.click();
+
   anchor.remove();
-  URL.revokeObjectURL(url);
+
+  setTimeout(
+    () =>
+      URL.revokeObjectURL(
+        url
+      ),
+    1000
+  );
 }
 
 /* ============================================================
-   DEPENDENCY-FREE PDF GENERATION
+   DEPENDENCY-FREE PDF
 
-   This creates a small, standards-compliant PDF directly in the
-   browser. It deliberately uses the built-in PDF Type1 Helvetica
-   font so PrivacyMap does not require jsPDF, pdf-lib, or any other
-   npm package.
+   This creates a basic text PDF directly in the browser.
+   No jsPDF or other npm dependency is required.
    ============================================================ */
 
-function pdfSafeText(value: string): string {
-  // Built-in Helvetica is WinAnsi/Latin-1 oriented. Replace characters
-  // outside the safe range rather than producing a corrupt PDF.
+function pdfEscape(
+  value: string
+): string {
   return value
-    .replace(/\r?\n/g, " ")
-    .replace(/[^\x20-\x7E\xA0-\xFF]/g, "?")
     .replace(/\\/g, "\\\\")
     .replace(/\(/g, "\\(")
     .replace(/\)/g, "\\)");
 }
 
-function pdfWrap(text: string, maxChars = 96): string[] {
-  const clean = text.replace(/\t/g, "    ").trim();
-  if (!clean) return [""];
-  const words = clean.split(/\s+/);
-  const result: string[] = [];
+function wrapPdfText(
+  value: string,
+  width = 92
+): string[] {
+  const words =
+    value.split(/\s+/);
+
+  const lines: string[] = [];
+
   let current = "";
 
-  for (const word of words) {
-    if (!current) {
+  for (
+    const word of words
+  ) {
+    if (
+      `${current} ${word}`
+        .trim().length >
+      width
+    ) {
+      if (current) {
+        lines.push(current);
+      }
+
       current = word;
-    } else if ((current.length + 1 + word.length) <= maxChars) {
-      current += ` ${word}`;
     } else {
-      result.push(current);
-      current = word;
+      current =
+        `${current} ${word}`.trim();
     }
   }
-  if (current) result.push(current);
-  return result;
+
+  if (current) {
+    lines.push(current);
+  }
+
+  return lines;
 }
 
-function buildPdfLines(data: AssessmentReportData): string[] {
-  // Markdown is already the canonical report representation, so keep the
-  // PDF content aligned with Markdown/JSON/XML/CSV without duplicating the
-  // assessment logic.
-  const markdown = buildMarkdownReport(data);
-  return markdown.split(/\r?\n/).flatMap((line) => {
-    let text = line;
-    if (/^```/.test(text)) text = "";
-    text = text
-      .replace(/^#{1,6}\s+/, "")
-      .replace(/^\*\*(.+)\*\*$/, "$1")
-      .replace(/^\*\*(.+?):\*\*\s*/, "$1: ")
-      .replace(/^[-*]\s+/, "• ")
-      .replace(/^\|[-:| ]+$/, "")
-      .replace(/^\|\s*/, "")
-      .replace(/\s*\|\s*/g, "   |   ")
-      .replace(/\*\*/g, "")
-      .trim();
+function buildPdfPages(
+  report: AssessmentReportData
+): string[][] {
+  const lines: string[] = [];
 
-    if (!text) return [""];
-    return pdfWrap(text);
-  });
-}
+  const profile =
+    report.assessmentProfile;
 
-function buildPdfDocument(lines: string[]): Uint8Array {
-  const pageWidth = 595;
-  const pageHeight = 842;
-  const marginLeft = 40;
-  const marginTop = 48;
-  const marginBottom = 42;
-  const fontSize = 9.5;
-  const lineHeight = 13;
-  const linesPerPage = Math.floor(
-    (pageHeight - marginTop - marginBottom) / lineHeight
+  const result =
+    report.riskResult;
+
+  const overallRisk =
+    text(
+      resultValue(
+        result,
+        "overallRisk"
+      )
+    );
+
+  const riskScore =
+    text(
+      resultValue(
+        result,
+        "riskScore"
+      )
+    );
+
+  lines.push(
+    "PrivacyMap India Assessment Report"
   );
 
-  const pages: string[][] = [];
-  for (let i = 0; i < lines.length; i += linesPerPage) {
-    pages.push(lines.slice(i, i + linesPerPage));
+  lines.push(
+    `Organisation: ${text(
+      profile.organisationName
+    )}`
+  );
+
+  lines.push(
+    `Assessment: ${text(
+      profile.assessmentName
+    )}`
+  );
+
+  lines.push(
+    `Assessment ID: ${text(
+      profile.assessmentId
+    )}`
+  );
+
+  lines.push(
+    `Generated: ${report.generatedAt}`
+  );
+
+  lines.push("");
+
+  lines.push(
+    "EXECUTIVE SUMMARY"
+  );
+
+  lines.push(
+    `Overall Risk: ${overallRisk}`
+  );
+
+  lines.push(
+    `Risk Score: ${riskScore}`
+  );
+
+  lines.push(
+    `Treatment Actions: ${report.treatmentActions.length}`
+  );
+
+  lines.push(
+    `Residual Risk Decisions: ${report.residualRiskDecisions.length}`
+  );
+
+  lines.push("");
+
+  lines.push(
+    "STEP 8 - RISK TREATMENT & ACTION PLAN"
+  );
+
+  for (
+    const action of report.treatmentActions
+  ) {
+    lines.push("");
+
+    lines.push(
+      `${text(
+        action.category
+      )} - ${text(
+        action.riskTitle
+      )}`
+    );
+
+    lines.push(
+      `Status: ${text(
+        action.status
+      )}`
+    );
+
+    lines.push(
+      `Priority: ${text(
+        action.priority
+      )}`
+    );
+
+    lines.push(
+      `Owner: ${text(
+        action.owner
+      )}`
+    );
+
+    lines.push(
+      `Timeframe: ${text(
+        action.timeframe
+      )}`
+    );
+
+    lines.push(
+      `Effort: ${text(
+        action.effort
+      )}`
+    );
+
+    lines.push(
+      `Treatment: ${text(
+        action.recommendedTreatment
+      )}`
+    );
   }
-  if (!pages.length) pages.push(["PrivacyMap Assessment Report"]);
 
-  const objects: string[] = [];
-  const addObject = (body: string) => {
-    objects.push(body);
-    return objects.length;
-  };
+  lines.push("");
 
-  const catalogId = addObject("");
-  const pagesId = addObject("");
-  const fontId = addObject(
+  lines.push(
+    "STEP 9 / 11 - RESIDUAL RISK GOVERNANCE"
+  );
+
+  for (
+    const decision of report.residualRiskDecisions
+  ) {
+    lines.push("");
+
+    lines.push(
+      `${text(
+        decision.riskTitle
+      )}`
+    );
+
+    lines.push(
+      `Category: ${text(
+        decision.category
+      )}`
+    );
+
+    lines.push(
+      `Inherent Risk: ${text(
+        decision.inherentRisk
+      )}`
+    );
+
+    lines.push(
+      `Residual Risk: ${text(
+        decision.residualRisk
+      )}`
+    );
+
+    lines.push(
+      `Decision: ${text(
+        decision.decision
+      )}`
+    );
+
+    lines.push(
+      `Approval: ${text(
+        decision.approvalStatus
+      )}`
+    );
+
+    lines.push(
+      `Owner: ${text(
+        decision.accountableOwner
+      )}`
+    );
+
+    lines.push(
+      `Review Date: ${text(
+        decision.reviewDate
+      )}`
+    );
+  }
+
+  lines.push("");
+
+  lines.push(
+    "STEP 13 - EVIDENCE & CLOSURE"
+  );
+
+  for (
+    const action of report.treatmentActions
+  ) {
+    const evidence =
+      report.evidenceRecords[
+        action.id
+      ];
+
+    lines.push("");
+
+    lines.push(
+      `${text(
+        action.riskTitle
+      )}`
+    );
+
+    lines.push(
+      `Treatment Status: ${text(
+        action.status
+      )}`
+    );
+
+    lines.push(
+      `Evidence Reference: ${text(
+        evidence?.reference
+      )}`
+    );
+
+    lines.push(
+      `Evidence Owner: ${text(
+        evidence?.owner
+      )}`
+    );
+
+    lines.push(
+      `Evidence Verified: ${
+        evidence?.verified
+          ? "Yes"
+          : "No"
+      }`
+    );
+
+    lines.push(
+      `Closure Notes: ${text(
+        evidence?.notes
+      )}`
+    );
+  }
+
+  const pages: string[][] =
+    [];
+
+  let page: string[] = [];
+
+  for (
+    const line of lines
+  ) {
+    const wrapped =
+      wrapPdfText(
+        line || " "
+      );
+
+    for (
+      const wrappedLine of wrapped
+    ) {
+      if (
+        page.length >= 48
+      ) {
+        pages.push(page);
+        page = [];
+      }
+
+      page.push(
+        wrappedLine
+      );
+    }
+  }
+
+  if (page.length) {
+    pages.push(page);
+  }
+
+  return pages;
+}
+
+export function createPdfBlob(
+  report: AssessmentReportData
+): Blob {
+  const pages =
+    buildPdfPages(report);
+
+  const objects: string[] =
+    [];
+
+  const pageObjectIds: number[] =
+    [];
+
+  const contentObjectIds: number[] =
+    [];
+
+  /*
+   * Object 1 = Catalog
+   * Object 2 = Pages
+   * Font object follows page/content objects.
+   */
+
+  objects.push("");
+
+  objects.push("");
+
+  for (
+    let i = 0;
+    i < pages.length;
+    i++
+  ) {
+    pageObjectIds.push(
+      objects.length + 1
+    );
+
+    objects.push("");
+
+    contentObjectIds.push(
+      objects.length + 1
+    );
+
+    objects.push("");
+  }
+
+  const fontObjectId =
+    objects.length + 1;
+
+  objects.push(
     "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"
   );
 
-  const pageIds: number[] = [];
-  const contentIds: number[] = [];
+  const pagesKids =
+    pageObjectIds
+      .map(
+        (id) =>
+          `${id} 0 R`
+      )
+      .join(" ");
 
-  pages.forEach((pageLines, pageIndex) => {
-    const content: string[] = [
-      "q",
-      "0 0 0 rg",
-      `BT /F1 ${fontSize} Tf ${marginLeft} ${pageHeight - marginTop} Td`,
-    ];
+  objects[1] =
+    `<< /Type /Pages /Kids [${pagesKids}] /Count ${pages.length} >>`;
 
-    pageLines.forEach((line, lineIndex) => {
-      const safe = pdfSafeText(line);
-      if (lineIndex > 0) content.push(`0 -${lineHeight} Td`);
-      content.push(`(${safe}) Tj`);
-    });
+  objects[0] =
+    `<< /Type /Catalog /Pages 2 0 R >>`;
 
-    content.push("ET", "Q");
-    const stream = content.join("\n");
-    const contentId = addObject(
-      `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`
+  for (
+    let i = 0;
+    i < pages.length;
+    i++
+  ) {
+    const commands: string[] =
+      [];
+
+    commands.push(
+      "BT"
     );
-    contentIds.push(contentId);
 
-    const pageId = addObject("");
-    pageIds.push(pageId);
-  });
+    commands.push(
+      "/F1 10 Tf"
+    );
 
-  objects[pagesId - 1] =
-    `<< /Type /Pages /Kids [${pageIds.map((id) => `${id} 0 R`).join(" ")}] /Count ${pageIds.length} >>`;
+    commands.push(
+      "12 TL"
+    );
 
-  pageIds.forEach((pageId, index) => {
-    objects[pageId - 1] =
-      `<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 ${fontId} 0 R >> >> /Contents ${contentIds[index]} 0 R >>`;
-  });
+    commands.push(
+      "50 760 Td"
+    );
 
-  objects[catalogId - 1] =
-    `<< /Type /Catalog /Pages ${pagesId} 0 R >>`;
+    for (
+      const line of pages[i]
+    ) {
+      commands.push(
+        `(${pdfEscape(
+          line
+        )}) Tj`
+      );
 
-  let pdf = "%PDF-1.4\n%\xE2\xE3\xCF\xD3\n";
-  const offsets: number[] = [0];
+      commands.push(
+        "T*"
+      );
+    }
 
-  objects.forEach((body, index) => {
-    offsets.push(pdf.length);
-    pdf += `${index + 1} 0 obj\n${body}\nendobj\n`;
-  });
+    commands.push(
+      "ET"
+    );
 
-  const xrefOffset = pdf.length;
-  pdf += `xref\n0 ${objects.length + 1}\n`;
-  pdf += "0000000000 65535 f \n";
-  offsets.slice(1).forEach((offset) => {
-    pdf += `${String(offset).padStart(10, "0")} 00000 n \n`;
-  });
-  pdf += `trailer\n<< /Size ${objects.length + 1} /Root ${catalogId} 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+    const stream =
+      commands.join(
+        "\n"
+      );
 
-  // Encode as Latin-1 because the document intentionally uses only the
-  // built-in Helvetica character set after pdfSafeText().
-  const bytes = new Uint8Array(pdf.length);
-  for (let i = 0; i < pdf.length; i += 1) bytes[i] = pdf.charCodeAt(i) & 0xff;
-  return bytes;
+    objects[
+      pageObjectIds[i] - 1
+    ] =
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 ${fontObjectId} 0 R >> >> /Contents ${contentObjectIds[i]} 0 R >>`;
+
+    objects[
+      contentObjectIds[i] - 1
+    ] =
+      `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`;
+  }
+
+  let pdf =
+    "%PDF-1.4\n";
+
+  const offsets: number[] =
+    [0];
+
+  for (
+    let i = 0;
+    i < objects.length;
+    i++
+  ) {
+    offsets[i + 1] =
+      pdf.length;
+
+    pdf += `${i + 1} 0 obj\n`;
+    pdf += `${objects[i]}\n`;
+    pdf += "endobj\n";
+  }
+
+  const xrefOffset =
+    pdf.length;
+
+  pdf +=
+    `xref\n0 ${objects.length + 1}\n`;
+
+  pdf +=
+    "0000000000 65535 f \n";
+
+  for (
+    let i = 1;
+    i <= objects.length;
+    i++
+  ) {
+    pdf += `${String(
+      offsets[i]
+    ).padStart(
+      10,
+      "0"
+    )} 00000 n \n`;
+  }
+
+  pdf +=
+    `trailer\n<< /Size ${
+      objects.length + 1
+    } /Root 1 0 R >>\n`;
+
+  pdf +=
+    `startxref\n${xrefOffset}\n%%EOF`;
+
+  return new Blob(
+    [pdf],
+    {
+      type: "application/pdf",
+    }
+  );
 }
 
-export async function downloadPdfReport(
-  data: AssessmentReportData,
+export function downloadPdf(
+  report: AssessmentReportData,
   filename: string
-): Promise<void> {
-  const lines = buildPdfLines(data);
-  const bytes = buildPdfDocument(lines);
-  const blob = new Blob([bytes], { type: "application/pdf" });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
+): void {
+  if (
+    typeof window ===
+    "undefined"
+  ) {
+    return;
+  }
+
+  const blob =
+    createPdfBlob(report);
+
+  const url =
+    URL.createObjectURL(blob);
+
+  const anchor =
+    document.createElement(
+      "a"
+    );
+
   anchor.href = url;
-  anchor.download = filename;
-  anchor.style.display = "none";
-  document.body.appendChild(anchor);
+  anchor.download =
+    filename;
+
+  document.body.appendChild(
+    anchor
+  );
+
   anchor.click();
+
   anchor.remove();
 
-  // Delay revocation very slightly so browsers that process the download
-  // asynchronously still have access to the object URL.
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  setTimeout(
+    () =>
+      URL.revokeObjectURL(
+        url
+      ),
+    1000
+  );
 }
