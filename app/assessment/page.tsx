@@ -562,7 +562,6 @@ setCustomEntryPoints(
 );
 
 setCustomEntryPoint("");
-```
 
 }
 
