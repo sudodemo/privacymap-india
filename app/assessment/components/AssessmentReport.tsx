@@ -1183,9 +1183,12 @@ function DownloadReport({
 
     try {
       if (format === "pdf") {
-        await downloadPdf(report);
-        return;
-      }
+          downloadPdf(
+            report,
+            buildFileName("pdf")
+          );
+          return;
+        }
 
       if (format === "csv") {
         downloadTextFile(
