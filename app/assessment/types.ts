@@ -12,4 +12,8 @@ export interface AssessmentProfile {
   assessmentId: string;
   assessmentDate: string;
   assessmentVersion: string;
+  /** Selected knowledge-base industry name. */
+  industry?: string;
+  /** Selected knowledge-base business type name. */
+  businessType?: string;
 }
