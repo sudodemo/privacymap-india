@@ -6,8 +6,8 @@ import type { ResidualRiskDecisionRecord } from "../lib/governanceEngine";
 /* ============================================================
    STEP 13 EVIDENCE MODEL
 
-   Kept locally so the reporting layer does not require
-   EvidenceRecord to be exported from types.ts.
+   Kept local to the reporting layer so reportExport.ts does not
+   require EvidenceRecord to be exported from types.ts.
    ============================================================ */
 
 export type EvidenceRecord = {
@@ -17,10 +17,7 @@ export type EvidenceRecord = {
   verified: boolean;
 };
 
-export type EvidenceRecords = Record<
-  string,
-  EvidenceRecord
->;
+export type EvidenceRecords = Record<string, EvidenceRecord>;
 
 /* ============================================================
    REPORT DATA MODEL
@@ -47,23 +44,6 @@ function text(value: unknown): string {
   return String(value);
 }
 
-/*
- * RiskTreatmentAction has changed during the architecture
- * refactor. Some runtime fields such as owner and
- * recommendedTreatment may exist on the actual object even
- * when they are not declared on the current TypeScript type.
- *
- * We therefore access those fields safely through this helper.
- */
-function actionValue(
-  action: RiskTreatmentAction,
-  key: string
-): unknown {
-  return (
-    action as unknown as Record<string, unknown>
-  )[key];
-}
-
 function resultValue(
   result: RiskResult | null,
   key: string
@@ -73,10 +53,24 @@ function resultValue(
   }
 
   return (
-    result as unknown as Record<
-      string,
-      unknown
-    >
+    result as unknown as Record<string, unknown>
+  )[key];
+}
+
+/*
+ * Compatibility accessor for treatment actions.
+ *
+ * Some presentation fields existed in earlier versions of the
+ * remediation model but are not currently declared on
+ * RiskTreatmentAction. Access them through an unknown record so
+ * the reporting layer does not force changes into the core model.
+ */
+function treatmentValue(
+  action: RiskTreatmentAction,
+  key: string
+): unknown {
+  return (
+    action as unknown as Record<string, unknown>
   )[key];
 }
 
@@ -111,6 +105,21 @@ function escapeMarkdown(value: unknown): string {
 }
 
 /* ============================================================
+   DECISION MATCHING
+   ============================================================ */
+
+function findDecisionForAction(
+  report: AssessmentReportData,
+  action: RiskTreatmentAction
+): ResidualRiskDecisionRecord | undefined {
+  return report.residualRiskDecisions.find(
+    (decision) =>
+      decision.riskTitle === action.riskTitle &&
+      decision.category === action.category
+  );
+}
+
+/* ============================================================
    REPORT BUILDER
    ============================================================ */
 
@@ -138,11 +147,7 @@ export function buildAssessmentReport(
 export function reportToJson(
   report: AssessmentReportData
 ): string {
-  return JSON.stringify(
-    report,
-    null,
-    2
-  );
+  return JSON.stringify(report, null, 2);
 }
 
 /* ============================================================
@@ -166,12 +171,9 @@ export function reportToCsv(
     "Treatment Status",
     "Owner",
     "Priority",
-    "Timeframe",
+    "Target Resolution Date",
     "Effort",
     "Review Date",
-    "Approval Date",
-    "Next Review Date",
-    "Target Resolution Date",
     "Evidence Reference",
     "Evidence Owner",
     "Evidence Verified",
@@ -179,17 +181,23 @@ export function reportToCsv(
   ]);
 
   for (const action of report.treatmentActions) {
-    const decision =
-      report.residualRiskDecisions.find(
-        (d) =>
-          d.riskTitle ===
-            action.riskTitle &&
-          d.category ===
-            action.category
-      );
+    const decision = findDecisionForAction(
+      report,
+      action
+    );
 
     const evidence =
       report.evidenceRecords[action.id];
+
+    const owner = treatmentValue(
+      action,
+      "owner"
+    );
+
+    const effort = treatmentValue(
+      action,
+      "effort"
+    );
 
     rows.push([
       "Risk Treatment",
@@ -201,83 +209,20 @@ export function reportToCsv(
       text(decision?.decision),
       text(decision?.approvalStatus),
       text(action.status),
-
       text(
-        actionValue(
-          action,
-          "owner"
-        )
+        owner ||
+          decision?.accountableOwner
       ),
-
       text(action.priority),
-      text(action.timeframe),
-      text(action.effort),
-
-      text(decision?.reviewDate),
-      text(decision?.approvalDate),
-      text(decision?.nextReviewDate),
       text(
         decision?.targetResolutionDate
       ),
-
+      text(effort),
+      text(decision?.reviewDate),
       text(evidence?.reference),
       text(evidence?.owner),
-
-      evidence?.verified
-        ? "Yes"
-        : "No",
-
+      evidence?.verified ? "Yes" : "No",
       text(evidence?.notes),
-    ]);
-  }
-
-  /*
-   * Include governance records even if there is no
-   * corresponding treatment action.
-   */
-  for (
-    const decision of
-      report.residualRiskDecisions
-  ) {
-    const matchingAction =
-      report.treatmentActions.find(
-        (action) =>
-          action.riskTitle ===
-            decision.riskTitle &&
-          action.category ===
-            decision.category
-      );
-
-    if (matchingAction) {
-      continue;
-    }
-
-    rows.push([
-      "Residual Risk Decision",
-      text(decision.id),
-      text(decision.category),
-      text(decision.riskTitle),
-      text(decision.inherentRisk),
-      text(decision.residualRisk),
-      text(decision.decision),
-      text(decision.approvalStatus),
-      text(decision.treatmentStatus),
-      text(
-        decision.accountableOwner
-      ),
-      "",
-      "",
-      "",
-      text(decision.reviewDate),
-      text(decision.approvalDate),
-      text(decision.nextReviewDate),
-      text(
-        decision.targetResolutionDate
-      ),
-      "",
-      "",
-      "",
-      text(decision.rationale),
     ]);
   }
 
@@ -301,28 +246,188 @@ export function reportToXml(
   const result =
     report.riskResult;
 
-  const overallRisk =
-    resultValue(
-      result,
-      "overallRisk"
-    );
+  const overallRisk = resultValue(
+    result,
+    "overallRisk"
+  );
 
-  const riskScore =
-    resultValue(
-      result,
-      "riskScore"
-    );
+  const riskScore = resultValue(
+    result,
+    "riskScore"
+  );
 
-  const findings =
-    resultValue(
-      result,
-      "findings"
-    );
+  const findings = resultValue(
+    result,
+    "findings"
+  );
 
   const findingsArray =
     Array.isArray(findings)
       ? findings
       : [];
+
+  const treatmentXml =
+    report.treatmentActions
+      .map((action) => {
+        const decision =
+          findDecisionForAction(
+            report,
+            action
+          );
+
+        const evidence =
+          report.evidenceRecords[
+            action.id
+          ];
+
+        const owner =
+          treatmentValue(
+            action,
+            "owner"
+          );
+
+        const effort =
+          treatmentValue(
+            action,
+            "effort"
+          );
+
+        const recommendedTreatment =
+          treatmentValue(
+            action,
+            "recommendedTreatment"
+          );
+
+        return `
+      <treatment>
+        <id>${escapeXml(action.id)}</id>
+        <category>${escapeXml(
+          action.category
+        )}</category>
+        <riskTitle>${escapeXml(
+          action.riskTitle
+        )}</riskTitle>
+        <recommendedTreatment>${escapeXml(
+          recommendedTreatment
+        )}</recommendedTreatment>
+        <status>${escapeXml(
+          action.status
+        )}</status>
+        <priority>${escapeXml(
+          action.priority
+        )}</priority>
+        <owner>${escapeXml(
+          owner ||
+            decision?.accountableOwner
+        )}</owner>
+        <targetResolutionDate>${escapeXml(
+          decision?.targetResolutionDate
+        )}</targetResolutionDate>
+        <effort>${escapeXml(
+          effort
+        )}</effort>
+        <inherentRisk>${escapeXml(
+          decision?.inherentRisk
+        )}</inherentRisk>
+        <residualRisk>${escapeXml(
+          decision?.residualRisk
+        )}</residualRisk>
+        <decision>${escapeXml(
+          decision?.decision
+        )}</decision>
+        <approvalStatus>${escapeXml(
+          decision?.approvalStatus
+        )}</approvalStatus>
+        <reviewDate>${escapeXml(
+          decision?.reviewDate
+        )}</reviewDate>
+        <evidence>
+          <reference>${escapeXml(
+            evidence?.reference
+          )}</reference>
+          <owner>${escapeXml(
+            evidence?.owner
+          )}</owner>
+          <verified>${
+            evidence?.verified
+              ? "true"
+              : "false"
+          }</verified>
+          <notes>${escapeXml(
+            evidence?.notes
+          )}</notes>
+        </evidence>
+      </treatment>`;
+      })
+      .join("");
+
+  const decisionXml =
+    report.residualRiskDecisions
+      .map(
+        (decision) => `
+      <decision>
+        <id>${escapeXml(
+          decision.id
+        )}</id>
+        <findingId>${escapeXml(
+          decision.findingId
+        )}</findingId>
+        <riskTitle>${escapeXml(
+          decision.riskTitle
+        )}</riskTitle>
+        <category>${escapeXml(
+          decision.category
+        )}</category>
+        <inherentRisk>${escapeXml(
+          decision.inherentRisk
+        )}</inherentRisk>
+        <residualRisk>${escapeXml(
+          decision.residualRisk
+        )}</residualRisk>
+        <decisionValue>${escapeXml(
+          decision.decision
+        )}</decisionValue>
+        <rationale>${escapeXml(
+          decision.rationale
+        )}</rationale>
+        <accountableOwner>${escapeXml(
+          decision.accountableOwner
+        )}</accountableOwner>
+        <decisionAuthority>${escapeXml(
+          decision.decisionAuthority
+        )}</decisionAuthority>
+        <reviewDate>${escapeXml(
+          decision.reviewDate
+        )}</reviewDate>
+        <approvalDate>${escapeXml(
+          decision.approvalDate
+        )}</approvalDate>
+        <nextReviewDate>${escapeXml(
+          decision.nextReviewDate
+        )}</nextReviewDate>
+        <targetResolutionDate>${escapeXml(
+          decision.targetResolutionDate
+        )}</targetResolutionDate>
+        <approvalStatus>${escapeXml(
+          decision.approvalStatus
+        )}</approvalStatus>
+        <treatmentStatus>${escapeXml(
+          decision.treatmentStatus
+        )}</treatmentStatus>
+        <reviewFrequency>${escapeXml(
+          decision.reviewFrequency
+        )}</reviewFrequency>
+        <escalationRequired>${
+          decision.escalationRequired
+            ? "true"
+            : "false"
+        }</escalationRequired>
+        <escalationReason>${escapeXml(
+          decision.escalationReason
+        )}</escalationReason>
+      </decision>`
+      )
+      .join("");
 
   const findingXml =
     findingsArray
@@ -335,7 +440,9 @@ export function reportToXml(
 
         return `
       <finding>
-        <id>${escapeXml(item.id)}</id>
+        <id>${escapeXml(
+          item.id
+        )}</id>
         <category>${escapeXml(
           item.category
         )}</category>
@@ -360,229 +467,18 @@ export function reportToXml(
       })
       .join("");
 
-  const treatmentXml =
-    report.treatmentActions
-      .map((action) => {
-        const decision =
-          report.residualRiskDecisions.find(
-            (d) =>
-              d.riskTitle ===
-                action.riskTitle &&
-              d.category ===
-                action.category
-          );
-
-        const evidence =
-          report.evidenceRecords[
-            action.id
-          ];
-
-        const owner =
-          actionValue(
-            action,
-            "owner"
-          );
-
-        const recommendedTreatment =
-          actionValue(
-            action,
-            "recommendedTreatment"
-          );
-
-        return `
-      <treatment>
-        <id>${escapeXml(
-          action.id
-        )}</id>
-
-        <category>${escapeXml(
-          action.category
-        )}</category>
-
-        <riskTitle>${escapeXml(
-          action.riskTitle
-        )}</riskTitle>
-
-        <recommendedTreatment>${escapeXml(
-          recommendedTreatment
-        )}</recommendedTreatment>
-
-        <status>${escapeXml(
-          action.status
-        )}</status>
-
-        <priority>${escapeXml(
-          action.priority
-        )}</priority>
-
-        <owner>${escapeXml(
-          owner
-        )}</owner>
-
-        <timeframe>${escapeXml(
-          action.timeframe
-        )}</timeframe>
-
-        <effort>${escapeXml(
-          action.effort
-        )}</effort>
-
-        <inherentRisk>${escapeXml(
-          decision?.inherentRisk
-        )}</inherentRisk>
-
-        <residualRisk>${escapeXml(
-          decision?.residualRisk
-        )}</residualRisk>
-
-        <decision>${escapeXml(
-          decision?.decision
-        )}</decision>
-
-        <approvalStatus>${escapeXml(
-          decision?.approvalStatus
-        )}</approvalStatus>
-
-        <reviewDate>${escapeXml(
-          decision?.reviewDate
-        )}</reviewDate>
-
-        <approvalDate>${escapeXml(
-          decision?.approvalDate
-        )}</approvalDate>
-
-        <nextReviewDate>${escapeXml(
-          decision?.nextReviewDate
-        )}</nextReviewDate>
-
-        <targetResolutionDate>${escapeXml(
-          decision?.targetResolutionDate
-        )}</targetResolutionDate>
-
-        <evidence>
-          <reference>${escapeXml(
-            evidence?.reference
-          )}</reference>
-
-          <owner>${escapeXml(
-            evidence?.owner
-          )}</owner>
-
-          <verified>${
-            evidence?.verified
-              ? "true"
-              : "false"
-          }</verified>
-
-          <notes>${escapeXml(
-            evidence?.notes
-          )}</notes>
-        </evidence>
-      </treatment>`;
-      })
-      .join("");
-
-  const decisionXml =
-    report.residualRiskDecisions
-      .map(
-        (decision) => `
-      <decision>
-        <id>${escapeXml(
-          decision.id
-        )}</id>
-
-        <findingId>${escapeXml(
-          decision.findingId
-        )}</findingId>
-
-        <riskTitle>${escapeXml(
-          decision.riskTitle
-        )}</riskTitle>
-
-        <category>${escapeXml(
-          decision.category
-        )}</category>
-
-        <inherentRisk>${escapeXml(
-          decision.inherentRisk
-        )}</inherentRisk>
-
-        <residualRisk>${escapeXml(
-          decision.residualRisk
-        )}</residualRisk>
-
-        <decisionValue>${escapeXml(
-          decision.decision
-        )}</decisionValue>
-
-        <rationale>${escapeXml(
-          decision.rationale
-        )}</rationale>
-
-        <accountableOwner>${escapeXml(
-          decision.accountableOwner
-        )}</accountableOwner>
-
-        <decisionAuthority>${escapeXml(
-          decision.decisionAuthority
-        )}</decisionAuthority>
-
-        <reviewDate>${escapeXml(
-          decision.reviewDate
-        )}</reviewDate>
-
-        <approvalDate>${escapeXml(
-          decision.approvalDate
-        )}</approvalDate>
-
-        <nextReviewDate>${escapeXml(
-          decision.nextReviewDate
-        )}</nextReviewDate>
-
-        <targetResolutionDate>${escapeXml(
-          decision.targetResolutionDate
-        )}</targetResolutionDate>
-
-        <approvalStatus>${escapeXml(
-          decision.approvalStatus
-        )}</approvalStatus>
-
-        <treatmentStatus>${escapeXml(
-          decision.treatmentStatus
-        )}</treatmentStatus>
-
-        <reviewFrequency>${escapeXml(
-          decision.reviewFrequency
-        )}</reviewFrequency>
-
-        <escalationRequired>${
-          decision.escalationRequired
-            ? "true"
-            : "false"
-        }</escalationRequired>
-
-        <escalationReason>${escapeXml(
-          decision.escalationReason
-        )}</escalationReason>
-      </decision>`
-      )
-      .join("");
-
   return `<?xml version="1.0" encoding="UTF-8"?>
 <privacyMapAssessment>
   <metadata>
     <generatedAt>${escapeXml(
       report.generatedAt
     )}</generatedAt>
-
     <organisationName>${escapeXml(
       profile.organisationName
     )}</organisationName>
-
     <assessmentName>${escapeXml(
       profile.assessmentName
     )}</assessmentName>
-
     <assessmentId>${escapeXml(
       profile.assessmentId
     )}</assessmentId>
@@ -592,14 +488,10 @@ export function reportToXml(
     <overallRisk>${escapeXml(
       overallRisk
     )}</overallRisk>
-
     <riskScore>${escapeXml(
       riskScore
     )}</riskScore>
-
-    <findingCount>${
-      findingsArray.length
-    }</findingCount>
+    <findingCount>${findingsArray.length}</findingCount>
   </riskSummary>
 
   <findings>
@@ -629,27 +521,24 @@ export function reportToMarkdown(
   const result =
     report.riskResult;
 
-  const overallRisk =
-    text(
-      resultValue(
-        result,
-        "overallRisk"
-      )
-    );
-
-  const riskScore =
-    text(
-      resultValue(
-        result,
-        "riskScore"
-      )
-    );
-
-  const findings =
+  const overallRisk = text(
     resultValue(
       result,
-      "findings"
-    );
+      "overallRisk"
+    )
+  );
+
+  const riskScore = text(
+    resultValue(
+      result,
+      "riskScore"
+    )
+  );
+
+  const findings = resultValue(
+    result,
+    "findings"
+  );
 
   const findingsArray =
     Array.isArray(findings)
@@ -690,10 +579,6 @@ export function reportToMarkdown(
 
   lines.push("");
 
-  /* ==========================================================
-     EXECUTIVE SUMMARY
-     ========================================================== */
-
   lines.push(
     "## Executive Summary"
   );
@@ -722,19 +607,13 @@ export function reportToMarkdown(
 
   lines.push("");
 
-  /* ==========================================================
-     STEP 7
-     ========================================================== */
-
   lines.push(
     "## Step 7 — Privacy Risk Findings"
   );
 
   lines.push("");
 
-  for (
-    const finding of findingsArray
-  ) {
+  for (const finding of findingsArray) {
     const item =
       finding as Record<
         string,
@@ -779,10 +658,6 @@ export function reportToMarkdown(
     lines.push("");
   }
 
-  /* ==========================================================
-     STEP 8
-     ========================================================== */
-
   lines.push(
     "## Step 8 — Risk Treatment & Action Plan"
   );
@@ -790,20 +665,30 @@ export function reportToMarkdown(
   lines.push("");
 
   lines.push(
-    "| Category | Risk | Priority | Owner | Timeframe | Effort | Status |"
+    "| Category | Risk | Priority | Owner | Target Resolution Date | Effort | Status |"
   );
 
   lines.push(
     "|---|---|---|---|---|---|---|"
   );
 
-  for (
-    const action of report.treatmentActions
-  ) {
+  for (const action of report.treatmentActions) {
+    const decision =
+      findDecisionForAction(
+        report,
+        action
+      );
+
     const owner =
-      actionValue(
+      treatmentValue(
         action,
         "owner"
+      );
+
+    const effort =
+      treatmentValue(
+        action,
+        "effort"
       );
 
     lines.push(
@@ -814,11 +699,12 @@ export function reportToMarkdown(
       )} | ${escapeMarkdown(
         action.priority
       )} | ${escapeMarkdown(
-        owner
+        owner ||
+          decision?.accountableOwner
       )} | ${escapeMarkdown(
-        action.timeframe
+        decision?.targetResolutionDate
       )} | ${escapeMarkdown(
-        action.effort
+        effort
       )} | ${escapeMarkdown(
         action.status
       )} |`
@@ -827,33 +713,24 @@ export function reportToMarkdown(
 
   lines.push("");
 
-  /* ==========================================================
-     STEP 9 / 11 GOVERNANCE
-     ========================================================== */
-
   lines.push(
-    "## Step 9 / 11 — Residual Risk Governance"
+    "## Residual Risk Governance"
   );
 
   lines.push("");
 
   lines.push(
-    "| Risk | Category | Inherent | Residual | Decision | Approval | Owner | Review Date |"
+    "| Risk | Inherent | Residual | Decision | Approval | Owner | Review Date | Target Resolution Date |"
   );
 
   lines.push(
     "|---|---|---|---|---|---|---|---|"
   );
 
-  for (
-    const decision of
-      report.residualRiskDecisions
-  ) {
+  for (const decision of report.residualRiskDecisions) {
     lines.push(
       `| ${escapeMarkdown(
         decision.riskTitle
-      )} | ${escapeMarkdown(
-        decision.category
       )} | ${escapeMarkdown(
         decision.inherentRisk
       )} | ${escapeMarkdown(
@@ -866,15 +743,13 @@ export function reportToMarkdown(
         decision.accountableOwner
       )} | ${escapeMarkdown(
         decision.reviewDate
+      )} | ${escapeMarkdown(
+        decision.targetResolutionDate
       )} |`
     );
   }
 
   lines.push("");
-
-  /* ==========================================================
-     STEP 13
-     ========================================================== */
 
   lines.push(
     "## Step 13 — Evidence & Closure"
@@ -882,9 +757,7 @@ export function reportToMarkdown(
 
   lines.push("");
 
-  for (
-    const action of report.treatmentActions
-  ) {
+  for (const action of report.treatmentActions) {
     const evidence =
       report.evidenceRecords[
         action.id
@@ -943,7 +816,7 @@ export function reportToMarkdown(
 }
 
 /* ============================================================
-   BROWSER DOWNLOAD — TEXT FORMATS
+   BROWSER DOWNLOAD
    ============================================================ */
 
 export function downloadTextFile(
@@ -969,17 +842,12 @@ export function downloadTextFile(
     URL.createObjectURL(blob);
 
   const anchor =
-    document.createElement(
-      "a"
-    );
+    document.createElement("a");
 
   anchor.href = url;
-  anchor.download =
-    filename;
+  anchor.download = filename;
 
-  document.body.appendChild(
-    anchor
-  );
+  document.body.appendChild(anchor);
 
   anchor.click();
 
@@ -987,21 +855,13 @@ export function downloadTextFile(
 
   setTimeout(
     () =>
-      URL.revokeObjectURL(
-        url
-      ),
+      URL.revokeObjectURL(url),
     1000
   );
 }
 
 /* ============================================================
    DEPENDENCY-FREE PDF
-
-   No jsPDF.
-   No npm package.
-   No external library.
-
-   The PDF is generated directly in the browser.
    ============================================================ */
 
 function pdfEscape(
@@ -1024,9 +884,7 @@ function wrapPdfText(
 
   let current = "";
 
-  for (
-    const word of words
-  ) {
+  for (const word of words) {
     if (
       `${current} ${word}`
         .trim()
@@ -1061,35 +919,23 @@ function buildPdfPages(
   const result =
     report.riskResult;
 
-  const overallRisk =
-    text(
-      resultValue(
-        result,
-        "overallRisk"
-      )
-    );
+  const overallRisk = text(
+    resultValue(
+      result,
+      "overallRisk"
+    )
+  );
 
-  const riskScore =
-    text(
-      resultValue(
-        result,
-        "riskScore"
-      )
-    );
-
-  /* ==========================================================
-     COVER / SUMMARY
-     ========================================================== */
-
-  lines.push(
-    "PRIVACYMAP INDIA"
+  const riskScore = text(
+    resultValue(
+      result,
+      "riskScore"
+    )
   );
 
   lines.push(
-    "Privacy Assessment Report"
+    "PrivacyMap India Assessment Report"
   );
-
-  lines.push("");
 
   lines.push(
     `Organisation: ${text(
@@ -1110,9 +956,7 @@ function buildPdfPages(
   );
 
   lines.push(
-    `Generated: ${text(
-      report.generatedAt
-    )}`
+    `Generated: ${report.generatedAt}`
   );
 
   lines.push("");
@@ -1130,24 +974,6 @@ function buildPdfPages(
   );
 
   lines.push(
-    `Risk Findings: ${
-      Array.isArray(
-        resultValue(
-          result,
-          "findings"
-        )
-      )
-        ? (
-            resultValue(
-              result,
-              "findings"
-            ) as unknown[]
-          ).length
-        : 0
-    }`
-  );
-
-  lines.push(
     `Treatment Actions: ${report.treatmentActions.length}`
   );
 
@@ -1157,90 +983,31 @@ function buildPdfPages(
 
   lines.push("");
 
-  /* ==========================================================
-     STEP 7
-     ========================================================== */
-
-  const findings =
-    resultValue(
-      result,
-      "findings"
-    );
-
-  const findingsArray =
-    Array.isArray(findings)
-      ? findings
-      : [];
-
-  lines.push(
-    "STEP 7 - PRIVACY RISK FINDINGS"
-  );
-
-  for (
-    const finding of findingsArray
-  ) {
-    const item =
-      finding as Record<
-        string,
-        unknown
-      >;
-
-    lines.push("");
-
-    lines.push(
-      `${text(
-        item.category
-      )} - ${text(
-        item.title ??
-          item.riskTitle ??
-          item.name
-      )}`
-    );
-
-    lines.push(
-      `Risk: ${text(
-        item.severity ??
-          item.risk ??
-          item.riskLevel
-      )}`
-    );
-
-    lines.push(
-      `Description: ${text(
-        item.description
-      )}`
-    );
-
-    lines.push(
-      `Recommended Action: ${text(
-        item.recommendedAction ??
-          item.recommendation
-      )}`
-    );
-  }
-
-  /* ==========================================================
-     STEP 8
-     ========================================================== */
-
-  lines.push("");
-
   lines.push(
     "STEP 8 - RISK TREATMENT & ACTION PLAN"
   );
 
-  for (
-    const action of
-      report.treatmentActions
-  ) {
+  for (const action of report.treatmentActions) {
+    const decision =
+      findDecisionForAction(
+        report,
+        action
+      );
+
     const owner =
-      actionValue(
+      treatmentValue(
         action,
         "owner"
       );
 
-    const treatment =
-      actionValue(
+    const effort =
+      treatmentValue(
+        action,
+        "effort"
+      );
+
+    const recommendedTreatment =
+      treatmentValue(
         action,
         "recommendedTreatment"
       );
@@ -1269,32 +1036,29 @@ function buildPdfPages(
 
     lines.push(
       `Owner: ${text(
-        owner
+        owner ||
+          decision?.accountableOwner
       )}`
     );
 
     lines.push(
-      `Timeframe: ${text(
-        action.timeframe
+      `Target Resolution Date: ${text(
+        decision?.targetResolutionDate
       )}`
     );
 
     lines.push(
       `Effort: ${text(
-        action.effort
+        effort
       )}`
     );
 
     lines.push(
       `Treatment: ${text(
-        treatment
+        recommendedTreatment
       )}`
     );
   }
-
-  /* ==========================================================
-     STEP 9
-     ========================================================== */
 
   lines.push("");
 
@@ -1302,10 +1066,7 @@ function buildPdfPages(
     "STEP 9 - RESIDUAL RISK ASSESSMENT"
   );
 
-  for (
-    const decision of
-      report.residualRiskDecisions
-  ) {
+  for (const decision of report.residualRiskDecisions) {
     lines.push("");
 
     lines.push(
@@ -1337,31 +1098,7 @@ function buildPdfPages(
         decision.decision
       )}`
     );
-
-    lines.push(
-      `Treatment Status: ${text(
-        decision.treatmentStatus
-      )}`
-    );
   }
-
-  /* ==========================================================
-     STEP 10
-     ========================================================== */
-
-  lines.push("");
-
-  lines.push(
-    "STEP 10 - DPDP MAPPING"
-  );
-
-  lines.push(
-    "DPDP-related assessment responses and mappings are represented in the underlying assessment data."
-  );
-
-  /* ==========================================================
-     STEP 11
-     ========================================================== */
 
   lines.push("");
 
@@ -1369,10 +1106,7 @@ function buildPdfPages(
     "STEP 11 - RISK GOVERNANCE & APPROVAL"
   );
 
-  for (
-    const decision of
-      report.residualRiskDecisions
-  ) {
+  for (const decision of report.residualRiskDecisions) {
     lines.push("");
 
     lines.push(
@@ -1418,82 +1152,23 @@ function buildPdfPages(
     );
 
     lines.push(
-      `Escalation Required: ${
-        decision.escalationRequired
-          ? "Yes"
-          : "No"
-      }`
-    );
-  }
-
-  /* ==========================================================
-     STEP 12
-     ========================================================== */
-
-  lines.push("");
-
-  lines.push(
-    "STEP 12 - REMEDIATION TRACKER"
-  );
-
-  const open =
-    report.treatmentActions.filter(
-      (a) =>
-        a.status === "Open"
-    ).length;
-
-  const inProgress =
-    report.treatmentActions.filter(
-      (a) =>
-        a.status ===
-        "In Progress"
-    ).length;
-
-  const closed =
-    report.treatmentActions.filter(
-      (a) =>
-        a.status ===
-          "Completed" ||
-        a.status ===
-          "Accepted"
-    ).length;
-
-  lines.push(
-    `Open: ${open}`
-  );
-
-  lines.push(
-    `In Progress: ${inProgress}`
-  );
-
-  lines.push(
-    `Closed: ${closed}`
-  );
-
-  for (
-    const action of
-      report.treatmentActions
-  ) {
-    lines.push("");
-
-    lines.push(
-      `${text(
-        action.category
-      )} - ${text(
-        action.riskTitle
+      `Target Resolution Date: ${text(
+        decision.targetResolutionDate
       )}`
     );
 
     lines.push(
       `Treatment Status: ${text(
-        action.status
+        decision.treatmentStatus
+      )}`
+    );
+
+    lines.push(
+      `Review Frequency: ${text(
+        decision.reviewFrequency
       )}`
     );
   }
-
-  /* ==========================================================
-     STEP 13
-     ========================================================== */
 
   lines.push("");
 
@@ -1501,10 +1176,7 @@ function buildPdfPages(
     "STEP 13 - EVIDENCE & CLOSURE"
   );
 
-  for (
-    const action of
-      report.treatmentActions
-  ) {
+  for (const action of report.treatmentActions) {
     const evidence =
       report.evidenceRecords[
         action.id
@@ -1551,49 +1223,23 @@ function buildPdfPages(
     );
   }
 
-  lines.push("");
-
-  lines.push(
-    "END OF ASSESSMENT REPORT"
-  );
-
-  lines.push("");
-
-  lines.push(
-    "PrivacyMap India assessment output is a risk-assessment and governance aid. It is not a legal opinion, certification or automatic determination of DPDP compliance."
-  );
-
-  /* ==========================================================
-     PAGINATION
-     ========================================================== */
-
-  const pages: string[][] =
-    [];
+  const pages: string[][] = [];
 
   let page: string[] = [];
 
-  for (
-    const line of lines
-  ) {
+  for (const line of lines) {
     const wrapped =
       wrapPdfText(
         line || " "
       );
 
-    for (
-      const wrappedLine of
-        wrapped
-    ) {
-      if (
-        page.length >= 48
-      ) {
+    for (const wrappedLine of wrapped) {
+      if (page.length >= 48) {
         pages.push(page);
         page = [];
       }
 
-      page.push(
-        wrappedLine
-      );
+      page.push(wrappedLine);
     }
   }
 
@@ -1614,14 +1260,11 @@ export function createPdfBlob(
   const pages =
     buildPdfPages(report);
 
-  const objects: string[] =
-    [];
+  const objects: string[] = [];
 
-  const pageObjectIds: number[] =
-    [];
+  const pageObjectIds: number[] = [];
 
-  const contentObjectIds: number[] =
-    [];
+  const contentObjectIds: number[] = [];
 
   /*
    * Object 1 = Catalog
@@ -1669,15 +1312,14 @@ export function createPdfBlob(
     `<< /Type /Pages /Kids [${pagesKids}] /Count ${pages.length} >>`;
 
   objects[0] =
-    `<< /Type /Catalog /Pages 2 0 R >>`;
+    "<< /Type /Catalog /Pages 2 0 R >>";
 
   for (
     let i = 0;
     i < pages.length;
     i++
   ) {
-    const commands: string[] =
-      [];
+    const commands: string[] = [];
 
     commands.push("BT");
 
@@ -1693,9 +1335,7 @@ export function createPdfBlob(
       "50 760 Td"
     );
 
-    for (
-      const line of pages[i]
-    ) {
+    for (const line of pages[i]) {
       commands.push(
         `(${pdfEscape(
           line
@@ -1735,14 +1375,9 @@ export function createPdfBlob(
     offsets[i + 1] =
       pdf.length;
 
-    pdf +=
-      `${i + 1} 0 obj\n`;
-
-    pdf +=
-      `${objects[i]}\n`;
-
-    pdf +=
-      "endobj\n";
+    pdf += `${i + 1} 0 obj\n`;
+    pdf += `${objects[i]}\n`;
+    pdf += "endobj\n";
   }
 
   const xrefOffset =
@@ -1759,13 +1394,12 @@ export function createPdfBlob(
     i <= objects.length;
     i++
   ) {
-    pdf +=
-      `${String(
-        offsets[i]
-      ).padStart(
-        10,
-        "0"
-      )} 00000 n \n`;
+    pdf += `${String(
+      offsets[i]
+    ).padStart(
+      10,
+      "0"
+    )} 00000 n \n`;
   }
 
   pdf +=
@@ -1779,14 +1413,13 @@ export function createPdfBlob(
   return new Blob(
     [pdf],
     {
-      type:
-        "application/pdf",
+      type: "application/pdf",
     }
   );
 }
 
 /* ============================================================
-   DIRECT PDF DOWNLOAD
+   DOWNLOAD PDF
    ============================================================ */
 
 export function downloadPdf(
@@ -1807,12 +1440,9 @@ export function downloadPdf(
     URL.createObjectURL(blob);
 
   const anchor =
-    document.createElement(
-      "a"
-    );
+    document.createElement("a");
 
   anchor.href = url;
-
   anchor.download =
     filename;
 
