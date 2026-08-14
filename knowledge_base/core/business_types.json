@@ -10,37 +10,37 @@
       "id": "EDU-COL",
       "industry_id": "EDU",
       "name": "College",
-      "status": "active"
+      "status": "pending"
     },
     {
       "id": "EDU-COA",
       "industry_id": "EDU",
       "name": "Coaching Institute",
-      "status": "active"
+      "status": "pending"
     },
     {
       "id": "EDU-TUI",
       "industry_id": "EDU",
       "name": "Tuition Centre",
-      "status": "active"
+      "status": "pending"
     },
     {
       "id": "EDU-PRE",
       "industry_id": "EDU",
       "name": "Preschool",
-      "status": "active"
+      "status": "pending"
     },
     {
       "id": "EDU-SKI",
       "industry_id": "EDU",
       "name": "Vocational / Skill Institute",
-      "status": "active"
+      "status": "pending"
     },
     {
       "id": "EDU-EDT",
       "industry_id": "EDU",
       "name": "EdTech / Online Education",
-      "status": "active"
+      "status": "pending"
     }
   ]
 }
