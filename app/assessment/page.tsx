@@ -546,7 +546,6 @@ function addCustomEntryPoint() {
 const name =
 customEntryPoint.trim();
 
-```
 if (!name) return;
 
 setCustomEntryPoints(
