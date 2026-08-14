@@ -8,22 +8,22 @@
     {
       "id": "HLT",
       "name": "Healthcare",
-      "status": "active"
+      "status": "pending"
     },
     {
       "id": "HOS",
       "name": "Hospitality",
-      "status": "active"
+      "status": "pending"
     },
     {
       "id": "RET",
       "name": "Retail",
-      "status": "active"
+      "status": "pending"
     },
     {
       "id": "PRO",
       "name": "Professional Services",
-      "status": "active"
+      "status": "pending"
     }
   ]
 }
