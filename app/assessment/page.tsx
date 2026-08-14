@@ -1130,6 +1130,14 @@ export default function AssessmentPage() {
           industryId={industryId}
           setIndustryId={(value) => {
             setIndustryId(value);
+            setAssessmentProfile((current) => ({
+              ...current,
+              industry:
+                kb.industries.find(
+                  (industry) => industry.id === value
+                )?.name ?? "",
+              businessType: "",
+            }));
             resetAssessment();
           }}
           resetAssessment={
@@ -1148,9 +1156,17 @@ export default function AssessmentPage() {
             businessTypeId={
               businessTypeId
             }
-            setBusinessTypeId={
-              setBusinessTypeId
-            }
+            setBusinessTypeId={(value) => {
+              setBusinessTypeId(value);
+              setAssessmentProfile((current) => ({
+                ...current,
+                businessType:
+                  businessTypes.find(
+                    (businessType) =>
+                      businessType.id === value
+                  )?.name ?? "",
+              }));
+            }}
             businessTypes={
               businessTypes
             }
