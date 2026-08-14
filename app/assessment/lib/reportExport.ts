@@ -1,4 +1,3 @@
-```tsx
 import type { AssessmentProfile } from "../types";
 import type { RiskResult } from "../lib/riskEngine";
 import type { RiskTreatmentAction } from "../lib/remediationEngine";
@@ -1833,4 +1832,3 @@ export function downloadPdf(
     1000
   );
 }
-```
