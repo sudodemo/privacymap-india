@@ -58,6 +58,8 @@ import Step10DPDPMapping from "./components/Step10DPDPMapping";
 import Step11Governance from "./components/Step11Governance";
 import Step12RemediationTracker from "./components/Step12RemediationTracker";
 import Step13EvidenceClosure from "./components/Step13EvidenceClosure";
+import AssessmentReport from "./components/AssessmentReport";
+import {buildAssessmentReport, type EvidenceRecords, } from "./lib/reportExport";
 
 
 /* ============================================================
@@ -347,6 +349,11 @@ export default function AssessmentPage() {
     ResidualRiskDecisionRecord[]
   >([]);
 
+  const [
+  evidenceRecords,
+  setEvidenceRecords,
+  ] = useState<EvidenceRecords>({});
+
 
   /* ==========================================================
      DERIVED DATA
@@ -631,6 +638,37 @@ export default function AssessmentPage() {
           "Accepted"
     );
 
+    const step13Complete =
+  step12Complete &&
+  treatmentActions.length > 0 &&
+  treatmentActions.every(
+    (action) => {
+      const evidence =
+        evidenceRecords[
+          action.id
+        ];
+
+      const decision =
+        residualRiskDecisions.find(
+          (item) =>
+            item.riskTitle ===
+              action.riskTitle &&
+            item.category ===
+              action.category
+        );
+
+      return (
+        Boolean(
+          evidence?.reference
+            ?.trim()
+        ) &&
+        evidence?.verified ===
+          true &&
+        decision?.approvalStatus ===
+          "Approved"
+      );
+    }
+  );
 
   /* ==========================================================
      ARRAY / ENTRY POINT HELPERS
@@ -762,9 +800,10 @@ export default function AssessmentPage() {
      ========================================================== */
 
   function clearRiskOutputs() {
-    setRiskResult(null);
-    setTreatmentActions([]);
-    setResidualRiskDecisions([]);
+  setRiskResult(null);
+  setTreatmentActions([]);
+  setResidualRiskDecisions([]);
+  setEvidenceRecords({});
   }
 
 
@@ -966,6 +1005,34 @@ export default function AssessmentPage() {
      GOVERNANCE DECISION UPDATE
      ========================================================== */
 
+  function updateEvidence(
+  id: string,
+  updates: Partial<
+    EvidenceRecords[string]
+  >
+) {
+  setEvidenceRecords(
+    (current) => ({
+      ...current,
+      [id]: {
+        reference:
+          current[id]
+            ?.reference || "",
+        owner:
+          current[id]
+            ?.owner || "",
+        notes:
+          current[id]
+            ?.notes || "",
+        verified:
+          current[id]
+            ?.verified || false,
+        ...updates,
+      },
+    })
+  );
+}
+  
   function updateDecision(
     id: string,
     updates: Partial<ResidualRiskDecisionRecord>
@@ -1542,10 +1609,29 @@ export default function AssessmentPage() {
               decisions={
                 residualRiskDecisions
               }
+              evidenceRecords={
+                evidenceRecords
+              }
+              onEvidenceChange={
+                updateEvidence
+              }
             />
           )}
 
 
+        {riskResult &&
+        step13Complete && (
+          <AssessmentReport
+            report={buildAssessmentReport(
+              assessmentProfile,
+              riskResult,
+              treatmentActions,
+              residualRiskDecisions,
+              evidenceRecords
+            )}
+          />
+        )}
+        
         {/* ======================================================
             PRIVACY BY DESIGN
             ====================================================== */}
