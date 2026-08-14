@@ -1,3 +1,4 @@
+```tsx
 import type { AssessmentProfile } from "../types";
 import type { RiskResult } from "../lib/riskEngine";
 import type { RiskTreatmentAction } from "../lib/remediationEngine";
@@ -7,7 +8,7 @@ import type { ResidualRiskDecisionRecord } from "../lib/governanceEngine";
    STEP 13 EVIDENCE MODEL
 
    Kept local to the reporting layer so reportExport.ts does not
-   require EvidenceRecord to be exported from types.ts.
+   depend on EvidenceRecord being exported from types.ts.
    ============================================================ */
 
 export type EvidenceRecord = {
@@ -44,6 +45,55 @@ function text(value: unknown): string {
   return String(value);
 }
 
+/**
+ * Safely reads a property from an object even when the project's
+ * TypeScript interface does not currently declare that property.
+ *
+ * This is important for RiskTreatmentAction because different
+ * architecture versions may expose fields such as:
+ *
+ * - owner
+ * - timeframe
+ * - effort
+ * - recommendedTreatment
+ *
+ * at runtime without declaring them on the exported interface.
+ */
+function safeField(
+  value: unknown,
+  key: string
+): unknown {
+  if (
+    value === null ||
+    value === undefined ||
+    typeof value !== "object"
+  ) {
+    return "";
+  }
+
+  return (
+    value as Record<string, unknown>
+  )[key];
+}
+
+function actionValue(
+  action: RiskTreatmentAction,
+  key: string
+): string {
+  return text(
+    safeField(action, key)
+  );
+}
+
+function decisionValue(
+  decision: ResidualRiskDecisionRecord | undefined,
+  key: string
+): string {
+  return text(
+    safeField(decision, key)
+  );
+}
+
 function resultValue(
   result: RiskResult | null,
   key: string
@@ -52,27 +102,12 @@ function resultValue(
     return "";
   }
 
-  return (
-    result as unknown as Record<string, unknown>
-  )[key];
+  return safeField(result, key);
 }
 
-/*
- * Compatibility accessor for treatment actions.
- *
- * Some presentation fields existed in earlier versions of the
- * remediation model but are not currently declared on
- * RiskTreatmentAction. Access them through an unknown record so
- * the reporting layer does not force changes into the core model.
- */
-function treatmentValue(
-  action: RiskTreatmentAction,
-  key: string
-): unknown {
-  return (
-    action as unknown as Record<string, unknown>
-  )[key];
-}
+/* ============================================================
+   ESCAPING HELPERS
+   ============================================================ */
 
 function escapeCsv(value: unknown): string {
   const s = text(value);
@@ -104,19 +139,26 @@ function escapeMarkdown(value: unknown): string {
     .replace(/\r?\n/g, "<br>");
 }
 
-/* ============================================================
-   DECISION MATCHING
-   ============================================================ */
-
-function findDecisionForAction(
-  report: AssessmentReportData,
-  action: RiskTreatmentAction
-): ResidualRiskDecisionRecord | undefined {
-  return report.residualRiskDecisions.find(
-    (decision) =>
-      decision.riskTitle === action.riskTitle &&
-      decision.category === action.category
-  );
+/**
+ * PDF uses a basic Helvetica font. Convert unsupported Unicode
+ * punctuation to safe ASCII equivalents so the dependency-free
+ * PDF remains readable.
+ */
+function normalizePdfText(
+  value: unknown
+): string {
+  return text(value)
+    .replace(/[–—]/g, "-")
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/₹/g, "INR ")
+    .replace(/•/g, "-")
+    .replace(/→/g, "->")
+    .replace(/←/g, "<-")
+    .replace(/≥/g, ">=")
+    .replace(/≤/g, "<=")
+    .replace(/≠/g, "!=")
+    .replace(/[^\x09\x0A\x0D\x20-\x7E]/g, "");
 }
 
 /* ============================================================
@@ -147,7 +189,11 @@ export function buildAssessmentReport(
 export function reportToJson(
   report: AssessmentReportData
 ): string {
-  return JSON.stringify(report, null, 2);
+  return JSON.stringify(
+    report,
+    null,
+    2
+  );
 }
 
 /* ============================================================
@@ -171,7 +217,7 @@ export function reportToCsv(
     "Treatment Status",
     "Owner",
     "Priority",
-    "Target Resolution Date",
+    "Timeframe",
     "Effort",
     "Review Date",
     "Evidence Reference",
@@ -180,55 +226,84 @@ export function reportToCsv(
     "Notes",
   ]);
 
-  for (const action of report.treatmentActions) {
-    const decision = findDecisionForAction(
-      report,
-      action
-    );
+  for (
+    const action of report.treatmentActions
+  ) {
+    const decision =
+      report.residualRiskDecisions.find(
+        (d) =>
+          decisionValue(d, "riskTitle") ===
+            actionValue(action, "riskTitle") &&
+          decisionValue(d, "category") ===
+            actionValue(action, "category")
+      );
 
     const evidence =
-      report.evidenceRecords[action.id];
-
-    const owner = treatmentValue(
-      action,
-      "owner"
-    );
-
-    const effort = treatmentValue(
-      action,
-      "effort"
-    );
+      report.evidenceRecords[
+        actionValue(action, "id")
+      ];
 
     rows.push([
       "Risk Treatment",
-      text(action.id),
-      text(action.category),
-      text(action.riskTitle),
-      text(decision?.inherentRisk),
-      text(decision?.residualRisk),
-      text(decision?.decision),
-      text(decision?.approvalStatus),
-      text(action.status),
-      text(
-        owner ||
-          decision?.accountableOwner
+
+      actionValue(action, "id"),
+
+      actionValue(action, "category"),
+
+      actionValue(action, "riskTitle"),
+
+      decisionValue(
+        decision,
+        "inherentRisk"
       ),
-      text(action.priority),
-      text(
-        decision?.targetResolutionDate
+
+      decisionValue(
+        decision,
+        "residualRisk"
       ),
-      text(effort),
-      text(decision?.reviewDate),
-      text(evidence?.reference),
-      text(evidence?.owner),
-      evidence?.verified ? "Yes" : "No",
-      text(evidence?.notes),
+
+      decisionValue(
+        decision,
+        "decision"
+      ),
+
+      decisionValue(
+        decision,
+        "approvalStatus"
+      ),
+
+      actionValue(action, "status"),
+
+      actionValue(action, "owner"),
+
+      actionValue(action, "priority"),
+
+      actionValue(action, "timeframe"),
+
+      actionValue(action, "effort"),
+
+      decisionValue(
+        decision,
+        "reviewDate"
+      ),
+
+      evidence?.reference ?? "",
+
+      evidence?.owner ?? "",
+
+      evidence?.verified
+        ? "Yes"
+        : "No",
+
+      evidence?.notes ?? "",
     ]);
   }
 
   return rows
     .map((row) =>
-      row.map(escapeCsv).join(",")
+      row
+        .map(escapeCsv)
+        .join(",")
     )
     .join("\r\n");
 }
@@ -246,113 +321,151 @@ export function reportToXml(
   const result =
     report.riskResult;
 
-  const overallRisk = resultValue(
-    result,
-    "overallRisk"
+  const overallRisk = text(
+    resultValue(
+      result,
+      "overallRisk"
+    )
   );
 
-  const riskScore = resultValue(
-    result,
-    "riskScore"
+  const riskScore = text(
+    resultValue(
+      result,
+      "riskScore"
+    )
   );
 
-  const findings = resultValue(
-    result,
-    "findings"
-  );
+  const findingsValue =
+    resultValue(
+      result,
+      "findings"
+    );
 
   const findingsArray =
-    Array.isArray(findings)
-      ? findings
+    Array.isArray(findingsValue)
+      ? findingsValue
       : [];
 
   const treatmentXml =
     report.treatmentActions
       .map((action) => {
         const decision =
-          findDecisionForAction(
-            report,
-            action
+          report.residualRiskDecisions.find(
+            (d) =>
+              decisionValue(
+                d,
+                "riskTitle"
+              ) ===
+                actionValue(
+                  action,
+                  "riskTitle"
+                ) &&
+              decisionValue(
+                d,
+                "category"
+              ) ===
+                actionValue(
+                  action,
+                  "category"
+                )
           );
 
         const evidence =
           report.evidenceRecords[
-            action.id
+            actionValue(action, "id")
           ];
-
-        const owner =
-          treatmentValue(
-            action,
-            "owner"
-          );
-
-        const effort =
-          treatmentValue(
-            action,
-            "effort"
-          );
-
-        const recommendedTreatment =
-          treatmentValue(
-            action,
-            "recommendedTreatment"
-          );
 
         return `
       <treatment>
-        <id>${escapeXml(action.id)}</id>
+        <id>${escapeXml(
+          actionValue(action, "id")
+        )}</id>
+
         <category>${escapeXml(
-          action.category
+          actionValue(action, "category")
         )}</category>
+
         <riskTitle>${escapeXml(
-          action.riskTitle
+          actionValue(action, "riskTitle")
         )}</riskTitle>
+
         <recommendedTreatment>${escapeXml(
-          recommendedTreatment
+          actionValue(
+            action,
+            "recommendedTreatment"
+          )
         )}</recommendedTreatment>
+
         <status>${escapeXml(
-          action.status
+          actionValue(action, "status")
         )}</status>
+
         <priority>${escapeXml(
-          action.priority
+          actionValue(action, "priority")
         )}</priority>
+
         <owner>${escapeXml(
-          owner ||
-            decision?.accountableOwner
+          actionValue(action, "owner")
         )}</owner>
-        <targetResolutionDate>${escapeXml(
-          decision?.targetResolutionDate
-        )}</targetResolutionDate>
+
+        <timeframe>${escapeXml(
+          actionValue(action, "timeframe")
+        )}</timeframe>
+
         <effort>${escapeXml(
-          effort
+          actionValue(action, "effort")
         )}</effort>
+
         <inherentRisk>${escapeXml(
-          decision?.inherentRisk
+          decisionValue(
+            decision,
+            "inherentRisk"
+          )
         )}</inherentRisk>
+
         <residualRisk>${escapeXml(
-          decision?.residualRisk
+          decisionValue(
+            decision,
+            "residualRisk"
+          )
         )}</residualRisk>
+
         <decision>${escapeXml(
-          decision?.decision
+          decisionValue(
+            decision,
+            "decision"
+          )
         )}</decision>
+
         <approvalStatus>${escapeXml(
-          decision?.approvalStatus
+          decisionValue(
+            decision,
+            "approvalStatus"
+          )
         )}</approvalStatus>
+
         <reviewDate>${escapeXml(
-          decision?.reviewDate
+          decisionValue(
+            decision,
+            "reviewDate"
+          )
         )}</reviewDate>
+
         <evidence>
           <reference>${escapeXml(
             evidence?.reference
           )}</reference>
+
           <owner>${escapeXml(
             evidence?.owner
           )}</owner>
+
           <verified>${
             evidence?.verified
               ? "true"
               : "false"
           }</verified>
+
           <notes>${escapeXml(
             evidence?.notes
           )}</notes>
@@ -367,63 +480,140 @@ export function reportToXml(
         (decision) => `
       <decision>
         <id>${escapeXml(
-          decision.id
+          decisionValue(
+            decision,
+            "id"
+          )
         )}</id>
+
         <findingId>${escapeXml(
-          decision.findingId
+          decisionValue(
+            decision,
+            "findingId"
+          )
         )}</findingId>
+
         <riskTitle>${escapeXml(
-          decision.riskTitle
+          decisionValue(
+            decision,
+            "riskTitle"
+          )
         )}</riskTitle>
+
         <category>${escapeXml(
-          decision.category
+          decisionValue(
+            decision,
+            "category"
+          )
         )}</category>
+
         <inherentRisk>${escapeXml(
-          decision.inherentRisk
+          decisionValue(
+            decision,
+            "inherentRisk"
+          )
         )}</inherentRisk>
+
         <residualRisk>${escapeXml(
-          decision.residualRisk
+          decisionValue(
+            decision,
+            "residualRisk"
+          )
         )}</residualRisk>
+
         <decisionValue>${escapeXml(
-          decision.decision
+          decisionValue(
+            decision,
+            "decision"
+          )
         )}</decisionValue>
+
         <rationale>${escapeXml(
-          decision.rationale
+          decisionValue(
+            decision,
+            "rationale"
+          )
         )}</rationale>
+
         <accountableOwner>${escapeXml(
-          decision.accountableOwner
+          decisionValue(
+            decision,
+            "accountableOwner"
+          )
         )}</accountableOwner>
+
         <decisionAuthority>${escapeXml(
-          decision.decisionAuthority
+          decisionValue(
+            decision,
+            "decisionAuthority"
+          )
         )}</decisionAuthority>
+
         <reviewDate>${escapeXml(
-          decision.reviewDate
+          decisionValue(
+            decision,
+            "reviewDate"
+          )
         )}</reviewDate>
+
         <approvalDate>${escapeXml(
-          decision.approvalDate
+          decisionValue(
+            decision,
+            "approvalDate"
+          )
         )}</approvalDate>
+
         <nextReviewDate>${escapeXml(
-          decision.nextReviewDate
+          decisionValue(
+            decision,
+            "nextReviewDate"
+          )
         )}</nextReviewDate>
+
         <targetResolutionDate>${escapeXml(
-          decision.targetResolutionDate
+          decisionValue(
+            decision,
+            "targetResolutionDate"
+          )
         )}</targetResolutionDate>
+
         <approvalStatus>${escapeXml(
-          decision.approvalStatus
+          decisionValue(
+            decision,
+            "approvalStatus"
+          )
         )}</approvalStatus>
+
         <treatmentStatus>${escapeXml(
-          decision.treatmentStatus
+          decisionValue(
+            decision,
+            "treatmentStatus"
+          )
         )}</treatmentStatus>
+
         <reviewFrequency>${escapeXml(
-          decision.reviewFrequency
+          decisionValue(
+            decision,
+            "reviewFrequency"
+          )
         )}</reviewFrequency>
+
         <escalationRequired>${
-          decision.escalationRequired
+          Boolean(
+            safeField(
+              decision,
+              "escalationRequired"
+            )
+          )
             ? "true"
             : "false"
         }</escalationRequired>
+
         <escalationReason>${escapeXml(
-          decision.escalationReason
+          decisionValue(
+            decision,
+            "escalationReason"
+          )
         )}</escalationReason>
       </decision>`
       )
@@ -438,30 +628,44 @@ export function reportToXml(
             unknown
           >;
 
+        const title =
+          item.title ??
+          item.riskTitle ??
+          item.name;
+
+        const severity =
+          item.severity ??
+          item.risk ??
+          item.riskLevel;
+
+        const recommendation =
+          item.recommendedAction ??
+          item.recommendation;
+
         return `
       <finding>
         <id>${escapeXml(
           item.id
         )}</id>
+
         <category>${escapeXml(
           item.category
         )}</category>
+
         <title>${escapeXml(
-          item.title ??
-            item.riskTitle ??
-            item.name
+          title
         )}</title>
+
         <severity>${escapeXml(
-          item.severity ??
-            item.risk ??
-            item.riskLevel
+          severity
         )}</severity>
+
         <description>${escapeXml(
           item.description
         )}</description>
+
         <recommendedAction>${escapeXml(
-          item.recommendedAction ??
-            item.recommendation
+          recommendation
         )}</recommendedAction>
       </finding>`;
       })
@@ -473,12 +677,15 @@ export function reportToXml(
     <generatedAt>${escapeXml(
       report.generatedAt
     )}</generatedAt>
+
     <organisationName>${escapeXml(
       profile.organisationName
     )}</organisationName>
+
     <assessmentName>${escapeXml(
       profile.assessmentName
     )}</assessmentName>
+
     <assessmentId>${escapeXml(
       profile.assessmentId
     )}</assessmentId>
@@ -488,10 +695,14 @@ export function reportToXml(
     <overallRisk>${escapeXml(
       overallRisk
     )}</overallRisk>
+
     <riskScore>${escapeXml(
       riskScore
     )}</riskScore>
-    <findingCount>${findingsArray.length}</findingCount>
+
+    <findingCount>${
+      findingsArray.length
+    }</findingCount>
   </riskSummary>
 
   <findings>
@@ -535,14 +746,15 @@ export function reportToMarkdown(
     )
   );
 
-  const findings = resultValue(
-    result,
-    "findings"
-  );
+  const findingsValue =
+    resultValue(
+      result,
+      "findings"
+    );
 
   const findingsArray =
-    Array.isArray(findings)
-      ? findings
+    Array.isArray(findingsValue)
+      ? findingsValue
       : [];
 
   const lines: string[] = [];
@@ -586,11 +798,15 @@ export function reportToMarkdown(
   lines.push("");
 
   lines.push(
-    `- Overall Risk: **${overallRisk}**`
+    `- Overall Risk: **${escapeMarkdown(
+      overallRisk
+    )}**`
   );
 
   lines.push(
-    `- Risk Score: **${riskScore}**`
+    `- Risk Score: **${escapeMarkdown(
+      riskScore
+    )}**`
   );
 
   lines.push(
@@ -607,24 +823,42 @@ export function reportToMarkdown(
 
   lines.push("");
 
+  /* ----------------------------------------------------------
+     STEP 7
+     ---------------------------------------------------------- */
+
   lines.push(
     "## Step 7 — Privacy Risk Findings"
   );
 
   lines.push("");
 
-  for (const finding of findingsArray) {
+  for (
+    const finding of findingsArray
+  ) {
     const item =
       finding as Record<
         string,
         unknown
       >;
 
+    const title =
+      item.title ??
+      item.riskTitle ??
+      item.name;
+
+    const severity =
+      item.severity ??
+      item.risk ??
+      item.riskLevel;
+
+    const recommendation =
+      item.recommendedAction ??
+      item.recommendation;
+
     lines.push(
       `### ${escapeMarkdown(
-        item.title ??
-          item.riskTitle ??
-          item.name
+        title
       )}`
     );
 
@@ -636,9 +870,7 @@ export function reportToMarkdown(
 
     lines.push(
       `- Risk: ${escapeMarkdown(
-        item.severity ??
-          item.risk ??
-          item.riskLevel
+        severity
       )}`
     );
 
@@ -650,13 +882,16 @@ export function reportToMarkdown(
 
     lines.push(
       `- Recommended action: ${escapeMarkdown(
-        item.recommendedAction ??
-          item.recommendation
+        recommendation
       )}`
     );
 
     lines.push("");
   }
+
+  /* ----------------------------------------------------------
+     STEP 8
+     ---------------------------------------------------------- */
 
   lines.push(
     "## Step 8 — Risk Treatment & Action Plan"
@@ -665,91 +900,120 @@ export function reportToMarkdown(
   lines.push("");
 
   lines.push(
-    "| Category | Risk | Priority | Owner | Target Resolution Date | Effort | Status |"
+    "| Category | Risk | Priority | Owner | Timeframe | Effort | Status |"
   );
 
   lines.push(
     "|---|---|---|---|---|---|---|"
   );
 
-  for (const action of report.treatmentActions) {
-    const decision =
-      findDecisionForAction(
-        report,
-        action
-      );
-
-    const owner =
-      treatmentValue(
-        action,
-        "owner"
-      );
-
-    const effort =
-      treatmentValue(
-        action,
-        "effort"
-      );
-
+  for (
+    const action of report.treatmentActions
+  ) {
     lines.push(
       `| ${escapeMarkdown(
-        action.category
+        actionValue(action, "category")
       )} | ${escapeMarkdown(
-        action.riskTitle
+        actionValue(action, "riskTitle")
       )} | ${escapeMarkdown(
-        action.priority
+        actionValue(action, "priority")
       )} | ${escapeMarkdown(
-        owner ||
-          decision?.accountableOwner
+        actionValue(action, "owner")
       )} | ${escapeMarkdown(
-        decision?.targetResolutionDate
+        actionValue(action, "timeframe")
       )} | ${escapeMarkdown(
-        effort
+        actionValue(action, "effort")
       )} | ${escapeMarkdown(
-        action.status
+        actionValue(action, "status")
+      )} |`
+    );
+
+    const treatment =
+      actionValue(
+        action,
+        "recommendedTreatment"
+      );
+
+    if (treatment) {
+      lines.push(
+        "",
+        `**Recommended treatment:** ${escapeMarkdown(
+          treatment
+        )}`,
+        ""
+      );
+    }
+  }
+
+  lines.push("");
+
+  /* ----------------------------------------------------------
+     STEP 9 / STEP 11 GOVERNANCE
+     ---------------------------------------------------------- */
+
+  lines.push(
+    "## Step 9 / Step 11 — Residual Risk Governance"
+  );
+
+  lines.push("");
+
+  lines.push(
+    "| Risk | Inherent | Residual | Decision | Approval | Owner | Review Date |"
+  );
+
+  lines.push(
+    "|---|---|---|---|---|---|---|"
+  );
+
+  for (
+    const decision of
+    report.residualRiskDecisions
+  ) {
+    lines.push(
+      `| ${escapeMarkdown(
+        decisionValue(
+          decision,
+          "riskTitle"
+        )
+      )} | ${escapeMarkdown(
+        decisionValue(
+          decision,
+          "inherentRisk"
+        )
+      )} | ${escapeMarkdown(
+        decisionValue(
+          decision,
+          "residualRisk"
+        )
+      )} | ${escapeMarkdown(
+        decisionValue(
+          decision,
+          "decision"
+        )
+      )} | ${escapeMarkdown(
+        decisionValue(
+          decision,
+          "approvalStatus"
+        )
+      )} | ${escapeMarkdown(
+        decisionValue(
+          decision,
+          "accountableOwner"
+        )
+      )} | ${escapeMarkdown(
+        decisionValue(
+          decision,
+          "reviewDate"
+        )
       )} |`
     );
   }
 
   lines.push("");
 
-  lines.push(
-    "## Residual Risk Governance"
-  );
-
-  lines.push("");
-
-  lines.push(
-    "| Risk | Inherent | Residual | Decision | Approval | Owner | Review Date | Target Resolution Date |"
-  );
-
-  lines.push(
-    "|---|---|---|---|---|---|---|---|"
-  );
-
-  for (const decision of report.residualRiskDecisions) {
-    lines.push(
-      `| ${escapeMarkdown(
-        decision.riskTitle
-      )} | ${escapeMarkdown(
-        decision.inherentRisk
-      )} | ${escapeMarkdown(
-        decision.residualRisk
-      )} | ${escapeMarkdown(
-        decision.decision
-      )} | ${escapeMarkdown(
-        decision.approvalStatus
-      )} | ${escapeMarkdown(
-        decision.accountableOwner
-      )} | ${escapeMarkdown(
-        decision.reviewDate
-      )} | ${escapeMarkdown(
-        decision.targetResolutionDate
-      )} |`
-    );
-  }
-
-  lines.push("");
+  /* ----------------------------------------------------------
+     STEP 13
+     ---------------------------------------------------------- */
 
   lines.push(
     "## Step 13 — Evidence & Closure"
@@ -757,21 +1021,35 @@ export function reportToMarkdown(
 
   lines.push("");
 
-  for (const action of report.treatmentActions) {
+  for (
+    const action of report.treatmentActions
+  ) {
+    const actionId =
+      actionValue(
+        action,
+        "id"
+      );
+
     const evidence =
       report.evidenceRecords[
-        action.id
+        actionId
       ];
 
     lines.push(
       `### ${escapeMarkdown(
-        action.riskTitle
+        actionValue(
+          action,
+          "riskTitle"
+        )
       )}`
     );
 
     lines.push(
       `- Treatment status: ${escapeMarkdown(
-        action.status
+        actionValue(
+          action,
+          "status"
+        )
       )}`
     );
 
@@ -816,7 +1094,7 @@ export function reportToMarkdown(
 }
 
 /* ============================================================
-   BROWSER DOWNLOAD
+   BROWSER DOWNLOAD — TEXT FORMATS
    ============================================================ */
 
 export function downloadTextFile(
@@ -831,181 +1109,155 @@ export function downloadTextFile(
     return;
   }
 
-  const blob = new Blob(
-    [content],
-    {
-      type: mimeType,
-    }
-  );
+  const blob =
+    new Blob(
+      [content],
+      {
+        type: mimeType,
+      }
+    );
 
   const url =
-    URL.createObjectURL(blob);
+    URL.createObjectURL(
+      blob
+    );
 
   const anchor =
-    document.createElement("a");
+    document.createElement(
+      "a"
+    );
 
   anchor.href = url;
-  anchor.download = filename;
+  anchor.download =
+    filename;
 
-  document.body.appendChild(anchor);
+  document.body.appendChild(
+    anchor
+  );
 
   anchor.click();
 
   anchor.remove();
 
-  setTimeout(
-    () =>
-      URL.revokeObjectURL(url),
+  window.setTimeout(
+    () => {
+      URL.revokeObjectURL(
+        url
+      );
+    },
     1000
   );
 }
 
 /* ============================================================
-   DEPENDENCY-FREE PDF - PROFESSIONAL REPORT VERSION
-   ============================================================
-
-   No jsPDF or other npm dependency is required.
-
-   The PDF is generated directly in the browser using the
-   standard PDF 1.4 object structure.
-
-   This version provides:
-   - Professional report hierarchy
-   - Section headers
-   - Record cards
-   - Automatic page breaks
-   - Page numbers
-   - Footer
-   - Step 0-13 reporting context
-   - Dependency-free browser download
+   DEPENDENCY-FREE PDF
    ============================================================ */
 
-type PdfLine = {
-  text: string;
-  kind:
-    | "title"
-    | "subtitle"
-    | "section"
-    | "heading"
-    | "body"
-    | "label"
-    | "footer";
-};
-
-type PdfPage = PdfLine[];
-
-function pdfEscape(value: string): string {
-  return value
+function pdfEscape(
+  value: string
+): string {
+  return normalizePdfText(
+    value
+  )
     .replace(/\\/g, "\\\\")
     .replace(/\(/g, "\\(")
     .replace(/\)/g, "\\)");
 }
 
-/*
- * PDF standard Type1 Helvetica uses WinAnsi encoding.
- * Replace characters that can cause malformed glyphs.
- */
-function pdfSafe(value: unknown): string {
-  return text(value)
-    .replace(/[^\x20-\x7E]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
 function wrapPdfText(
   value: string,
-  width: number
+  width = 92
 ): string[] {
-  const safe = pdfSafe(value);
+  const normalized =
+    normalizePdfText(
+      value
+    );
 
-  if (!safe) {
+  if (!normalized) {
     return [""];
   }
 
-  const words = safe.split(/\s+/);
-  const result: string[] = [];
+  const words =
+    normalized.split(
+      /\s+/
+    );
+
+  const lines: string[] = [];
 
   let current = "";
 
-  for (const word of words) {
-    if (!current) {
-      current = word;
+  for (
+    const word of words
+  ) {
+    /*
+     * Very long individual words should not break the PDF
+     * layout indefinitely.
+     */
+    if (
+      word.length > width
+    ) {
+      if (current) {
+        lines.push(
+          current
+        );
+        current = "";
+      }
+
+      for (
+        let i = 0;
+        i < word.length;
+        i += width
+      ) {
+        lines.push(
+          word.slice(
+            i,
+            i + width
+          )
+        );
+      }
+
       continue;
     }
 
-    const candidate = `${current} ${word}`;
+    const candidate =
+      current
+        ? `${current} ${word}`
+        : word;
 
-    if (candidate.length > width) {
-      result.push(current);
+    if (
+      candidate.length >
+      width
+    ) {
+      if (current) {
+        lines.push(
+          current
+        );
+      }
+
       current = word;
     } else {
-      current = candidate;
+      current =
+        candidate;
     }
   }
 
   if (current) {
-    result.push(current);
+    lines.push(
+      current
+    );
   }
 
-  return result;
+  return lines;
 }
 
-function addBody(
-  page: PdfPage,
-  textValue: unknown,
-  width = 92
-): void {
-  const wrapped = wrapPdfText(
-    textValue === undefined ||
-      textValue === null
-      ? ""
-      : String(textValue),
-    width
-  );
+/* ============================================================
+   PDF REPORT CONTENT
+   ============================================================ */
 
-  for (const line of wrapped) {
-    page.push({
-      text: line,
-      kind: "body",
-    });
-  }
-}
-
-function addLabelValue(
-  page: PdfPage,
-  labelValue: string,
-  value: unknown
-): void {
-  page.push({
-    text: `${labelValue}: ${pdfSafe(value) || "-"}`,
-    kind: "body",
-  });
-}
-
-function addSection(
-  page: PdfPage,
-  title: string
-): void {
-  page.push({
-    text: title,
-    kind: "section",
-  });
-}
-
-function addHeading(
-  page: PdfPage,
-  title: string
-): void {
-  page.push({
-    text: title,
-    kind: "heading",
-  });
-}
-
-function buildPdfContent(
+function buildPdfPages(
   report: AssessmentReportData
-): PdfLine[] {
-  const output: PdfLine[] = [];
+): string[][] {
+  const lines: string[] = [];
 
   const profile =
     report.assessmentProfile;
@@ -1014,1015 +1266,550 @@ function buildPdfContent(
     report.riskResult;
 
   const overallRisk =
-    resultValue(
-      result,
-      "overallRisk"
+    text(
+      resultValue(
+        result,
+        "overallRisk"
+      )
     );
 
   const riskScore =
-    resultValue(
-      result,
-      "riskScore"
+    text(
+      resultValue(
+        result,
+        "riskScore"
+      )
     );
 
-  const findings =
+  const findingsValue =
     resultValue(
       result,
       "findings"
     );
 
   const findingsArray =
-    Array.isArray(findings)
-      ? findings
+    Array.isArray(
+      findingsValue
+    )
+      ? findingsValue
       : [];
 
-  /*
-   * ==========================================================
-   * COVER / REPORT IDENTITY
-   * ==========================================================
-   */
+  /* ----------------------------------------------------------
+     COVER / PROFILE
+     ---------------------------------------------------------- */
 
-  output.push({
-    text:
-      "PrivacyMap India",
-    kind: "title",
-  });
+  lines.push(
+    "PRIVACYMAP INDIA"
+  );
 
-  output.push({
-    text:
-      "DPDP Privacy Assessment Report",
-    kind: "subtitle",
-  });
+  lines.push(
+    "DPDP PRIVACY ASSESSMENT REPORT"
+  );
 
-  output.push({
-    text: "",
-    kind: "body",
-  });
+  lines.push("");
 
-  output.push({
-    text:
-      `Organisation: ${pdfSafe(
-        profile.organisationName
-      ) || "-"}`,
-    kind: "body",
-  });
+  lines.push(
+    `Organisation: ${text(
+      profile.organisationName
+    )}`
+  );
 
-  output.push({
-    text:
-      `Assessment: ${pdfSafe(
-        profile.assessmentName
-      ) || "-"}`,
-    kind: "body",
-  });
+  lines.push(
+    `Assessment: ${text(
+      profile.assessmentName
+    )}`
+  );
 
-  output.push({
-    text:
-      `Assessment ID: ${pdfSafe(
-        profile.assessmentId
-      ) || "-"}`,
-    kind: "body",
-  });
+  lines.push(
+    `Assessment ID: ${text(
+      profile.assessmentId
+    )}`
+  );
 
-  output.push({
-    text:
-      `Generated: ${pdfSafe(
-        report.generatedAt
-      ) || "-"}`,
-    kind: "body",
-  });
+  lines.push(
+    `Generated: ${text(
+      report.generatedAt
+    )}`
+  );
 
-  /*
-   * ==========================================================
-   * EXECUTIVE SUMMARY
-   * ==========================================================
-   */
+  lines.push("");
 
-  addSection(
-    output,
+  lines.push(
     "EXECUTIVE SUMMARY"
   );
 
-  addLabelValue(
-    output,
-    "Overall Risk",
-    overallRisk
+  lines.push(
+    `Overall Risk: ${overallRisk}`
   );
 
-  addLabelValue(
-    output,
-    "Risk Score",
-    riskScore
+  lines.push(
+    `Risk Score: ${riskScore}`
   );
 
-  addLabelValue(
-    output,
-    "Risk Treatment Actions",
-    report.treatmentActions.length
+  lines.push(
+    `Privacy Risk Findings: ${findingsArray.length}`
   );
 
-  addLabelValue(
-    output,
-    "Residual Risk Decisions",
-    report.residualRiskDecisions.length
+  lines.push(
+    `Treatment Actions: ${report.treatmentActions.length}`
   );
 
-  addLabelValue(
-    output,
-    "Evidence Records",
-    Object.keys(
-      report.evidenceRecords || {}
-    ).length
+  lines.push(
+    `Residual Risk Decisions: ${report.residualRiskDecisions.length}`
   );
 
-  /*
-   * ==========================================================
-   * STEP 0
-   * ==========================================================
-   */
+  lines.push("");
 
-  addSection(
-    output,
-    "STEP 0 - ASSESSMENT PROFILE"
+  /* ----------------------------------------------------------
+     STEP 7
+     ---------------------------------------------------------- */
+
+  lines.push(
+    "STEP 7 - PRIVACY RISK FINDINGS"
   );
 
-  addLabelValue(
-    output,
-    "Organisation",
-    profile.organisationName
-  );
+  for (
+    const finding of findingsArray
+  ) {
+    const item =
+      finding as Record<
+        string,
+        unknown
+      >;
 
-  addLabelValue(
-    output,
-    "Assessment Name",
-    profile.assessmentName
-  );
+    const title =
+      item.title ??
+      item.riskTitle ??
+      item.name;
 
-  addLabelValue(
-    output,
-    "Assessment ID",
-    profile.assessmentId
-  );
+    const category =
+      item.category;
 
-  /*
-   * ==========================================================
-   * STEPS 1-7
-   *
-   * The architecture stores the assessment context primarily
-   * inside riskResult. We therefore expose the available
-   * assessment result information without inventing fields
-   * that may not exist in the current type model.
-   * ==========================================================
-   */
+    const severity =
+      item.severity ??
+      item.risk ??
+      item.riskLevel;
 
-  addSection(
-    output,
-    "ASSESSMENT & RISK FINDINGS"
-  );
+    const description =
+      item.description;
 
-  if (findingsArray.length === 0) {
-    addBody(
-      output,
-      "No detailed risk findings were returned by the assessment engine."
+    const recommendation =
+      item.recommendedAction ??
+      item.recommendation;
+
+    lines.push("");
+
+    lines.push(
+      `${text(category)} - ${text(
+        title
+      )}`
     );
-  } else {
-    findingsArray.forEach(
-      (finding: unknown, index: number) => {
-        const item =
-          finding &&
-          typeof finding === "object"
-            ? (finding as Record<
-                string,
-                unknown
-              >)
-            : {};
 
-        addHeading(
-          output,
-          `Finding ${index + 1}: ${
-            pdfSafe(
-              item.title ??
-                item.riskTitle ??
-                item.name ??
-                item.id
-            ) || "Assessment Finding"
-          }`
-        );
-
-        addLabelValue(
-          output,
-          "Category",
-          item.category
-        );
-
-        addLabelValue(
-          output,
-          "Finding",
-          item.finding ??
-            item.description ??
-            item.summary
-        );
-
-        addLabelValue(
-          output,
-          "Risk",
-          item.risk ??
-            item.riskLevel ??
-            item.overallRisk
-        );
-
-        addLabelValue(
-          output,
-          "Control / Requirement",
-          item.requirement ??
-            item.control ??
-            item.controlName
-        );
-
-        addLabelValue(
-          output,
-          "Recommended Treatment",
-          item.recommendedTreatment ??
-            item.treatment
-        );
-      }
+    lines.push(
+      `Risk: ${text(
+        severity
+      )}`
     );
+
+    if (
+      description
+    ) {
+      lines.push(
+        `Description: ${text(
+          description
+        )}`
+      );
+    }
+
+    if (
+      recommendation
+    ) {
+      lines.push(
+        `Recommended action: ${text(
+          recommendation
+        )}`
+      );
+    }
   }
 
-  /*
-   * ==========================================================
-   * STEP 8
-   * ==========================================================
-   */
+  lines.push("");
 
-  addSection(
-    output,
+  /* ----------------------------------------------------------
+     STEP 8
+     ---------------------------------------------------------- */
+
+  lines.push(
     "STEP 8 - RISK TREATMENT & ACTION PLAN"
   );
 
-  if (
-    report.treatmentActions.length ===
-    0
+  for (
+    const action of
+    report.treatmentActions
   ) {
-    addBody(
-      output,
-      "No risk treatment actions are currently recorded."
+    lines.push("");
+
+    lines.push(
+      `${actionValue(
+        action,
+        "category"
+      )} - ${actionValue(
+        action,
+        "riskTitle"
+      )}`
     );
-  } else {
-    for (
-      const action of report.treatmentActions
+
+    lines.push(
+      `Status: ${actionValue(
+        action,
+        "status"
+      )}`
+    );
+
+    lines.push(
+      `Priority: ${actionValue(
+        action,
+        "priority"
+      )}`
+    );
+
+    lines.push(
+      `Owner: ${actionValue(
+        action,
+        "owner"
+      )}`
+    );
+
+    lines.push(
+      `Timeframe: ${actionValue(
+        action,
+        "timeframe"
+      )}`
+    );
+
+    lines.push(
+      `Effort: ${actionValue(
+        action,
+        "effort"
+      )}`
+    );
+
+    const treatment =
+      actionValue(
+        action,
+        "recommendedTreatment"
+      );
+
+    if (treatment) {
+      lines.push(
+        `Treatment: ${treatment}`
+      );
+    }
+
+    const why =
+      actionValue(
+        action,
+        "whyThisMatters"
+      );
+
+    if (why) {
+      lines.push(
+        `Why this matters: ${why}`
+      );
+    }
+
+    const evidenceExpected =
+      actionValue(
+        action,
+        "evidenceExpected"
+      );
+
+    if (
+      evidenceExpected
     ) {
-      addHeading(
-        output,
-        pdfSafe(
-          action.riskTitle
-        ) || "Risk Treatment Action"
-      );
-
-      addLabelValue(
-        output,
-        "Category",
-        action.category
-      );
-
-      addLabelValue(
-        output,
-        "Status",
-        action.status
-      );
-
-      addLabelValue(
-        output,
-        "Priority",
-        action.priority
-      );
-
-      addLabelValue(
-        output,
-        "Owner",
-        action.owner
-      );
-
-      addLabelValue(
-        output,
-        "Treatment",
-        action.recommendedTreatment
-      );
-
-      addLabelValue(
-        output,
-        "Timeframe",
-        (
-          action as unknown as Record<
-            string,
-            unknown
-          >
-        ).timeframe
-      );
-
-      addLabelValue(
-        output,
-        "Effort",
-        action.effort
+      lines.push(
+        `Evidence expected: ${evidenceExpected}`
       );
     }
   }
 
-  /*
-   * ==========================================================
-   * STEP 9
-   * ==========================================================
-   */
+  lines.push("");
 
-  addSection(
-    output,
-    "STEP 9 - RESIDUAL RISK ASSESSMENT"
-  );
+  /* ----------------------------------------------------------
+     STEP 9 / STEP 11
+     ---------------------------------------------------------- */
 
-  if (
-    report.residualRiskDecisions.length ===
-    0
-  ) {
-    addBody(
-      output,
-      "No residual-risk decisions are currently recorded."
-    );
-  } else {
-    for (
-      const decision of
-        report.residualRiskDecisions
-    ) {
-      addHeading(
-        output,
-        pdfSafe(
-          decision.riskTitle
-        ) || "Residual Risk Decision"
-      );
-
-      addLabelValue(
-        output,
-        "Finding ID",
-        decision.findingId
-      );
-
-      addLabelValue(
-        output,
-        "Category",
-        decision.category
-      );
-
-      addLabelValue(
-        output,
-        "Inherent Risk",
-        decision.inherentRisk
-      );
-
-      addLabelValue(
-        output,
-        "Residual Risk",
-        decision.residualRisk
-      );
-
-      addLabelValue(
-        output,
-        "Decision",
-        decision.decision
-      );
-
-      addLabelValue(
-        output,
-        "Treatment Status",
-        decision.treatmentStatus
-      );
-
-      addLabelValue(
-        output,
-        "Approval Status",
-        decision.approvalStatus
-      );
-
-      addLabelValue(
-        output,
-        "Accountable Owner",
-        decision.accountableOwner
-      );
-
-      addLabelValue(
-        output,
-        "Decision Authority",
-        decision.decisionAuthority
-      );
-
-      addLabelValue(
-        output,
-        "Review Frequency",
-        decision.reviewFrequency
-      );
-
-      addLabelValue(
-        output,
-        "Review Date",
-        decision.reviewDate
-      );
-
-      addLabelValue(
-        output,
-        "Approval Date",
-        decision.approvalDate
-      );
-
-      addLabelValue(
-        output,
-        "Next Review Date",
-        decision.nextReviewDate
-      );
-
-      addLabelValue(
-        output,
-        "Target Resolution Date",
-        decision.targetResolutionDate
-      );
-
-      addBody(
-        output,
-        `Decision rationale: ${
-          pdfSafe(
-            decision.rationale
-          ) || "-"
-        }`
-      );
-
-      if (
-        decision.escalationRequired
-      ) {
-        addBody(
-          output,
-          `Escalation required: ${
-            pdfSafe(
-              decision.escalationReason
-            ) ||
-            "Management review required."
-          }`
-        );
-      }
-    }
-  }
-
-  /*
-   * ==========================================================
-   * STEP 10
-   * ==========================================================
-   */
-
-  addSection(
-    output,
-    "STEP 10 - DPDP MAPPING & CONTROL CONTEXT"
-  );
-
-  if (findingsArray.length === 0) {
-    addBody(
-      output,
-      "No DPDP control mappings are available in the assessment result."
-    );
-  } else {
-    for (
-      const finding of findingsArray
-    ) {
-      const item =
-        finding &&
-        typeof finding === "object"
-          ? (finding as Record<
-              string,
-              unknown
-            >)
-          : {};
-
-      const title =
-        pdfSafe(
-          item.title ??
-            item.riskTitle ??
-            item.name ??
-            item.id
-        ) ||
-        "DPDP Control Mapping";
-
-      addHeading(
-        output,
-        title
-      );
-
-      addLabelValue(
-        output,
-        "DPDP Reference",
-        item.dpdpReference ??
-          item.actReference ??
-          item.reference
-      );
-
-      addLabelValue(
-        output,
-        "Requirement",
-        item.requirement
-      );
-
-      addLabelValue(
-        output,
-        "Control Status",
-        item.status ??
-          item.controlStatus
-      );
-
-      addLabelValue(
-        output,
-        "Expected Evidence",
-        item.expectedEvidence
-      );
-
-      addBody(
-        output,
-        `Assessment context: ${
-          pdfSafe(
-            item.assessmentQuestion ??
-              item.description
-          ) || "-"
-        }`
-      );
-    }
-  }
-
-  /*
-   * ==========================================================
-   * STEP 11
-   * ==========================================================
-   */
-
-  addSection(
-    output,
-    "STEP 11 - RISK GOVERNANCE & APPROVAL"
+  lines.push(
+    "STEP 9 / STEP 11 - RESIDUAL RISK GOVERNANCE"
   );
 
   for (
     const decision of
-      report.residualRiskDecisions
+    report.residualRiskDecisions
   ) {
-    addHeading(
-      output,
-      pdfSafe(
-        decision.riskTitle
-      ) || "Governance Decision"
+    lines.push("");
+
+    lines.push(
+      `${decisionValue(
+        decision,
+        "category"
+      )} - ${decisionValue(
+        decision,
+        "riskTitle"
+      )}`
     );
 
-    addLabelValue(
-      output,
-      "Approval Status",
-      decision.approvalStatus
+    lines.push(
+      `Inherent Risk: ${decisionValue(
+        decision,
+        "inherentRisk"
+      )}`
     );
 
-    addLabelValue(
-      output,
-      "Accountable Owner",
-      decision.accountableOwner
+    lines.push(
+      `Residual Risk: ${decisionValue(
+        decision,
+        "residualRisk"
+      )}`
     );
 
-    addLabelValue(
-      output,
-      "Decision Authority",
-      decision.decisionAuthority
+    lines.push(
+      `Decision: ${decisionValue(
+        decision,
+        "decision"
+      )}`
     );
 
-    addLabelValue(
-      output,
-      "Review Frequency",
-      decision.reviewFrequency
+    lines.push(
+      `Approval Status: ${decisionValue(
+        decision,
+        "approvalStatus"
+      )}`
     );
 
-    addLabelValue(
-      output,
-      "Review Date",
-      decision.reviewDate
+    lines.push(
+      `Treatment Status: ${decisionValue(
+        decision,
+        "treatmentStatus"
+      )}`
     );
 
-    addLabelValue(
-      output,
-      "Approval Date",
-      decision.approvalDate
+    lines.push(
+      `Accountable Owner: ${decisionValue(
+        decision,
+        "accountableOwner"
+      )}`
     );
 
-    addLabelValue(
-      output,
-      "Escalation Required",
-      decision.escalationRequired
-        ? "Yes"
-        : "No"
+    lines.push(
+      `Decision Authority: ${decisionValue(
+        decision,
+        "decisionAuthority"
+      )}`
     );
+
+    lines.push(
+      `Review Date: ${decisionValue(
+        decision,
+        "reviewDate"
+      )}`
+    );
+
+    lines.push(
+      `Approval Date: ${decisionValue(
+        decision,
+        "approvalDate"
+      )}`
+    );
+
+    lines.push(
+      `Next Review Date: ${decisionValue(
+        decision,
+        "nextReviewDate"
+      )}`
+    );
+
+    const rationale =
+      decisionValue(
+        decision,
+        "rationale"
+      );
+
+    if (rationale) {
+      lines.push(
+        `Rationale: ${rationale}`
+      );
+    }
+
+    const escalation =
+      Boolean(
+        safeField(
+          decision,
+          "escalationRequired"
+        )
+      );
+
+    if (escalation) {
+      lines.push(
+        `Escalation Required: Yes`
+      );
+
+      lines.push(
+        `Escalation Reason: ${decisionValue(
+          decision,
+          "escalationReason"
+        )}`
+      );
+    }
   }
 
-  /*
-   * ==========================================================
-   * STEP 12
-   * ==========================================================
-   */
+  lines.push("");
 
-  addSection(
-    output,
-    "STEP 12 - REMEDIATION TRACKER"
-  );
+  /* ----------------------------------------------------------
+     STEP 13
+     ---------------------------------------------------------- */
 
-  const openActions =
-    report.treatmentActions.filter(
-      (a) => a.status === "Open"
-    ).length;
-
-  const progressActions =
-    report.treatmentActions.filter(
-      (a) =>
-        a.status === "In Progress"
-    ).length;
-
-  const closedActions =
-    report.treatmentActions.filter(
-      (a) =>
-        a.status === "Completed" ||
-        a.status === "Accepted"
-    ).length;
-
-  addLabelValue(
-    output,
-    "Open",
-    openActions
-  );
-
-  addLabelValue(
-    output,
-    "In Progress",
-    progressActions
-  );
-
-  addLabelValue(
-    output,
-    "Completed / Accepted",
-    closedActions
-  );
-
-  for (
-    const action of
-      report.treatmentActions
-  ) {
-    addHeading(
-      output,
-      pdfSafe(
-        action.riskTitle
-      ) || "Remediation Action"
-    );
-
-    addLabelValue(
-      output,
-      "Category",
-      action.category
-    );
-
-    addLabelValue(
-      output,
-      "Status",
-      action.status
-    );
-
-    addLabelValue(
-      output,
-      "Priority",
-      action.priority
-    );
-
-    addLabelValue(
-      output,
-      "Owner",
-      action.owner
-    );
-  }
-
-  /*
-   * ==========================================================
-   * STEP 13
-   * ==========================================================
-   */
-
-  addSection(
-    output,
+  lines.push(
     "STEP 13 - EVIDENCE & CLOSURE"
   );
 
-  let evidenceVerified = 0;
-
   for (
     const action of
-      report.treatmentActions
+    report.treatmentActions
   ) {
-    const evidence =
-      report.evidenceRecords[
-        action.id
-      ];
-
-    if (evidence?.verified) {
-      evidenceVerified++;
-    }
-
-    addHeading(
-      output,
-      pdfSafe(
-        action.riskTitle
-      ) || "Evidence Record"
-    );
-
-    addLabelValue(
-      output,
-      "Treatment Status",
-      action.status
-    );
-
-    addLabelValue(
-      output,
-      "Evidence Reference",
-      evidence?.reference
-    );
-
-    addLabelValue(
-      output,
-      "Evidence Owner",
-      evidence?.owner
-    );
-
-    addLabelValue(
-      output,
-      "Evidence Verified",
-      evidence?.verified
-        ? "Yes"
-        : "No"
-    );
-
-    addBody(
-      output,
-      `Closure Notes: ${
-        pdfSafe(
-          evidence?.notes
-        ) || "-"
-      }`
-    );
-  }
-
-  addLabelValue(
-    output,
-    "Evidence Records Verified",
-    evidenceVerified
-  );
-
-  /*
-   * ==========================================================
-   * DISCLAIMER
-   * ==========================================================
-   */
-
-  output.push({
-    text: "",
-    kind: "body",
-  });
-
-  addSection(
-    output,
-    "IMPORTANT NOTICE"
-  );
-
-  addBody(
-    output,
-    "PrivacyMap India assessment output is a risk-assessment and governance aid. It is not a legal opinion, certification, or automatic determination of DPDP compliance."
-  );
-
-  addBody(
-    output,
-    "The official Digital Personal Data Protection Act, notified Rules, amendments, notifications, and other applicable regulatory guidance remain the source of truth."
-  );
-
-  return output;
-}
-
-/*
- * ============================================================
- * PDF PAGINATION
- * ============================================================
- */
-
-function paginatePdf(
-  lines: PdfLine[],
-  maxLines = 43
-): PdfPage[] {
-  const pages: PdfPage[] = [];
-
-  let page: PdfPage = [];
-
-  for (const item of lines) {
-    const width =
-      item.kind === "title"
-        ? 70
-        : item.kind === "section"
-        ? 82
-        : 94;
-
-    const wrapped =
-      wrapPdfText(
-        item.text,
-        width
+    const actionId =
+      actionValue(
+        action,
+        "id"
       );
 
-    /*
-     * Section headings should never be stranded
-     * at the bottom of a page.
-     */
-    const required =
-      item.kind === "section"
-        ? wrapped.length + 1
-        : wrapped.length;
+    const evidence =
+      report.evidenceRecords[
+        actionId
+      ];
 
-    if (
-      page.length > 0 &&
-      page.length + required >
-        maxLines
+    lines.push("");
+
+    lines.push(
+      `${actionValue(
+        action,
+        "category"
+      )} - ${actionValue(
+        action,
+        "riskTitle"
+      )}`
+    );
+
+    lines.push(
+      `Treatment Status: ${actionValue(
+        action,
+        "status"
+      )}`
+    );
+
+    lines.push(
+      `Evidence Reference: ${text(
+        evidence?.reference
+      )}`
+    );
+
+    lines.push(
+      `Evidence Owner: ${text(
+        evidence?.owner
+      )}`
+    );
+
+    lines.push(
+      `Evidence Verified: ${
+        evidence?.verified
+          ? "Yes"
+          : "No"
+      }`
+    );
+
+    lines.push(
+      `Closure Notes: ${text(
+        evidence?.notes
+      )}`
+    );
+  }
+
+  lines.push("");
+
+  lines.push(
+    "REPORT DISCLAIMER"
+  );
+
+  lines.push(
+    "PrivacyMap India assessment output is a risk-assessment and governance aid. It is not a legal opinion, certification or automatic determination of DPDP compliance."
+  );
+
+  /* ----------------------------------------------------------
+     PAGINATION
+     ---------------------------------------------------------- */
+
+  const pages: string[][] =
+    [];
+
+  let page: string[] =
+    [];
+
+  /*
+   * Approximately 48 text lines per page.
+   * Long lines are wrapped before this limit is applied.
+   */
+  const linesPerPage = 48;
+
+  for (
+    const line of lines
+  ) {
+    const wrapped =
+      wrapPdfText(
+        line || " "
+      );
+
+    for (
+      const wrappedLine of
+      wrapped
     ) {
-      pages.push(page);
-      page = [];
-    }
-
-    for (let i = 0; i < wrapped.length; i++) {
-      page.push({
-        text: wrapped[i],
-        kind:
-          i === 0
-            ? item.kind
-            : "body",
-      });
-
       if (
         page.length >=
-        maxLines
+        linesPerPage
       ) {
-        pages.push(page);
+        pages.push(
+          page
+        );
+
         page = [];
       }
+
+      page.push(
+        wrappedLine
+      );
     }
   }
 
-  if (page.length > 0) {
-    pages.push(page);
+  if (
+    page.length > 0
+  ) {
+    pages.push(
+      page
+    );
   }
 
   return pages;
 }
 
-/*
- * ============================================================
- * PDF CONTENT STREAM HELPERS
- * ============================================================
- */
-
-function pdfNumber(
-  value: number
-): string {
-  return Number(
-    value.toFixed(2)
-  ).toString();
-}
-
-function pdfRgb(
-  r: number,
-  g: number,
-  b: number
-): string {
-  return `${pdfNumber(
-    r
-  )} ${pdfNumber(
-    g
-  )} ${pdfNumber(
-    b
-  )}`;
-}
-
-function drawPdfText(
-  commands: string[],
-  textValue: string,
-  x: number,
-  y: number,
-  size: number,
-  font = "F1",
-  color = [0.12, 0.16, 0.22]
-): void {
-  commands.push(
-    `${pdfRgb(
-      color[0],
-      color[1],
-      color[2]
-    )} rg`
-  );
-
-  commands.push(
-    "BT"
-  );
-
-  commands.push(
-    `/${font} ${pdfNumber(
-      size
-    )} Tf`
-  );
-
-  commands.push(
-    `1 0 0 1 ${pdfNumber(
-      x
-    )} ${pdfNumber(
-      y
-    )} Tm`
-  );
-
-  commands.push(
-    `(${pdfEscape(
-      textValue
-    )}) Tj`
-  );
-
-  commands.push(
-    "ET"
-  );
-}
-
-function drawPdfRect(
-  commands: string[],
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  fill: number[],
-  stroke?: number[]
-): void {
-  commands.push(
-    `${pdfRgb(
-      fill[0],
-      fill[1],
-      fill[2]
-    )} rg`
-  );
-
-  commands.push(
-    `${pdfNumber(
-      x
-    )} ${pdfNumber(
-      y
-    )} ${pdfNumber(
-      width
-    )} ${pdfNumber(
-      height
-    )} re`
-  );
-
-  commands.push(
-    "f"
-  );
-
-  if (stroke) {
-    commands.push(
-      `${pdfRgb(
-        stroke[0],
-        stroke[1],
-        stroke[2]
-      )} RG`
-    );
-
-    commands.push(
-      `${pdfNumber(
-        x
-      )} ${pdfNumber(
-        y
-      )} ${pdfNumber(
-        width
-      )} ${pdfNumber(
-        height
-      )} re`
-    );
-
-    commands.push(
-      "S"
-    );
-  }
-}
-
-/*
- * ============================================================
- * CREATE PDF BLOB
- * ============================================================
- */
+/* ============================================================
+   DEPENDENCY-FREE PDF GENERATOR
+   ============================================================ */
 
 export function createPdfBlob(
   report: AssessmentReportData
 ): Blob {
-  const content =
-    buildPdfContent(report);
-
   const pages =
-    paginatePdf(content);
+    buildPdfPages(
+      report
+    );
 
   const objects: string[] =
     [];
@@ -2034,8 +1821,10 @@ export function createPdfBlob(
     [];
 
   /*
-   * PDF object 1 = Catalog
-   * PDF object 2 = Pages
+   * Object 1 = Catalog
+   * Object 2 = Pages
+   * Then one Page object and one Content object per page.
+   * Final object = Helvetica font.
    */
 
   objects.push("");
@@ -2059,22 +1848,11 @@ export function createPdfBlob(
     objects.push("");
   }
 
-  /*
-   * Regular + bold Helvetica.
-   */
-
-  const regularFontObjectId =
+  const fontObjectId =
     objects.length + 1;
 
   objects.push(
-    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>"
-  );
-
-  const boldFontObjectId =
-    objects.length + 1;
-
-  objects.push(
-    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>"
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"
   );
 
   const pagesKids =
@@ -2091,218 +1869,46 @@ export function createPdfBlob(
   objects[0] =
     "<< /Type /Catalog /Pages 2 0 R >>";
 
-  /*
-   * ==========================================================
-   * PAGE RENDERING
-   * ==========================================================
-   */
-
   for (
-    let pageIndex = 0;
-    pageIndex < pages.length;
-    pageIndex++
+    let i = 0;
+    i < pages.length;
+    i++
   ) {
     const commands: string[] =
       [];
 
-    /*
-     * Page background.
-     */
-
-    drawPdfRect(
-      commands,
-      0,
-      0,
-      612,
-      792,
-      [1, 1, 1]
+    commands.push(
+      "BT"
     );
 
-    /*
-     * Top brand bar.
-     */
-
-    drawPdfRect(
-      commands,
-      0,
-      742,
-      612,
-      50,
-      [0.08, 0.25, 0.55]
+    commands.push(
+      "/F1 10 Tf"
     );
 
-    drawPdfText(
-      commands,
-      "PrivacyMap India",
-      42,
-      764,
-      16,
-      "F2",
-      [1, 1, 1]
+    commands.push(
+      "12 TL"
     );
 
-    drawPdfText(
-      commands,
-      "DPDP Privacy Assessment",
-      42,
-      748,
-      8.5,
-      "F1",
-      [0.88, 0.93, 1]
+    commands.push(
+      "50 760 Td"
     );
-
-    /*
-     * Main content area.
-     */
-
-    let y = 714;
 
     for (
-      const item of pages[
-        pageIndex
-      ]
+      const line of pages[i]
     ) {
-      if (
-        item.kind === "title"
-      ) {
-        drawPdfText(
-          commands,
-          item.text,
-          42,
-          y,
-          20,
-          "F2",
-          [0.06, 0.12, 0.22]
-        );
+      commands.push(
+        `(${pdfEscape(
+          line
+        )}) Tj`
+      );
 
-        y -= 28;
-        continue;
-      }
-
-      if (
-        item.kind ===
-        "subtitle"
-      ) {
-        drawPdfText(
-          commands,
-          item.text,
-          42,
-          y,
-          12,
-          "F1",
-          [0.29, 0.36, 0.45]
-        );
-
-        y -= 22;
-        continue;
-      }
-
-      if (
-        item.kind ===
-        "section"
-      ) {
-        y -= 8;
-
-        drawPdfRect(
-          commands,
-          38,
-          y - 8,
-          536,
-          24,
-          [0.93, 0.96, 1]
-        );
-
-        drawPdfText(
-          commands,
-          item.text,
-          48,
-          y,
-          10,
-          "F2",
-          [0.08, 0.25, 0.55]
-        );
-
-        y -= 32;
-        continue;
-      }
-
-      if (
-        item.kind ===
-        "heading"
-      ) {
-        y -= 5;
-
-        drawPdfText(
-          commands,
-          item.text,
-          48,
-          y,
-          10,
-          "F2",
-          [0.08, 0.12, 0.20]
-        );
-
-        y -= 17;
-        continue;
-      }
-
-      if (
-        item.kind ===
-        "body"
-      ) {
-        drawPdfText(
-          commands,
-          item.text,
-          48,
-          y,
-          8.7,
-          "F1",
-          [0.22, 0.27, 0.34]
-        );
-
-        y -= 14;
-        continue;
-      }
-
-      y -= 14;
+      commands.push(
+        "T*"
+      );
     }
 
-    /*
-     * Footer separator.
-     */
-
     commands.push(
-      "0.85 0.88 0.92 RG"
-    );
-
-    commands.push(
-      "0.7 w"
-    );
-
-    commands.push(
-      "42 40 m 570 40 l S"
-    );
-
-    drawPdfText(
-      commands,
-      "PrivacyMap India - DPDP Privacy Assessment",
-      42,
-      25,
-      7.5,
-      "F1",
-      [0.40, 0.45, 0.52]
-    );
-
-    drawPdfText(
-      commands,
-      `Page ${
-        pageIndex + 1
-      } of ${pages.length}`,
-      505,
-      25,
-      7.5,
-      "F1",
-      [0.40, 0.45, 0.52]
+      "ET"
     );
 
     const stream =
@@ -2311,25 +1917,15 @@ export function createPdfBlob(
       );
 
     objects[
-      pageObjectIds[
-        pageIndex
-      ] - 1
+      pageObjectIds[i] - 1
     ] =
-      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 ${regularFontObjectId} 0 R /F2 ${boldFontObjectId} 0 R >> >> /Contents ${contentObjectIds[pageIndex]} 0 R >>`;
+      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 ${fontObjectId} 0 R >> >> /Contents ${contentObjectIds[i]} 0 R >>`;
 
     objects[
-      contentObjectIds[
-        pageIndex
-      ] - 1
+      contentObjectIds[i] - 1
     ] =
       `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`;
   }
-
-  /*
-   * ==========================================================
-   * PDF FILE STRUCTURE
-   * ==========================================================
-   */
 
   let pdf =
     "%PDF-1.4\n";
@@ -2359,9 +1955,7 @@ export function createPdfBlob(
     pdf.length;
 
   pdf +=
-    `xref\n0 ${
-      objects.length + 1
-    }\n`;
+    `xref\n0 ${objects.length + 1}\n`;
 
   pdf +=
     "0000000000 65535 f \n";
@@ -2388,28 +1982,17 @@ export function createPdfBlob(
   pdf +=
     `startxref\n${xrefOffset}\n%%EOF`;
 
-  /*
-   * IMPORTANT:
-   *
-   * Text PDFs generated this way must be encoded as bytes.
-   * Blob([pdf]) is sufficient for the ASCII/WinAnsi-safe content
-   * produced above.
-   */
-
   return new Blob(
     [pdf],
     {
-      type:
-        "application/pdf",
+      type: "application/pdf",
     }
   );
 }
 
-/*
- * ============================================================
- * PDF DOWNLOAD
- * ============================================================
- */
+/* ============================================================
+   PDF DOWNLOAD
+   ============================================================ */
 
 export function downloadPdf(
   report: AssessmentReportData,
@@ -2423,7 +2006,9 @@ export function downloadPdf(
   }
 
   const blob =
-    createPdfBlob(report);
+    createPdfBlob(
+      report
+    );
 
   const url =
     URL.createObjectURL(
@@ -2448,11 +2033,13 @@ export function downloadPdf(
 
   anchor.remove();
 
-  setTimeout(
-    () =>
+  window.setTimeout(
+    () => {
       URL.revokeObjectURL(
         url
-      ),
+      );
+    },
     1000
   );
 }
+```
