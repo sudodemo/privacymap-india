@@ -24,6 +24,7 @@ export interface AssessmentReportData {
   generatedAt: string;
   assessmentProfile: AssessmentProfile;
   riskResult: RiskResult | null;
+  findings: ReportFinding[];
   treatmentActions: RiskTreatmentAction[];
   residualRiskDecisions: ResidualRiskDecisionRecord[];
   evidenceRecords: EvidenceRecords;
@@ -204,6 +205,7 @@ export function buildAssessmentReport(
     generatedAt: formatIndiaDateTime(new Date()),
     assessmentProfile,
     riskResult,
+    findings: getReportFindings(riskResult),
     treatmentActions,
     residualRiskDecisions,
     evidenceRecords,
