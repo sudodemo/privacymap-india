@@ -17,4 +17,3 @@ export interface AssessmentProfile {
   /** Selected knowledge-base business type name. */
   businessType?: string;
 }
-}
