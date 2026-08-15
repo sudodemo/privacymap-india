@@ -1077,9 +1077,34 @@ export default function AssessmentPage() {
             fontWeight: 700,
             letterSpacing: 3,
             color: "#1d4ed8",
+            marginBottom: 6,
           }}
         >
           PRIVACYMAP INDIA
+        </p>
+
+        <h1
+          style={{
+            fontSize: 34,
+            lineHeight: 1.2,
+            color: "#0f172a",
+            margin: "0 0 8px",
+            fontWeight: 800,
+          }}
+        >
+          आत्मनिर्भर DPDP Assessment
+        </h1>
+
+        <p
+          style={{
+            margin: "0 0 28px",
+            color: "#475569",
+            fontSize: 16,
+            lineHeight: 1.5,
+            fontWeight: 600,
+          }}
+        >
+          Your data. Your browser. Your assessment.
         </p>
 
 
