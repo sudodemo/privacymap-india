@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useRef,
   useMemo,
   useState,
   type Dispatch,
@@ -61,6 +62,20 @@ import Step13EvidenceClosure from "./components/Step13EvidenceClosure";
 import AssessmentReport from "./components/AssessmentReport";
 import {buildAssessmentReport, type EvidenceRecords, } from "./lib/reportExport";
 import type { DpdpAssessmentState } from "./components/Step10DPDPMapping";
+import AssessmentContinuityPanel from "./components/AssessmentContinuityPanel";
+import {
+  ASSESSMENT_STORAGE_KEY,
+  buildAssessmentContinuityState,
+  buildAssessmentIndex,
+  buildAssessmentPackage,
+  createEmptyAssessmentStore,
+  getLastCompletedStep,
+  parseAssessmentStore,
+  serializeAssessmentStore,
+  type AssessmentInputState,
+  type AssessmentPackage,
+  type AssessmentStore,
+} from "./lib/assessmentContinuity";
 
 
 /* ============================================================
@@ -361,6 +376,316 @@ export default function AssessmentPage() {
     setDpdpMappingStates,
   ] = useState<Record<string, DpdpAssessmentState>>({});
 
+  /* ==========================================================
+     PHASE C — LOCAL AUTOSAVE / RESUME STATE
+     ========================================================== */
+
+  const [savedAssessments, setSavedAssessments] = useState<
+    ReturnType<typeof buildAssessmentIndex>
+  >([]);
+  const [saving, setSaving] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  const [storageReady, setStorageReady] = useState(false);
+  const restoringRef = useRef(false);
+
+
+  /* ==========================================================
+     PHASE C — LOCAL AUTOSAVE / RESUME HELPERS
+     ========================================================== */
+
+  function buildContinuityInputs(): AssessmentInputState {
+    return {
+      industryId,
+      businessTypeId,
+      processId,
+      selectedEntryPoints,
+      customEntryPoints,
+      selectedFields,
+      customFields,
+      collectorRoles,
+      dataSubjectTypes,
+      collectionFormats,
+      storageLocations,
+      storageEnvironments,
+      encryptionStatuses,
+      accessRoles,
+      sharingStatuses,
+      retentionPeriods,
+      deletionMethods,
+      privacyNotices,
+      consentStatuses,
+      parentalConsentStatuses,
+      crossBorderTransfers,
+    };
+  }
+
+  function readLocalAssessmentStore(): AssessmentStore {
+    if (typeof window === "undefined") {
+      return createEmptyAssessmentStore();
+    }
+
+    const raw = window.localStorage.getItem(ASSESSMENT_STORAGE_KEY);
+    if (!raw) return createEmptyAssessmentStore();
+
+    try {
+      return parseAssessmentStore(raw);
+    } catch {
+      return createEmptyAssessmentStore();
+    }
+  }
+
+  function refreshSavedAssessmentIndex(store?: AssessmentStore) {
+    const nextStore = store ?? readLocalAssessmentStore();
+    setSavedAssessments(buildAssessmentIndex(nextStore));
+  }
+
+  function persistCurrentAssessment() {
+    if (typeof window === "undefined" || !storageReady || restoringRef.current) {
+      return;
+    }
+
+    const organisationName = assessmentProfile.organisationName.trim();
+    const hasAssessmentData =
+      Boolean(organisationName) ||
+      Boolean(industryId) ||
+      Boolean(businessTypeId) ||
+      Boolean(processId) ||
+      selectedEntryPoints.length > 0 ||
+      customEntryPoints.length > 0 ||
+      selectedFields.length > 0 ||
+      customFields.length > 0 ||
+      Boolean(riskResult) ||
+      treatmentActions.length > 0 ||
+      residualRiskDecisions.length > 0 ||
+      Object.keys(dpdpMappingStates).length > 0 ||
+      Object.keys(evidenceRecords).length > 0;
+
+    if (!hasAssessmentData) return;
+
+    const now = new Date().toISOString();
+    const lastCompletedStep = getLastCompletedStep({
+      assessmentProfile,
+      inputs: buildContinuityInputs(),
+      riskResult,
+      treatmentActions,
+      residualRiskDecisions,
+      dpdpMappingStates,
+      evidenceRecords,
+      currentStep: 0,
+      lastCompletedStep: 0,
+    });
+
+    const state = buildAssessmentContinuityState({
+      assessmentProfile,
+      inputs: buildContinuityInputs(),
+      riskResult,
+      treatmentActions,
+      residualRiskDecisions,
+      dpdpMappingStates,
+      evidenceRecords,
+      currentStep: lastCompletedStep,
+      lastCompletedStep,
+    });
+
+    const pkg = buildAssessmentPackage(state, {
+      applicationVersion: "Phase-C",
+      exportedAt: now,
+      lastSavedAt: now,
+    });
+
+    const store = readLocalAssessmentStore();
+    const nextStore: AssessmentStore = {
+      ...store,
+      assessments: {
+        ...store.assessments,
+        [assessmentProfile.assessmentId]: pkg,
+      },
+    };
+
+    try {
+      setSaving(true);
+      window.localStorage.setItem(
+        ASSESSMENT_STORAGE_KEY,
+        serializeAssessmentStore(nextStore)
+      );
+      setLastSavedAt(now);
+      setSavedAssessments(buildAssessmentIndex(nextStore));
+    } catch (error) {
+      console.warn("PrivacyMap local autosave failed.", error);
+    } finally {
+      window.setTimeout(() => setSaving(false), 250);
+    }
+  }
+
+  function applyRestoredAssessment(pkg: AssessmentPackage) {
+    const state = pkg.assessment;
+    const inputs = state.inputs;
+
+    restoringRef.current = true;
+
+    setAssessmentProfile(state.assessmentProfile);
+    setIndustryId(inputs.industryId);
+    setBusinessTypeId(inputs.businessTypeId);
+    setProcessId(inputs.processId);
+    setSelectedEntryPoints(inputs.selectedEntryPoints);
+    setCustomEntryPoints(inputs.customEntryPoints);
+    setCustomEntryPoint("");
+    setSelectedFields(inputs.selectedFields);
+    setCustomFields(inputs.customFields);
+    setCustomField("");
+    setCollectorRoles(inputs.collectorRoles);
+    setDataSubjectTypes(inputs.dataSubjectTypes);
+    setCollectionFormats(inputs.collectionFormats);
+    setStorageLocations(inputs.storageLocations);
+    setStorageEnvironments(inputs.storageEnvironments);
+    setEncryptionStatuses(inputs.encryptionStatuses);
+    setAccessRoles(inputs.accessRoles);
+    setSharingStatuses(inputs.sharingStatuses);
+    setRetentionPeriods(inputs.retentionPeriods);
+    setDeletionMethods(inputs.deletionMethods);
+    setPrivacyNotices(inputs.privacyNotices);
+    setConsentStatuses(inputs.consentStatuses);
+    setParentalConsentStatuses(inputs.parentalConsentStatuses);
+    setCrossBorderTransfers(inputs.crossBorderTransfers);
+    setRiskResult(state.riskResult);
+    setTreatmentActions(state.treatmentActions);
+    setResidualRiskDecisions(state.residualRiskDecisions);
+    setDpdpMappingStates(state.dpdpMappingStates);
+    setEvidenceRecords(state.evidenceRecords);
+    setLastSavedAt(pkg.metadata.lastSavedAt);
+
+    window.setTimeout(() => {
+      restoringRef.current = false;
+      refreshSavedAssessmentIndex();
+    }, 0);
+  }
+
+  function handleResume(assessmentId: string) {
+    const store = readLocalAssessmentStore();
+    const pkg = store.assessments[assessmentId];
+    if (!pkg) return;
+
+    applyRestoredAssessment(pkg);
+    window.setTimeout(() => {
+      document
+        .getElementById("assessment-profile")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+  }
+
+  function handleDeleteAssessment(assessmentId: string) {
+    const store = readLocalAssessmentStore();
+    if (!store.assessments[assessmentId]) return;
+
+    const nextAssessments = { ...store.assessments };
+    delete nextAssessments[assessmentId];
+
+    const nextStore: AssessmentStore = {
+      ...store,
+      assessments: nextAssessments,
+    };
+
+    try {
+      window.localStorage.setItem(
+        ASSESSMENT_STORAGE_KEY,
+        serializeAssessmentStore(nextStore)
+      );
+      setSavedAssessments(buildAssessmentIndex(nextStore));
+
+      if (assessmentProfile.assessmentId === assessmentId) {
+        setLastSavedAt(null);
+      }
+    } catch (error) {
+      console.warn("PrivacyMap local assessment deletion failed.", error);
+    }
+  }
+
+  function handleStartNewAssessment() {
+    restoringRef.current = true;
+
+    setAssessmentProfile(createDefaultAssessmentProfile());
+    setIndustryId("");
+    setBusinessTypeId("");
+    setProcessId("");
+    setSelectedEntryPoints([]);
+    setCustomEntryPoints([]);
+    setCustomEntryPoint("");
+    setSelectedFields([]);
+    setCustomFields([]);
+    setCustomField("");
+    setCollectorRoles([]);
+    setDataSubjectTypes([]);
+    setCollectionFormats([]);
+    setStorageLocations([]);
+    setStorageEnvironments([]);
+    setEncryptionStatuses([]);
+    setAccessRoles([]);
+    setSharingStatuses([]);
+    setRetentionPeriods([]);
+    setDeletionMethods([]);
+    setPrivacyNotices([]);
+    setConsentStatuses([]);
+    setParentalConsentStatuses([]);
+    setCrossBorderTransfers([]);
+    setRiskResult(null);
+    setTreatmentActions([]);
+    setResidualRiskDecisions([]);
+    setDpdpMappingStates({});
+    setEvidenceRecords({});
+    setLastSavedAt(null);
+
+    window.setTimeout(() => {
+      restoringRef.current = false;
+      refreshSavedAssessmentIndex();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }, 0);
+  }
+
+  /* Load local assessment index once on the client. */
+  useEffect(() => {
+    refreshSavedAssessmentIndex();
+    setStorageReady(true);
+  }, []);
+
+  /* Debounced local autosave. Nothing is sent to the server. */
+  useEffect(() => {
+    if (!storageReady || restoringRef.current) return;
+
+    const timer = window.setTimeout(() => {
+      persistCurrentAssessment();
+    }, 800);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    storageReady,
+    assessmentProfile,
+    industryId,
+    businessTypeId,
+    processId,
+    selectedEntryPoints,
+    customEntryPoints,
+    selectedFields,
+    customFields,
+    collectorRoles,
+    dataSubjectTypes,
+    collectionFormats,
+    storageLocations,
+    storageEnvironments,
+    encryptionStatuses,
+    accessRoles,
+    sharingStatuses,
+    retentionPeriods,
+    deletionMethods,
+    privacyNotices,
+    consentStatuses,
+    parentalConsentStatuses,
+    crossBorderTransfers,
+    riskResult,
+    treatmentActions,
+    residualRiskDecisions,
+    dpdpMappingStates,
+    evidenceRecords,
+  ]);
 
   /* ==========================================================
      DERIVED DATA
@@ -437,9 +762,20 @@ export default function AssessmentPage() {
      ========================================================== */
 
   useEffect(() => {
-    setTreatmentActions(
-      treatmentPlan
-    );
+    if (!treatmentPlan.length) return;
+
+    setTreatmentActions((current) => {
+      const existingById = new Map(
+        current.map((action) => [action.id, action])
+      );
+
+      return treatmentPlan.map((action) => {
+        const existing = existingById.get(action.id);
+        return existing
+          ? { ...action, status: existing.status }
+          : action;
+      });
+    });
   }, [treatmentPlan]);
 
 
@@ -1112,6 +1448,15 @@ export default function AssessmentPage() {
         >
           PRIVACYMAP INDIA
         </p>
+
+        <AssessmentContinuityPanel
+          savedAssessments={savedAssessments}
+          saving={saving}
+          lastSavedAt={lastSavedAt}
+          onResume={handleResume}
+          onDelete={handleDeleteAssessment}
+          onStartNew={handleStartNewAssessment}
+        />
 
 
         {/* ======================================================
