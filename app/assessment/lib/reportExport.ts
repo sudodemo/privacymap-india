@@ -559,7 +559,16 @@ export function downloadTextFile(content: string, filename: string, mimeType: st
    - compact 3-page-style flow with automatic pagination
    ============================================================ */
 
-type PdfStyle = "body" | "small" | "label" | "value" | "metricValue" | "title" | "section" | "subtitle";
+type PdfStyle =
+  | "body"
+  | "small"
+  | "label"
+  | "value"
+  | "metricValue"
+  | "header"
+  | "title"
+  | "section"
+  | "subtitle";
 
 const PDF_PAGE_WIDTH = 595.28;
 const PDF_PAGE_HEIGHT = 841.89;
