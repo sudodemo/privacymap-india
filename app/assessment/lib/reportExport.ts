@@ -53,6 +53,15 @@ function resultValue(result: RiskResult | null, key: string): unknown {
   return (result as unknown as Record<string, unknown>)[key];
 }
 
+export interface ReportFinding {
+  id: string;
+  title: string;
+  category: string;
+  risk: string;
+  description: string;
+  recommendedAction: string;
+}
+
 function objectValue(value: unknown, key: string): unknown {
   if (!value || typeof value !== "object") return undefined;
   return (value as Record<string, unknown>)[key];
@@ -411,8 +420,8 @@ export function reportToMarkdown(report: AssessmentReportData): string {
   lines.push(`**Generated:** ${escapeMarkdown(report.generatedAt)}`, "");
 
   lines.push("## Executive Summary", "");
-  lines.push(`- Overall Risk: **${display(resultValue(result, "overallRisk"))}**`);
-  lines.push(`- Risk Score: **${display(resultValue(result, "riskScore"))}**`);
+  lines.push(`- Overall Risk: **${reportOverallRisk(result)}**`);
+  lines.push(`- Risk Score: **${reportRiskScore(result)}**`);
   lines.push(`- Findings: **${findings.length}**`);
   lines.push(`- Treatment Actions: **${report.treatmentActions.length}**`);
   lines.push(`- Residual Risk Decisions: **${report.residualRiskDecisions.length}**`, "");
@@ -688,6 +697,35 @@ function findingDescription(finding: Record<string, unknown>): string {
 function findingRecommendation(finding: Record<string, unknown>): string {
   const value = firstValue(finding, ["recommendedAction", "recommendation", "recommendedTreatment", "treatment", "action"]);
   return display(value || "Review the identified condition, assign an accountable owner and implement appropriate treatment controls.");
+}
+
+/**
+ * Public normalized finding accessor used by AssessmentReport.tsx.
+ * Keeps the UI independent from the internal RiskResult finding shape.
+ */
+export function getReportFindings(result: RiskResult | null): ReportFinding[] {
+  return reportFindings(result).map((finding, index) => ({
+    id: findingId(finding) || `finding-${index + 1}`,
+    title: findingTitle(finding),
+    category: findingCategory(finding),
+    risk: findingRisk(finding),
+    description: findingDescription(finding),
+    recommendedAction: findingRecommendation(finding),
+  }));
+}
+
+/**
+ * Stable DOM anchor ID shared by the report and assessment page.
+ */
+export function reportAnchorId(step: number, title: string): string {
+  const slug = text(title)
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 100);
+
+  return `pm-step${step}-${slug || "item"}`;
 }
 
 function addMetricCard(commands: string[], x: number, y: number, width: number, label: string, value: string): void {
