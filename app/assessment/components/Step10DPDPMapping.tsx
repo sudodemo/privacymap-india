@@ -10,7 +10,7 @@ type DpdpControlStatus =
   | "REVIEW_REQUIRED"
   | "EVIDENCE_RECORDED";
 
-type DpdpAssessmentState = {
+export type DpdpAssessmentState = {
   status: DpdpControlStatus;
   owner: string;
   evidence: string;
@@ -36,6 +36,60 @@ type DpdpMappingRow = {
   status: DpdpControlStatus;
 };
 
+/*
+ * =========================================================
+ * TREATMENT STATUS HELPERS
+ * =========================================================
+ * These helpers intentionally accept the RiskTreatmentAction status
+ * type and normalize it to a string so this component remains resilient
+ * if additional treatment statuses are added to the risk-treatment model.
+ */
+
+function treatmentStatusBackground(
+  status: RiskTreatmentAction["status"]
+): string {
+  switch (String(status).toLowerCase()) {
+    case "completed":
+      return "#f0fdf4";
+
+    case "accepted":
+      return "#eff6ff";
+
+    case "in progress":
+    case "in-progress":
+      return "#fffbeb";
+
+    case "open":
+      return "#f8fafc";
+
+    default:
+      return "#f8fafc";
+  }
+}
+
+function treatmentStatusColor(
+  status: RiskTreatmentAction["status"]
+): string {
+  switch (String(status).toLowerCase()) {
+    case "completed":
+      return "#15803d";
+
+    case "accepted":
+      return "#1d4ed8";
+
+    case "in progress":
+    case "in-progress":
+      return "#b45309";
+
+    case "open":
+      return "#475569";
+
+    default:
+      return "#475569";
+  }
+}
+
+
 export default function Step10DPDPMapping({
   result,
   dataSubjectTypes,
@@ -47,6 +101,8 @@ export default function Step10DPDPMapping({
   parentalConsentStatuses,
   crossBorderTransfers,
   treatmentActions,
+  mappingStates = {},
+  onMappingStateChange,
 }: {
   result: RiskResult;
   dataSubjectTypes: string[];
@@ -58,6 +114,11 @@ export default function Step10DPDPMapping({
   parentalConsentStatuses: string[];
   crossBorderTransfers: string[];
   treatmentActions: RiskTreatmentAction[];
+  mappingStates?: Record<string, DpdpAssessmentState>;
+  onMappingStateChange?: (
+    id: string,
+    updates: Partial<DpdpAssessmentState>
+  ) => void;
 }) {
   // Child-data applicability must be driven by an explicit
   // child/student data selection. A blank or non-applicable
@@ -194,54 +255,30 @@ export default function Step10DPDPMapping({
     isChildData,
   ]);
 
-  const [states, setStates] =
-    useState<Record<string, DpdpAssessmentState>>({});
-
-  useEffect(() => {
-    setStates((current) => {
-      const next: Record<string, DpdpAssessmentState> = {};
-
-      mappings.forEach((mapping) => {
-        next[mapping.id] = {
-          status:
-            current[mapping.id]?.status ??
-            mapping.status,
-          owner:
-            current[mapping.id]?.owner ?? "",
-          evidence:
-            current[mapping.id]?.evidence ?? "",
-          targetDate:
-            current[mapping.id]?.targetDate ?? "",
-          notes:
-            current[mapping.id]?.notes ?? "",
-        };
-      });
-
-      return next;
-    });
-  }, [mappings]);
+  /*
+   * Phase A state normalization:
+   * Step 10 no longer owns the authoritative mapping state.
+   * The parent page owns mappingStates so the state can later be
+   * autosaved/exported/restored by the Continuity Layer.
+   */
+  const states = mappingStates;
 
   function updateState(
     id: string,
     updates: Partial<DpdpAssessmentState>
   ) {
-    setStates((current) => ({
+    const current = states[id] ?? {
+      status: "NOT_ASSESSED",
+      owner: "",
+      evidence: "",
+      targetDate: "",
+      notes: "",
+    };
+
+    onMappingStateChange?.(id, {
       ...current,
-      [id]: {
-        status:
-          current[id]?.status ??
-          "NOT_ASSESSED",
-        owner:
-          current[id]?.owner ?? "",
-        evidence:
-          current[id]?.evidence ?? "",
-        targetDate:
-          current[id]?.targetDate ?? "",
-        notes:
-          current[id]?.notes ?? "",
-        ...updates,
-      },
-    }));
+      ...updates,
+    });
   }
 
   const reviewRequiredCount = mappings.filter(
@@ -1165,48 +1202,6 @@ function deriveDpdpStatus(
   }
 }
 
-function treatmentStatusBackground(
-  status: RiskTreatmentAction["status"]
-): string {
-  switch (status) {
-    case "Open":
-      return "#f8fafc";
-
-    case "In Progress":
-      return "#eff6ff";
-
-    case "Completed":
-      return "#f0fdf4";
-
-    case "Accepted":
-      return "#fff7ed";
-
-    default:
-      return "#f8fafc";
-  }
-}
-
-function treatmentStatusColor(
-  status: RiskTreatmentAction["status"]
-): string {
-  switch (status) {
-    case "Open":
-      return "#475569";
-
-    case "In Progress":
-      return "#1d4ed8";
-
-    case "Completed":
-      return "#15803d";
-
-    case "Accepted":
-      return "#c2410c";
-
-    default:
-      return "#64748b";
-  }
-}
-
 function DpdpSummaryCard({
   label,
   value,
@@ -1352,10 +1347,3 @@ const governanceInputStyle = {
   color: "#0f172a",
   fontSize: "14px",
 };
-
-/*
- * =========================================================
- * STEP 8 - RISK TREATMENT PLAN
- * =========================================================
- */
-
