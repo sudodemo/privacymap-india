@@ -20,10 +20,16 @@ export type EvidenceRecords = Record<string, EvidenceRecord>;
    REPORT DATA MODEL
    ============================================================ */
 
+export interface ReportRiskSummary {
+  overallRisk: string;
+  riskScore: string;
+}
+
 export interface AssessmentReportData {
   generatedAt: string;
   assessmentProfile: AssessmentProfile;
   riskResult: RiskResult | null;
+  riskSummary: ReportRiskSummary;
   findings: ReportFinding[];
   treatmentActions: RiskTreatmentAction[];
   residualRiskDecisions: ResidualRiskDecisionRecord[];
@@ -52,6 +58,27 @@ function display(value: unknown): string {
 function resultValue(result: RiskResult | null, key: string): unknown {
   if (!result) return undefined;
   return (result as unknown as Record<string, unknown>)[key];
+}
+
+function riskSummaryValue(result: RiskResult | null): ReportRiskSummary {
+  const overall = firstValue(result, [
+    "overallLevel",
+    "overallRisk",
+    "overallRiskLevel",
+    "riskLevel",
+    "posture",
+  ]);
+
+  const score = firstValue(result, [
+    "score",
+    "riskScore",
+    "overallScore",
+  ]);
+
+  return {
+    overallRisk: display(overall),
+    riskScore: display(score),
+  };
 }
 
 export interface ReportFinding {
@@ -205,6 +232,7 @@ export function buildAssessmentReport(
     generatedAt: formatIndiaDateTime(new Date()),
     assessmentProfile,
     riskResult,
+    riskSummary: riskSummaryValue(riskResult),
     findings: getReportFindings(riskResult),
     treatmentActions,
     residualRiskDecisions,
