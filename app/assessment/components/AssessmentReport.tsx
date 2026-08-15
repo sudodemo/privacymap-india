@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import { useMemo, useState } from "react";
+import type { AssessmentReportData } from "../lib/reportExport";
 import {
   reportToCsv,
   reportToJson,
@@ -8,1342 +9,928 @@ import {
   reportToXml,
   downloadTextFile,
   downloadPdf,
+  getReportFindings,
+  reportAnchorId,
 } from "../lib/reportExport";
 
 type ReportFormat = "pdf" | "csv" | "xml" | "json" | "markdown";
 
 interface AssessmentReportProps {
-  report: any;
+  report: AssessmentReportData;
 }
 
-const cardStyle: React.CSSProperties = {
-  background: "#ffffff",
-  border: "1px solid #e2e8f0",
-  borderRadius: 14,
-  padding: 28,
-  marginBottom: 20,
-};
-
-const sectionStyle: React.CSSProperties = {
-  ...cardStyle,
-  marginTop: 24,
-};
-
-const headingStyle: React.CSSProperties = {
-  margin: 0,
-  color: "#0f172a",
-};
-
-const subHeadingStyle: React.CSSProperties = {
-  margin: "0 0 10px",
-  color: "#0f172a",
-};
-
-const mutedStyle: React.CSSProperties = {
-  color: "#64748b",
-  lineHeight: 1.65,
-};
-
-const labelStyle: React.CSSProperties = {
-  fontSize: 11,
-  fontWeight: 700,
-  letterSpacing: 1,
-  textTransform: "uppercase",
-  color: "#64748b",
-  marginBottom: 5,
-};
-
-const valueStyle: React.CSSProperties = {
-  color: "#0f172a",
-  fontSize: 15,
-  fontWeight: 600,
-};
-
-const gridStyle: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
-  gap: 14,
-  marginTop: 18,
-};
-
-function safeString(value: unknown, fallback = "Not Available"): string {
-  if (value === null || value === undefined) return fallback;
-
-  const result = String(value).trim();
-
-  return result || fallback;
-}
-
-function safeNumber(
-  value: unknown,
-  fallback = "Not Available"
-): string {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return String(value);
-  }
-
-  if (typeof value === "string" && value.trim() !== "") {
-    return value;
-  }
-
-  return fallback;
-}
-
-function firstDefined(
-  source: any,
-  keys: string[],
-  fallback = "Not Available"
-): string {
-  if (!source) return fallback;
-
+function safeActionValue(action: unknown, keys: string[]): string {
+  if (!action || typeof action !== "object") return "Not Available";
+  const record = action as Record<string, unknown>;
   for (const key of keys) {
-    const value = source[key];
-
-    if (
-      value !== undefined &&
-      value !== null &&
-      String(value).trim() !== ""
-    ) {
+    const value = record[key];
+    if (value !== undefined && value !== null && String(value).trim()) {
       return String(value);
     }
   }
-
-  return fallback;
+  return "Not Available";
 }
 
-function arrayValue(source: any, keys: string[]): any[] {
-  if (!source) return [];
-
-  for (const key of keys) {
-    if (Array.isArray(source[key])) {
-      return source[key];
-    }
+function riskBadgeStyle(risk: string) {
+  const value = risk.toLowerCase();
+  if (value.includes("critical") || value.includes("high")) {
+    return {
+      background: "#fef2f2",
+      color: "#b91c1c",
+      border: "1px solid #fecaca",
+    };
   }
-
-  return [];
+  if (value.includes("medium") || value.includes("moderate")) {
+    return {
+      background: "#fffbeb",
+      color: "#b45309",
+      border: "1px solid #fde68a",
+    };
+  }
+  if (value.includes("low")) {
+    return {
+      background: "#f0fdf4",
+      color: "#15803d",
+      border: "1px solid #bbf7d0",
+    };
+  }
+  return {
+    background: "#f8fafc",
+    color: "#475569",
+    border: "1px solid #e2e8f0",
+  };
 }
 
-function getReportData(report: any): any {
-  return report?.report ?? report ?? {};
+function statusStyle(status: string) {
+  const value = status.toLowerCase();
+  if (value === "completed") {
+    return { background: "#f0fdf4", color: "#15803d" };
+  }
+  if (value === "accepted" || value === "approved") {
+    return { background: "#eff6ff", color: "#1d4ed8" };
+  }
+  if (value === "in progress" || value === "pending") {
+    return { background: "#fffbeb", color: "#b45309" };
+  }
+  if (value === "rejected") {
+    return { background: "#fef2f2", color: "#b91c1c" };
+  }
+  return { background: "#f8fafc", color: "#475569" };
 }
 
-function getProfile(report: any): any {
-  const data = getReportData(report);
-
+function OpenLink({ step, title }: { step: number; title: string }) {
   return (
-    data.assessmentProfile ??
-    data.profile ??
-    report?.assessmentProfile ??
-    {}
-  );
-}
-
-function getRiskResult(report: any): any {
-  const data = getReportData(report);
-
-  return (
-    data.riskResult ??
-    data.riskAssessment ??
-    report?.riskResult ??
-    {}
-  );
-}
-
-function getFindings(report: any): any[] {
-  const data = getReportData(report);
-  const risk = getRiskResult(report);
-
-  return arrayValue(data, [
-    "privacyRiskFindings",
-    "riskFindings",
-    "findings",
-  ]).length
-    ? arrayValue(data, [
-        "privacyRiskFindings",
-        "riskFindings",
-        "findings",
-      ])
-    : arrayValue(risk, [
-        "privacyRiskFindings",
-        "riskFindings",
-        "findings",
-      ]);
-}
-
-function getTreatmentActions(report: any): any[] {
-  const data = getReportData(report);
-
-  return arrayValue(data, [
-    "treatmentActions",
-    "actions",
-    "riskTreatmentActions",
-    "treatmentPlan",
-  ]);
-}
-
-function getResidualDecisions(report: any): any[] {
-  const data = getReportData(report);
-
-  return arrayValue(data, [
-    "residualRiskDecisions",
-    "decisions",
-    "residualRiskDecisionRegister",
-  ]);
-}
-
-function getEvidence(report: any): any[] {
-  const data = getReportData(report);
-
-  return arrayValue(data, [
-    "evidence",
-    "evidenceRecords",
-    "evidenceItems",
-  ]);
-}
-
-function getRiskSummary(report: any): any {
-  const data = getReportData(report);
-  const risk = getRiskResult(report);
-
-  return (
-    data.riskSummary ??
-    data.summary ??
-    risk.summary ??
-    risk.riskSummary ??
-    {}
-  );
-}
-
-function getOverallRisk(report: any): string {
-  const data = getReportData(report);
-  const risk = getRiskResult(report);
-  const summary = getRiskSummary(report);
-
-  return firstDefined(
-    summary,
-    [
-      "overallRisk",
-      "overallRiskLevel",
-      "riskLevel",
-      "overallRating",
-    ],
-    firstDefined(
-      risk,
-      [
-        "overallRisk",
-        "overallRiskLevel",
-        "riskLevel",
-        "overallRating",
-      ],
-      firstDefined(data, [
-        "overallRisk",
-        "overallRiskLevel",
-        "riskLevel",
-      ])
-    )
-  );
-}
-
-function getRiskScore(report: any): string {
-  const data = getReportData(report);
-  const risk = getRiskResult(report);
-  const summary = getRiskSummary(report);
-
-  return firstDefined(
-    summary,
-    [
-      "riskScore",
-      "overallRiskScore",
-      "score",
-      "totalScore",
-    ],
-    firstDefined(
-      risk,
-      [
-        "riskScore",
-        "overallRiskScore",
-        "score",
-        "totalScore",
-      ],
-      firstDefined(data, [
-        "riskScore",
-        "overallRiskScore",
-        "score",
-      ])
-    )
-  );
-}
-
-function getCompletionStatus(report: any): string {
-  const data = getReportData(report);
-
-  return firstDefined(
-    data,
-    ["completionStatus", "status", "assessmentStatus"],
-    "Completed"
-  );
-}
-
-function getReportDate(report: any): string {
-  const data = getReportData(report);
-
-  return firstDefined(
-    data,
-    ["reportDate", "generatedAt", "completedAt", "assessmentDate"],
-    new Date().toLocaleDateString()
-  );
-}
-
-function getRiskDescription(report: any): string {
-  const data = getReportData(report);
-  const risk = getRiskResult(report);
-
-  return firstDefined(
-    data,
-    ["riskSummaryText", "executiveSummary", "summaryText"],
-    firstDefined(
-      risk,
-      ["riskSummaryText", "executiveSummary", "summaryText"],
-      "The assessment has been completed based on the information provided during the assessment."
-    )
-  );
-}
-
-function Metric({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
-  return (
-    <div
+    <a
+      href={`#${reportAnchorId(step, title)}`}
       style={{
-        padding: 18,
-        border: "1px solid #e2e8f0",
-        borderRadius: 10,
-        background: "#f8fafc",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
+        marginTop: 12,
+        color: "#1d4ed8",
+        fontSize: 13,
+        fontWeight: 700,
+        textDecoration: "none",
       }}
     >
-      <div style={labelStyle}>{label}</div>
-      <div style={valueStyle}>{value}</div>
-    </div>
+      Open in Step {step} →
+    </a>
   );
 }
 
-function SectionTitle({
-  eyebrow,
+function Section({
+  step,
+  kicker,
   title,
   description,
+  children,
 }: {
-  eyebrow?: string;
+  step?: number;
+  kicker: string;
   title: string;
   description?: string;
+  children: React.ReactNode;
 }) {
   return (
-    <div style={{ marginBottom: 18 }}>
-      {eyebrow && (
-        <div
-          style={{
-            fontSize: 12,
-            fontWeight: 700,
-            letterSpacing: 1.5,
-            color: "#1d4ed8",
-            marginBottom: 7,
-          }}
-        >
-          {eyebrow}
-        </div>
-      )}
-
-      <h2 style={headingStyle}>{title}</h2>
-
+    <section
+      style={{
+        marginTop: 26,
+        paddingTop: 24,
+        borderTop: "1px solid #e2e8f0",
+      }}
+    >
+      <div
+        style={{
+          fontSize: 11,
+          fontWeight: 800,
+          letterSpacing: 1.8,
+          color: "#1d4ed8",
+          marginBottom: 7,
+        }}
+      >
+        {kicker}
+      </div>
+      <h3
+        style={{
+          margin: "0 0 7px",
+          color: "#0f172a",
+          fontSize: 21,
+        }}
+      >
+        {title}
+      </h3>
       {description && (
         <p
           style={{
-            ...mutedStyle,
-            marginTop: 8,
-            marginBottom: 0,
+            margin: "0 0 16px",
+            color: "#64748b",
+            lineHeight: 1.6,
+            fontSize: 14,
           }}
         >
           {description}
         </p>
       )}
-    </div>
-  );
-}
-
-function formatFindingTitle(finding: any, index: number): string {
-  return firstDefined(
-    finding,
-    ["title", "riskTitle", "name", "findingTitle"],
-    `Privacy Risk Finding ${index + 1}`
-  );
-}
-
-function formatFindingDescription(finding: any): string {
-  return firstDefined(
-    finding,
-    [
-      "description",
-      "finding",
-      "riskDescription",
-      "details",
-      "observation",
-    ],
-    "No additional finding description was recorded."
-  );
-}
-
-function formatFindingRisk(finding: any): string {
-  return firstDefined(
-    finding,
-    [
-      "riskLevel",
-      "risk",
-      "severity",
-      "rating",
-      "inherentRisk",
-    ]
-  );
-}
-
-function getActionTitle(action: any, index: number): string {
-  return firstDefined(
-    action,
-    [
-      "riskTitle",
-      "title",
-      "name",
-      "findingTitle",
-      "action",
-    ],
-    `Risk Treatment Action ${index + 1}`
-  );
-}
-
-function getActionTreatment(action: any): string {
-  return firstDefined(
-    action,
-    [
-      "recommendedTreatment",
-      "treatment",
-      "treatmentDescription",
-      "description",
-      "recommendation",
-    ],
-    "No treatment description recorded."
-  );
-}
-
-function getActionStatus(action: any): string {
-  return firstDefined(action, ["status", "treatmentStatus"], "Open");
-}
-
-function getDecisionTitle(decision: any, index: number): string {
-  return firstDefined(
-    decision,
-    ["riskTitle", "title", "name"],
-    `Residual Risk Decision ${index + 1}`
-  );
-}
-
-function getEvidenceTitle(evidence: any, index: number): string {
-  return firstDefined(
-    evidence,
-    ["title", "name", "evidenceTitle"],
-    `Evidence Item ${index + 1}`
-  );
-}
-
-function ReportHeader({ report }: { report: any }) {
-  const profile = getProfile(report);
-
-  return (
-    <div
-      style={{
-        ...cardStyle,
-        borderTop: "5px solid #1d4ed8",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 20,
-          flexWrap: "wrap",
-        }}
-      >
-        <div>
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: 800,
-              letterSpacing: 2,
-              color: "#1d4ed8",
-              marginBottom: 8,
-            }}
-          >
-            PRIVACYMAP
-          </div>
-
-          <h1
-            style={{
-              margin: 0,
-              color: "#0f172a",
-              fontSize: 30,
-              lineHeight: 1.2,
-            }}
-          >
-            DPDP Privacy Assessment Report
-          </h1>
-
-          <p
-            style={{
-              margin: "10px 0 0",
-              color: "#64748b",
-              fontSize: 15,
-            }}
-          >
-            Assessment and privacy-risk management report
-          </p>
-        </div>
-
-        <div
-          style={{
-            minWidth: 220,
-            padding: 16,
-            borderRadius: 10,
-            background: "#f8fafc",
-            border: "1px solid #e2e8f0",
-          }}
-        >
-          <div style={labelStyle}>Assessment ID</div>
-
-          <div style={valueStyle}>
-            {safeString(profile.assessmentId)}
-          </div>
-
-          <div
-            style={{
-              ...labelStyle,
-              marginTop: 12,
-            }}
-          >
-            Report Date
-          </div>
-
-          <div style={valueStyle}>{getReportDate(report)}</div>
-        </div>
-      </div>
-
-      <div style={gridStyle}>
-        <Metric
-          label="Organisation"
-          value={safeString(profile.organisationName)}
-        />
-
-        <Metric
-          label="Assessment"
-          value={safeString(profile.assessmentName)}
-        />
-
-        <Metric
-          label="Business Type"
-          value={safeString(
-            profile.businessTypeName ??
-              profile.businessType ??
-              profile.businessTypeId
-          )}
-        />
-
-        <Metric
-          label="Assessment Status"
-          value={getCompletionStatus(report)}
-        />
-      </div>
-    </div>
-  );
-}
-
-function ExecutiveSummary({ report }: { report: any }) {
-  const overallRisk = getOverallRisk(report);
-  const riskScore = getRiskScore(report);
-  const findings = getFindings(report);
-  const actions = getTreatmentActions(report);
-  const decisions = getResidualDecisions(report);
-  const evidence = getEvidence(report);
-
-  return (
-    <section style={sectionStyle}>
-      <SectionTitle
-        eyebrow="EXECUTIVE SUMMARY"
-        title="Assessment Overview"
-        description="A consolidated view of the assessment outcome and the current privacy-risk management state."
-      />
-
-      <div style={gridStyle}>
-        <Metric
-          label="Overall Risk"
-          value={overallRisk}
-        />
-
-        <Metric
-          label="Risk Score"
-          value={riskScore}
-        />
-
-        <Metric
-          label="Privacy Risk Findings"
-          value={String(findings.length)}
-        />
-
-        <Metric
-          label="Treatment Actions"
-          value={String(actions.length)}
-        />
-
-        <Metric
-          label="Residual Risk Decisions"
-          value={String(decisions.length)}
-        />
-
-        <Metric
-          label="Evidence Items"
-          value={String(evidence.length)}
-        />
-      </div>
-
-      <div
-        style={{
-          marginTop: 20,
-          padding: 18,
-          background: "#f8fafc",
-          borderRadius: 10,
-          border: "1px solid #e2e8f0",
-        }}
-      >
-        <div style={labelStyle}>Assessment Summary</div>
-
-        <p
-          style={{
-            margin: 0,
-            color: "#334155",
-            lineHeight: 1.7,
-          }}
-        >
-          {getRiskDescription(report)}
-        </p>
-      </div>
-
-      {overallRisk === "Not Available" &&
-        riskScore === "Not Available" && (
-          <div
-            style={{
-              marginTop: 16,
-              padding: "12px 14px",
-              borderRadius: 8,
-              background: "#fffbeb",
-              border: "1px solid #fde68a",
-              color: "#92400e",
-              fontSize: 13,
-              lineHeight: 1.6,
-            }}
-          >
-            <strong>Risk summary note:</strong>{" "}
-            Overall Risk and Risk Score were not present in
-            the supplied assessment result. This does not
-            prevent the remainder of the report from being
-            generated.
-          </div>
-        )}
+      {children}
     </section>
   );
 }
 
-function PrivacyRiskFindings({
-  report,
-}: {
-  report: any;
-}) {
-  const findings = getFindings(report);
+export default function AssessmentReport({ report }: AssessmentReportProps) {
+  const [format, setFormat] = useState<ReportFormat>("pdf");
+  const [downloading, setDownloading] = useState(false);
 
-  return (
-    <section style={sectionStyle}>
-      <SectionTitle
-        eyebrow="RISK ASSESSMENT"
-        title="Privacy Risk Findings"
-        description="Privacy risks identified from the assessment responses."
-      />
-
-      {findings.length === 0 ? (
-        <div
-          style={{
-            padding: 18,
-            background: "#f8fafc",
-            borderRadius: 10,
-            color: "#64748b",
-          }}
-        >
-          No privacy risk findings were recorded.
-        </div>
-      ) : (
-        findings.map((finding, index) => (
-          <div
-            key={
-              safeString(
-                finding?.id,
-                `finding-${index}`
-              )
-            }
-            style={{
-              padding: 18,
-              border: "1px solid #e2e8f0",
-              borderRadius: 10,
-              marginBottom:
-                index === findings.length - 1 ? 0 : 12,
-              background: "#ffffff",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 15,
-                flexWrap: "wrap",
-              }}
-            >
-              <h3
-                style={{
-                  margin: 0,
-                  color: "#0f172a",
-                  fontSize: 17,
-                }}
-              >
-                {formatFindingTitle(finding, index)}
-              </h3>
-
-              <span
-                style={{
-                  padding: "5px 10px",
-                  borderRadius: 20,
-                  background: "#f8fafc",
-                  border: "1px solid #e2e8f0",
-                  color: "#475569",
-                  fontSize: 12,
-                  fontWeight: 700,
-                }}
-              >
-                {formatFindingRisk(finding)}
-              </span>
-            </div>
-
-            <p
-              style={{
-                margin: "10px 0 0",
-                color: "#475569",
-                lineHeight: 1.65,
-              }}
-            >
-              {formatFindingDescription(finding)}
-            </p>
-          </div>
-        ))
-      )}
-    </section>
+  const filenameBase = useMemo(
+    () =>
+      buildFilename(
+        report.assessmentProfile.organisationName,
+        report.assessmentProfile.assessmentId
+      ),
+    [report.assessmentProfile]
   );
-}
 
-function TreatmentSection({
-  report,
-}: {
-  report: any;
-}) {
-  const actions = getTreatmentActions(report);
+  const findings = report.findings?.length
+    ? report.findings
+    : getReportFindings(report.riskResult);
 
-  return (
-    <section style={sectionStyle}>
-      <SectionTitle
-        eyebrow="RISK TREATMENT"
-        title="Risk Treatment & Action Plan"
-        description="Actions established to address identified privacy risks."
-      />
+  const treatmentActions = report.treatmentActions || [];
+  const decisions = report.residualRiskDecisions || [];
+  const evidenceRecords = report.evidenceRecords || {};
 
-      {actions.length === 0 ? (
-        <div
-          style={{
-            padding: 18,
-            background: "#f8fafc",
-            borderRadius: 10,
-            color: "#64748b",
-          }}
-        >
-          No treatment actions were recorded.
-        </div>
-      ) : (
-        actions.map((action, index) => (
-          <div
-            key={safeString(action?.id, `action-${index}`)}
-            style={{
-              padding: 18,
-              border: "1px solid #e2e8f0",
-              borderRadius: 10,
-              marginBottom:
-                index === actions.length - 1 ? 0 : 12,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 15,
-                flexWrap: "wrap",
-              }}
-            >
-              <div>
-                <h3
-                  style={{
-                    margin: 0,
-                    color: "#0f172a",
-                    fontSize: 16,
-                  }}
-                >
-                  {getActionTitle(action, index)}
-                </h3>
-
-                <p
-                  style={{
-                    margin: "8px 0 0",
-                    color: "#475569",
-                    lineHeight: 1.6,
-                  }}
-                >
-                  {getActionTreatment(action)}
-                </p>
-              </div>
-
-              <span
-                style={{
-                  padding: "6px 10px",
-                  borderRadius: 20,
-                  background: "#eff6ff",
-                  color: "#1d4ed8",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  height: "fit-content",
-                }}
-              >
-                {getActionStatus(action)}
-              </span>
-            </div>
-
-            <div style={gridStyle}>
-              <Metric
-                label="Priority"
-                value={firstDefined(
-                  action,
-                  ["priority"]
-                )}
-              />
-
-              <Metric
-                label="Effort"
-                value={firstDefined(
-                  action,
-                  ["effort"]
-                )}
-              />
-
-              <Metric
-                label="Status"
-                value={getActionStatus(action)}
-              />
-
-              <Metric
-                label="Category"
-                value={firstDefined(
-                  action,
-                  ["category"]
-                )}
-              />
-            </div>
-          </div>
-        ))
-      )}
-    </section>
-  );
-}
-
-function GovernanceSection({
-  report,
-}: {
-  report: any;
-}) {
-  const decisions = getResidualDecisions(report);
-
-  return (
-    <section style={sectionStyle}>
-      <SectionTitle
-        eyebrow="RISK GOVERNANCE"
-        title="Residual Risk Decision Register"
-        description="Ownership, approval and residual-risk decisions recorded during the assessment."
-      />
-
-      {decisions.length === 0 ? (
-        <div
-          style={{
-            padding: 18,
-            background: "#f8fafc",
-            borderRadius: 10,
-            color: "#64748b",
-          }}
-        >
-          No residual-risk decisions were recorded.
-        </div>
-      ) : (
-        decisions.map((decision, index) => (
-          <div
-            key={safeString(
-              decision?.id,
-              `decision-${index}`
-            )}
-            style={{
-              padding: 18,
-              border: "1px solid #e2e8f0",
-              borderRadius: 10,
-              marginBottom:
-                index === decisions.length - 1 ? 0 : 12,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 15,
-                flexWrap: "wrap",
-              }}
-            >
-              <div>
-                <h3
-                  style={{
-                    margin: 0,
-                    color: "#0f172a",
-                    fontSize: 16,
-                  }}
-                >
-                  {getDecisionTitle(decision, index)}
-                </h3>
-
-                <p
-                  style={{
-                    margin: "7px 0 0",
-                    color: "#64748b",
-                    fontSize: 13,
-                  }}
-                >
-                  {firstDefined(
-                    decision,
-                    ["findingId", "category"],
-                    ""
-                  )}
-                </p>
-              </div>
-
-              <span
-                style={{
-                  padding: "6px 10px",
-                  borderRadius: 20,
-                  background:
-                    decision?.approvalStatus ===
-                    "Approved"
-                      ? "#f0fdf4"
-                      : decision?.approvalStatus ===
-                        "Rejected"
-                      ? "#fee2e2"
-                      : "#fffbeb",
-                  color:
-                    decision?.approvalStatus ===
-                    "Approved"
-                      ? "#15803d"
-                      : decision?.approvalStatus ===
-                        "Rejected"
-                      ? "#dc2626"
-                      : "#b45309",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  height: "fit-content",
-                }}
-              >
-                {firstDefined(
-                  decision,
-                  ["approvalStatus"],
-                  "Pending"
-                )}
-              </span>
-            </div>
-
-            <div style={gridStyle}>
-              <Metric
-                label="Inherent Risk"
-                value={firstDefined(
-                  decision,
-                  ["inherentRisk"]
-                )}
-              />
-
-              <Metric
-                label="Residual Risk"
-                value={firstDefined(
-                  decision,
-                  ["residualRisk"]
-                )}
-              />
-
-              <Metric
-                label="Accountable Owner"
-                value={firstDefined(
-                  decision,
-                  ["accountableOwner"]
-                )}
-              />
-
-              <Metric
-                label="Decision Authority"
-                value={firstDefined(
-                  decision,
-                  ["decisionAuthority"]
-                )}
-              />
-
-              <Metric
-                label="Review Date"
-                value={firstDefined(
-                  decision,
-                  ["reviewDate"]
-                )}
-              />
-
-              <Metric
-                label="Next Review"
-                value={firstDefined(
-                  decision,
-                  ["nextReviewDate"]
-                )}
-              />
-            </div>
-
-            <div
-              style={{
-                marginTop: 16,
-                padding: 14,
-                background: "#f8fafc",
-                borderRadius: 8,
-              }}
-            >
-              <div style={labelStyle}>
-                Decision Rationale
-              </div>
-
-              <div
-                style={{
-                  color: "#334155",
-                  lineHeight: 1.6,
-                }}
-              >
-                {firstDefined(
-                  decision,
-                  ["rationale", "decisionRationale"],
-                  "No rationale recorded."
-                )}
-              </div>
-            </div>
-          </div>
-        ))
-      )}
-    </section>
-  );
-}
-
-function EvidenceSection({
-  report,
-}: {
-  report: any;
-}) {
-  const evidence = getEvidence(report);
-
-  return (
-    <section style={sectionStyle}>
-      <SectionTitle
-        eyebrow="EVIDENCE & CLOSURE"
-        title="Evidence & Assessment Closure"
-        description="Evidence and closure state captured as part of the final assessment."
-      />
-
-      {evidence.length === 0 ? (
-        <div
-          style={{
-            padding: 18,
-            background: "#f8fafc",
-            borderRadius: 10,
-            color: "#64748b",
-          }}
-        >
-          No evidence records were included in the
-          report.
-        </div>
-      ) : (
-        evidence.map((item, index) => (
-          <div
-            key={safeString(
-              item?.id,
-              `evidence-${index}`
-            )}
-            style={{
-              padding: 16,
-              border: "1px solid #e2e8f0",
-              borderRadius: 10,
-              marginBottom:
-                index === evidence.length - 1 ? 0 : 10,
-            }}
-          >
-            <strong style={{ color: "#0f172a" }}>
-              {getEvidenceTitle(item, index)}
-            </strong>
-
-            <div
-              style={{
-                marginTop: 7,
-                color: "#64748b",
-                lineHeight: 1.6,
-              }}
-            >
-              {firstDefined(
-                item,
-                ["description", "details", "notes"],
-                "No additional evidence description recorded."
-              )}
-            </div>
-          </div>
-        ))
-      )}
-
-      <div
-        style={{
-          marginTop: 18,
-          padding: 16,
-          background: "#f0fdf4",
-          border: "1px solid #bbf7d0",
-          borderRadius: 10,
-          color: "#166534",
-          lineHeight: 1.6,
-        }}
-      >
-        <strong>Assessment closure:</strong>{" "}
-        The report reflects the information and decisions
-        recorded in the assessment at the time of report
-        generation.
-      </div>
-    </section>
-  );
-}
-
-function DownloadReport({
-  report,
-}: {
-  report: any;
-}) {
-  const [format, setFormat] =
-    React.useState<ReportFormat>("pdf");
-
-  const [downloading, setDownloading] =
-    React.useState(false);
-
-  function buildFileName(extension: string): string {
-    const profile = getProfile(report);
-
-    const organisation = safeString(
-      profile.organisationName,
-      "PrivacyMap-Assessment"
-    )
-      .replace(/[^a-zA-Z0-9-_]+/g, "-")
-      .replace(/^-+|-+$/g, "");
-
-    const assessmentId = safeString(
-      profile.assessmentId,
-      "Report"
-    )
-      .replace(/[^a-zA-Z0-9-_]+/g, "-")
-      .replace(/^-+|-+$/g, "");
-
-    return `${organisation}-${assessmentId}.${extension}`;
-  }
-
-  async function handleDownload() {
+  function downloadReport() {
     setDownloading(true);
-
     try {
       if (format === "pdf") {
-          downloadPdf(
-            report,
-            buildFileName("pdf")
-          );
-          return;
-        }
-
+        downloadPdf(report, `${filenameBase}.pdf`);
+        return;
+      }
       if (format === "csv") {
         downloadTextFile(
           reportToCsv(report),
-          buildFileName("csv"),
+          `${filenameBase}.csv`,
           "text/csv;charset=utf-8"
         );
         return;
       }
-
       if (format === "xml") {
         downloadTextFile(
           reportToXml(report),
-          buildFileName("xml"),
+          `${filenameBase}.xml`,
           "application/xml;charset=utf-8"
         );
         return;
       }
-
       if (format === "json") {
         downloadTextFile(
           reportToJson(report),
-          buildFileName("json"),
+          `${filenameBase}.json`,
           "application/json;charset=utf-8"
         );
         return;
       }
-
       downloadTextFile(
         reportToMarkdown(report),
-        buildFileName("md"),
+        `${filenameBase}.md`,
         "text/markdown;charset=utf-8"
       );
-    } catch (error) {
-      console.error(
-        "Report download failed:",
-        error
-      );
-
-      window.alert(
-        "The report could not be downloaded. Please try again."
-      );
     } finally {
-      setDownloading(false);
+      window.setTimeout(() => setDownloading(false), 500);
     }
   }
 
   return (
     <section
+      id="assessment-report"
       style={{
-        ...sectionStyle,
-        border: "2px solid #1d4ed8",
+        marginTop: 34,
+        marginBottom: 34,
       }}
     >
-      <SectionTitle
-        eyebrow="REPORT"
-        title="Download Report"
-        description="Choose the format in which you want to export the completed assessment."
-      />
-
       <div
         style={{
-          display: "flex",
-          gap: 12,
-          alignItems: "center",
-          flexWrap: "wrap",
+          background: "white",
+          border: "1px solid #cbd5e1",
+          borderRadius: 16,
+          padding: 28,
+          boxShadow: "0 4px 18px rgba(15,23,42,0.04)",
         }}
       >
-        <select
-          value={format}
-          onChange={(event) =>
-            setFormat(
-              event.target.value as ReportFormat
-            )
-          }
-          disabled={downloading}
+        <div
           style={{
-            padding: "12px 14px",
-            borderRadius: 8,
-            border: "1px solid #cbd5e1",
-            background: "#ffffff",
-            color: "#0f172a",
-            fontSize: 14,
-            minWidth: 220,
+            fontSize: 11,
+            fontWeight: 800,
+            letterSpacing: 2,
+            color: "#1d4ed8",
+            marginBottom: 8,
           }}
         >
-          <option value="pdf">PDF</option>
-          <option value="csv">CSV</option>
-          <option value="xml">XML</option>
-          <option value="json">JSON</option>
-          <option value="markdown">Markdown</option>
-        </select>
+          FINAL REPORT
+        </div>
 
-        <button
-          type="button"
-          onClick={handleDownload}
-          disabled={downloading}
+        <h2 style={{ margin: "0 0 7px", color: "#0f172a" }}>
+          आत्मनिर्भर DPDP Assessment Report
+        </h2>
+
+        <p
           style={{
-            padding: "12px 20px",
-            borderRadius: 8,
-            border: "none",
-            background: downloading
-              ? "#94a3b8"
-              : "#1d4ed8",
-            color: "#ffffff",
-            fontWeight: 700,
-            cursor: downloading
-              ? "not-allowed"
-              : "pointer",
+            margin: "0 0 18px",
+            color: "#64748b",
+            lineHeight: 1.6,
           }}
         >
-          {downloading
-            ? "Preparing..."
-            : "Download Report"}
-        </button>
+          Your data. Your browser. Your assessment.
+        </p>
+
+        <div
+          style={{
+            padding: "14px 16px",
+            background: "#f8fafc",
+            border: "1px solid #e2e8f0",
+            borderRadius: 10,
+            color: "#475569",
+            fontSize: 13,
+          }}
+        >
+          <strong style={{ color: "#0f172a" }}>
+            {report.assessmentProfile.organisationName}
+          </strong>
+          {" | "}
+          {report.assessmentProfile.assessmentName}
+          {" | Assessment ID: "}
+          {report.assessmentProfile.assessmentId}
+          <div style={{ marginTop: 5 }}>
+            Report generated: {report.generatedAt}
+          </div>
+        </div>
+
+        <Section
+          kicker="EXECUTIVE SUMMARY"
+          title="Assessment Overview"
+          description="A consolidated view of the assessment outcome and current privacy-risk management state."
+        >
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "repeat(auto-fit,minmax(160px,1fr))",
+              gap: 10,
+            }}
+          >
+            {[
+              ["OVERALL RISK", report.riskSummary.overallRisk],
+              ["RISK SCORE", report.riskSummary.riskScore],
+              ["PRIVACY RISK FINDINGS", String(findings.length)],
+              ["TREATMENT ACTIONS", String(treatmentActions.length)],
+              ["RESIDUAL RISK DECISIONS", String(decisions.length)],
+              [
+                "EVIDENCE ITEMS",
+                String(Object.keys(evidenceRecords).length),
+              ],
+            ].map(([label, value]) => (
+              <div
+                key={label}
+                style={{
+                  padding: 16,
+                  background: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 10,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 800,
+                    letterSpacing: 1,
+                    color: "#64748b",
+                  }}
+                >
+                  {label}
+                </div>
+                <div
+                  style={{
+                    marginTop: 7,
+                    fontSize: 22,
+                    fontWeight: 800,
+                    color: "#0f172a",
+                  }}
+                >
+                  {value}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Section>
+
+        <Section
+          step={7}
+          kicker="RISK ASSESSMENT"
+          title="Privacy Risk Findings"
+          description="Privacy risks identified from the assessment responses."
+        >
+          {findings.length === 0 ? (
+            <Empty text="No privacy risk findings are available." />
+          ) : (
+            findings.map((finding) => {
+              const badge = riskBadgeStyle(finding.risk);
+              return (
+                <div
+                  key={finding.id}
+                  style={{
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 12,
+                    padding: 18,
+                    marginBottom: 12,
+                    scrollMarginTop: 24,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 800,
+                          letterSpacing: 1,
+                          color: "#64748b",
+                        }}
+                      >
+                        {finding.category}
+                      </div>
+                      <h4
+                        style={{
+                          margin: "5px 0",
+                          color: "#0f172a",
+                          fontSize: 16,
+                        }}
+                      >
+                        {finding.title}
+                      </h4>
+                    </div>
+                    <span
+                      style={{
+                        ...badge,
+                        padding: "5px 9px",
+                        borderRadius: 20,
+                        fontSize: 11,
+                        fontWeight: 800,
+                      }}
+                    >
+                      {finding.risk}
+                    </span>
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: 10,
+                      color: "#475569",
+                      lineHeight: 1.6,
+                      fontSize: 13,
+                    }}
+                  >
+                    {finding.description}
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: 12,
+                      padding: "11px 13px",
+                      background: "#f8fafc",
+                      borderRadius: 8,
+                      color: "#334155",
+                      fontSize: 13,
+                      lineHeight: 1.55,
+                    }}
+                  >
+                    <strong>Recommended action:</strong>{" "}
+                    {finding.recommendedAction}
+                  </div>
+
+                  <OpenLink step={7} title={finding.title} />
+                </div>
+              );
+            })
+          )}
+        </Section>
+
+        <Section
+          step={8}
+          kicker="RISK TREATMENT"
+          title="Risk Treatment & Action Plan"
+          description="Actions established to address identified privacy risks."
+        >
+          {treatmentActions.map((action) => {
+            const title = String(action.riskTitle || "Risk treatment");
+            const status = String(action.status || "Not Available");
+            const badge = statusStyle(status);
+            return (
+              <div
+                key={action.id}
+                style={{
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 12,
+                  padding: 18,
+                  marginBottom: 12,
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 12,
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: "#64748b" }}>
+                      {action.category}
+                    </div>
+                    <h4 style={{ margin: "5px 0", color: "#0f172a" }}>
+                      {title}
+                    </h4>
+                  </div>
+                  <span
+                    style={{
+                      ...badge,
+                      padding: "5px 9px",
+                      borderRadius: 20,
+                      fontSize: 11,
+                      fontWeight: 800,
+                    }}
+                  >
+                    {status}
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns:
+                      "repeat(auto-fit,minmax(150px,1fr))",
+                    gap: 8,
+                    marginTop: 12,
+                  }}
+                >
+                  <Mini label="Priority" value={String(action.priority)} />
+                  <Mini
+                    label="Owner"
+                    value={safeActionValue(action, [
+                      "owner",
+                      "suggestedOwner",
+                      "recommendedOwner",
+                      "accountableOwner",
+                    ])}
+                  />
+                  <Mini
+                    label="Timeframe"
+                    value={safeActionValue(action, [
+                      "timeframe",
+                      "suggestedTimeframe",
+                      "recommendedTimeframe",
+                      "targetTimeframe",
+                    ])}
+                  />
+                  <Mini label="Effort" value={String(action.effort)} />
+                </div>
+
+                <div
+                  style={{
+                    marginTop: 12,
+                    color: "#475569",
+                    fontSize: 13,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  <strong>Recommended treatment:</strong>{" "}
+                  {safeActionValue(action, [
+                    "recommendedTreatment",
+                    "treatment",
+                    "recommendedAction",
+                    "action",
+                  ])}
+                </div>
+
+                <OpenLink step={8} title={title} />
+              </div>
+            );
+          })}
+        </Section>
+
+        <Section
+          step={9}
+          kicker="RESIDUAL RISK"
+          title="Residual Risk Decision Register"
+          description="Residual-risk decisions, rationale and current approval state."
+        >
+          {decisions.map((decision) => (
+            <div
+              key={decision.id}
+              style={{
+                border: "1px solid #e2e8f0",
+                borderRadius: 12,
+                padding: 18,
+                marginBottom: 12,
+              }}
+            >
+              <h4 style={{ margin: "0 0 8px", color: "#0f172a" }}>
+                {decision.riskTitle}
+              </h4>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    "repeat(auto-fit,minmax(150px,1fr))",
+                  gap: 8,
+                }}
+              >
+                <Mini label="Inherent Risk" value={decision.inherentRisk} />
+                <Mini label="Residual Risk" value={decision.residualRisk} />
+                <Mini label="Decision" value={decision.decision} />
+                <Mini label="Approval" value={decision.approvalStatus} />
+              </div>
+              <p
+                style={{
+                  color: "#475569",
+                  fontSize: 13,
+                  lineHeight: 1.6,
+                  margin: "12px 0 0",
+                }}
+              >
+                <strong>Rationale:</strong> {decision.rationale}
+              </p>
+              <OpenLink step={9} title={decision.riskTitle} />
+            </div>
+          ))}
+        </Section>
+
+        <Section
+          kicker="DPDP MAPPING"
+          title="DPDP Requirement Mapping"
+          description="Control mappings are maintained by the Step 10 assessment component and are not invented by the reporting layer."
+        >
+          <div
+            style={{
+              padding: 14,
+              background: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              borderRadius: 10,
+              color: "#475569",
+              fontSize: 13,
+              lineHeight: 1.6,
+            }}
+          >
+            Step 10 mapping state is preserved in the assessment workflow.
+            The export layer reports only values available in the assessment
+            state.
+          </div>
+        </Section>
+
+        <Section
+          step={11}
+          kicker="RISK GOVERNANCE"
+          title="Risk Governance & Approval"
+          description="Ownership, authority, approval and review requirements."
+        >
+          {decisions.map((decision) => (
+            <div
+              key={decision.id}
+              style={{
+                border: "1px solid #e2e8f0",
+                borderRadius: 12,
+                padding: 18,
+                marginBottom: 12,
+              }}
+            >
+              <h4 style={{ margin: "0 0 10px", color: "#0f172a" }}>
+                {decision.riskTitle}
+              </h4>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    "repeat(auto-fit,minmax(170px,1fr))",
+                  gap: 8,
+                }}
+              >
+                <Mini label="Accountable Owner" value={decision.accountableOwner} />
+                <Mini label="Decision Authority" value={decision.decisionAuthority} />
+                <Mini label="Approval Status" value={decision.approvalStatus} />
+                <Mini label="Review Date" value={decision.reviewDate} />
+                <Mini label="Next Review" value={decision.nextReviewDate} />
+                <Mini label="Treatment" value={decision.treatmentStatus} />
+              </div>
+              <OpenLink step={11} title={decision.riskTitle} />
+            </div>
+          ))}
+        </Section>
+
+        <Section
+          step={12}
+          kicker="REMEDIATION"
+          title="Remediation Tracker"
+          description="Current treatment progress from the parent-owned remediation state."
+        >
+          {treatmentActions.map((action) => (
+            <div
+              key={action.id}
+              style={{
+                border: "1px solid #e2e8f0",
+                borderRadius: 12,
+                padding: 18,
+                marginBottom: 12,
+              }}
+            >
+              <h4 style={{ margin: "0 0 8px", color: "#0f172a" }}>
+                {action.riskTitle}
+              </h4>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    "repeat(auto-fit,minmax(150px,1fr))",
+                  gap: 8,
+                }}
+              >
+                <Mini label="Status" value={String(action.status)} />
+                <Mini label="Priority" value={String(action.priority)} />
+                <Mini
+                  label="Owner"
+                  value={safeActionValue(action, [
+                    "owner",
+                    "suggestedOwner",
+                    "recommendedOwner",
+                    "accountableOwner",
+                  ])}
+                />
+                <Mini label="Effort" value={String(action.effort)} />
+              </div>
+              <OpenLink step={12} title={String(action.riskTitle)} />
+            </div>
+          ))}
+        </Section>
+
+        <Section
+          step={13}
+          kicker="EVIDENCE & CLOSURE"
+          title="Evidence & Assessment Closure"
+          description="Evidence state captured as part of the final assessment."
+        >
+          {treatmentActions.map((action) => {
+            const evidence = evidenceRecords[action.id];
+            return (
+              <div
+                key={action.id}
+                style={{
+                  border: "1px solid #e2e8f0",
+                  borderRadius: 12,
+                  padding: 18,
+                  marginBottom: 12,
+                }}
+              >
+                <h4 style={{ margin: "0 0 10px", color: "#0f172a" }}>
+                  {action.riskTitle}
+                </h4>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns:
+                      "repeat(auto-fit,minmax(160px,1fr))",
+                    gap: 8,
+                  }}
+                >
+                  <Mini label="Treatment Status" value={String(action.status)} />
+                  <Mini
+                    label="Evidence Reference"
+                    value={evidence?.reference || "Not recorded"}
+                  />
+                  <Mini
+                    label="Evidence Owner"
+                    value={evidence?.owner || "Not recorded"}
+                  />
+                  <Mini
+                    label="Verified"
+                    value={evidence?.verified ? "Yes" : "No"}
+                  />
+                </div>
+                <p
+                  style={{
+                    margin: "10px 0 0",
+                    color: "#475569",
+                    fontSize: 13,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  <strong>Closure notes:</strong>{" "}
+                  {evidence?.notes || "Not recorded"}
+                </p>
+                <OpenLink step={13} title={String(action.riskTitle)} />
+              </div>
+            );
+          })}
+        </Section>
+
+        <div
+          style={{
+            marginTop: 28,
+            padding: "15px 16px",
+            background: "#f8fafc",
+            border: "1px solid #e2e8f0",
+            borderRadius: 10,
+            color: "#475569",
+            fontSize: 13,
+            lineHeight: 1.6,
+          }}
+        >
+          <strong style={{ color: "#0f172a" }}>
+            Confidential Information
+          </strong>
+          {" | "}
+          PrivacyMap India | Atmanirbhar DPDP Assessment
+          <br />
+          This assessment report is intended for the organisation and its
+          authorised recipients.
+        </div>
+
+        <div
+          style={{
+            marginTop: 22,
+            paddingTop: 22,
+            borderTop: "1px solid #e2e8f0",
+          }}
+        >
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "minmax(220px,1fr) auto",
+              gap: 12,
+              alignItems: "end",
+            }}
+          >
+            <div>
+              <label
+                style={{
+                  display: "block",
+                  fontWeight: 700,
+                  color: "#0f172a",
+                  marginBottom: 7,
+                  fontSize: 13,
+                }}
+              >
+                Download format
+              </label>
+              <select
+                value={format}
+                onChange={(event) =>
+                  setFormat(event.target.value as ReportFormat)
+                }
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                  padding: "12px 14px",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: 8,
+                  background: "white",
+                  color: "#0f172a",
+                  fontSize: 15,
+                }}
+              >
+                <option value="pdf">PDF — Human-readable report</option>
+                <option value="csv">CSV — Spreadsheet / analysis</option>
+                <option value="xml">XML — Structured interchange</option>
+                <option value="json">JSON — Structured data</option>
+                <option value="markdown">Markdown — Documentation</option>
+              </select>
+            </div>
+
+            <button
+              type="button"
+              onClick={downloadReport}
+              disabled={downloading}
+              style={{
+                padding: "12px 22px",
+                border: "none",
+                borderRadius: 8,
+                background: downloading ? "#94a3b8" : "#1d4ed8",
+                color: "white",
+                fontWeight: 700,
+                fontSize: 15,
+                cursor: downloading ? "wait" : "pointer",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {downloading
+                ? "Preparing..."
+                : `Download ${format.toUpperCase()}`}
+            </button>
+          </div>
+
+          <div
+            style={{
+              marginTop: 16,
+              padding: "12px 14px",
+              background: "#eff6ff",
+              border: "1px solid #bfdbfe",
+              borderRadius: 8,
+              color: "#1e3a8a",
+              fontSize: 13,
+              lineHeight: 1.6,
+            }}
+          >
+            <strong>Privacy-by-design:</strong> Reports are generated locally
+            in the browser. No assessment data is uploaded to a reporting
+            server.
+          </div>
+        </div>
       </div>
     </section>
   );
 }
 
-export default function AssessmentReport({
-  report,
-}: AssessmentReportProps) {
-  if (!report) {
-    return (
-      <section style={sectionStyle}>
-        <SectionTitle
-          title="Assessment Report"
-          description="No assessment report data is currently available."
-        />
-      </section>
-    );
-  }
-
+function Mini({ label, value }: { label: string; value: string }) {
   return (
     <div
       style={{
-        width: "100%",
-        maxWidth: 1180,
-        margin: "32px auto 48px",
+        padding: "10px 12px",
+        background: "#f8fafc",
+        borderRadius: 8,
+        border: "1px solid #e2e8f0",
       }}
     >
-      <ReportHeader report={report} />
-
-      <ExecutiveSummary report={report} />
-
-      <PrivacyRiskFindings report={report} />
-
-      <TreatmentSection report={report} />
-
-      <GovernanceSection report={report} />
-
-      <EvidenceSection report={report} />
-
-      <DownloadReport report={report} />
+      <div
+        style={{
+          fontSize: 10,
+          fontWeight: 800,
+          letterSpacing: 0.8,
+          color: "#64748b",
+          textTransform: "uppercase",
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          marginTop: 5,
+          fontSize: 13,
+          fontWeight: 600,
+          color: "#334155",
+        }}
+      >
+        {value || "Not Available"}
+      </div>
     </div>
   );
+}
+
+function Empty({ text }: { text: string }) {
+  return (
+    <div
+      style={{
+        padding: 16,
+        background: "#f8fafc",
+        border: "1px solid #e2e8f0",
+        borderRadius: 10,
+        color: "#64748b",
+        fontSize: 13,
+      }}
+    >
+      {text}
+    </div>
+  );
+}
+
+function buildFilename(organisationName: string, assessmentId: string): string {
+  const organisation = organisationName
+    .trim()
+    .replace(/[^a-zA-Z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  const id = assessmentId
+    .trim()
+    .replace(/[^a-zA-Z0-9_-]+/g, "-");
+
+  return `PrivacyMap-${organisation || "Assessment"}-${id || "Report"}`;
 }
