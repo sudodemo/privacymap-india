@@ -59,7 +59,8 @@ import Step11Governance from "./components/Step11Governance";
 import Step12RemediationTracker from "./components/Step12RemediationTracker";
 import Step13EvidenceClosure from "./components/Step13EvidenceClosure";
 import AssessmentReport from "./components/AssessmentReport";
-import { buildAssessmentReport, reportAnchorId, type EvidenceRecords } from "./lib/reportExport";
+import {buildAssessmentReport, type EvidenceRecords, } from "./lib/reportExport";
+import type { DpdpAssessmentState } from "./components/Step10DPDPMapping";
 
 
 /* ============================================================
@@ -180,33 +181,6 @@ const noticeStyle = {
   lineHeight: 1.6,
 };
 
-
-function applyReportAnchors() {
-  if (typeof document === "undefined") return;
-
-  const sections: Array<{ step: number; id: string }> = [
-    { step: 7, id: "report-step7" },
-    { step: 8, id: "report-step8" },
-    { step: 9, id: "report-step9" },
-    { step: 10, id: "report-step10" },
-    { step: 11, id: "report-step11" },
-    { step: 12, id: "report-step12" },
-    { step: 13, id: "report-step13" },
-  ];
-
-  for (const section of sections) {
-    const root = document.getElementById(section.id);
-    if (!root) continue;
-
-    const headings = Array.from(root.querySelectorAll("h3"));
-    headings.forEach((heading) => {
-      const title = (heading.textContent || "").trim();
-      if (!title) return;
-      heading.id = reportAnchorId(section.step, title);
-      heading.style.scrollMarginTop = "24px";
-    });
-  }
-}
 
 /* ============================================================
    MAIN ASSESSMENT PAGE
@@ -380,6 +354,12 @@ export default function AssessmentPage() {
   evidenceRecords,
   setEvidenceRecords,
   ] = useState<EvidenceRecords>({});
+
+  /* STEP 10 — page-owned mapping state for Continuity Layer */
+  const [
+    dpdpMappingStates,
+    setDpdpMappingStates,
+  ] = useState<Record<string, DpdpAssessmentState>>({});
 
 
   /* ==========================================================
@@ -831,6 +811,7 @@ export default function AssessmentPage() {
   setTreatmentActions([]);
   setResidualRiskDecisions([]);
   setEvidenceRecords({});
+  setDpdpMappingStates({});
   }
 
 
@@ -953,6 +934,7 @@ export default function AssessmentPage() {
     setRiskResult(result);
 
     setResidualRiskDecisions([]);
+    setDpdpMappingStates({});
 
     setTimeout(
       () =>
@@ -1029,6 +1011,28 @@ export default function AssessmentPage() {
 
 
   /* ==========================================================
+     STEP 10 DPDP MAPPING UPDATE
+     ========================================================== */
+
+  function updateDpdpMappingState(
+    id: string,
+    updates: Partial<DpdpAssessmentState>
+  ) {
+    setDpdpMappingStates((current) => ({
+      ...current,
+      [id]: {
+        status: current[id]?.status ?? "NOT_ASSESSED",
+        owner: current[id]?.owner ?? "",
+        evidence: current[id]?.evidence ?? "",
+        targetDate: current[id]?.targetDate ?? "",
+        notes: current[id]?.notes ?? "",
+        ...updates,
+      },
+    }));
+  }
+
+
+  /* ==========================================================
      GOVERNANCE DECISION UPDATE
      ========================================================== */
 
@@ -1079,55 +1083,6 @@ export default function AssessmentPage() {
 
 
   /* ==========================================================
-     REPORT DEEP-LINK ANCHORS
-     ========================================================== */
-
-  useEffect(() => {
-    applyReportAnchors();
-
-    const jumpToHash = () => {
-      window.setTimeout(() => {
-        const hash = window.location.hash;
-        if (!hash) return;
-
-        const target = document.getElementById(
-          decodeURIComponent(hash.slice(1))
-        );
-
-        if (!target) return;
-
-        target.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-
-        const element = target as HTMLElement;
-        const previousOutline = element.style.outline;
-        const previousOffset = element.style.outlineOffset;
-
-        element.style.outline = "3px solid #93c5fd";
-        element.style.outlineOffset = "4px";
-
-        window.setTimeout(() => {
-          element.style.outline = previousOutline;
-          element.style.outlineOffset = previousOffset;
-        }, 2200);
-      }, 50);
-    };
-
-    window.addEventListener("hashchange", jumpToHash);
-    return () => {
-      window.removeEventListener("hashchange", jumpToHash);
-    };
-  }, [
-    riskResult,
-    treatmentActions,
-    residualRiskDecisions,
-    evidenceRecords,
-    step13Complete,
-  ]);
-
-  /* ==========================================================
      RENDER
      ========================================================== */
 
@@ -1153,34 +1108,11 @@ export default function AssessmentPage() {
             fontWeight: 700,
             letterSpacing: 3,
             color: "#1d4ed8",
-            marginBottom: 6,
           }}
         >
           PRIVACYMAP INDIA
         </p>
 
-        <h1
-          style={{
-            margin: "0 0 7px",
-            color: "#0f172a",
-            fontSize: 34,
-            lineHeight: 1.2,
-            fontWeight: 800,
-          }}
-        >
-          आत्मनिर्भर DPDP Assessment
-        </h1>
-
-        <p
-          style={{
-            margin: "0 0 28px",
-            color: "#475569",
-            fontSize: 16,
-            fontWeight: 600,
-          }}
-        >
-          Your data. Your browser. Your assessment.
-        </p>
 
         {/* ======================================================
             STEP 0
@@ -1229,14 +1161,6 @@ export default function AssessmentPage() {
           industryId={industryId}
           setIndustryId={(value) => {
             setIndustryId(value);
-            setAssessmentProfile((current) => ({
-              ...current,
-              industry:
-                kb.industries.find(
-                  (industry) => industry.id === value
-                )?.name ?? "",
-              businessType: "",
-            }));
             resetAssessment();
           }}
           resetAssessment={
@@ -1255,17 +1179,9 @@ export default function AssessmentPage() {
             businessTypeId={
               businessTypeId
             }
-            setBusinessTypeId={(value) => {
-              setBusinessTypeId(value);
-              setAssessmentProfile((current) => ({
-                ...current,
-                businessType:
-                  businessTypes.find(
-                    (businessType) =>
-                      businessType.id === value
-                  )?.name ?? "",
-              }));
-            }}
+            setBusinessTypeId={
+              setBusinessTypeId
+            }
             businessTypes={
               businessTypes
             }
@@ -1552,14 +1468,11 @@ export default function AssessmentPage() {
 
         {riskResult && (
           <div
-            id="report-step7"
-            style={{ scrollMarginTop: 24 }}
+            id="privacy-risk-result"
           >
-            <div id="privacy-risk-result">
-              <Step7Findings
-                result={riskResult}
-              />
-            </div>
+            <Step7Findings
+              result={riskResult}
+            />
           </div>
         )}
 
@@ -1572,16 +1485,14 @@ export default function AssessmentPage() {
         {riskResult &&
           treatmentPlan.length >
             0 && (
-            <div id="report-step8" style={{ scrollMarginTop: 24 }}>
-              <Step8Remediation
-                actions={
-                  treatmentActions
-                }
-                onStatusChange={
-                  updateTreatmentStatusGlobally
-                }
-              />
-            </div>
+            <Step8Remediation
+              actions={
+                treatmentActions
+              }
+              onStatusChange={
+                updateTreatmentStatusGlobally
+              }
+            />
           )}
 
 
@@ -1597,25 +1508,23 @@ export default function AssessmentPage() {
           step8Complete &&
           residualRiskAssessments.length >
             0 && (
-            <div id="report-step9" style={{ scrollMarginTop: 24 }}>
-              <Step9ResidualRisk
-                assessments={
-                  residualRiskAssessments
-                }
-                summary={
-                  residualRiskSummary
-                }
-                decisions={
-                  residualRiskDecisions
-                }
-                setDecisions={
-                  setResidualRiskDecisions
-                }
-                onTreatmentStatusChange={
-                  updateTreatmentStatusGlobally
-                }
-              />
-            </div>
+            <Step9ResidualRisk
+              assessments={
+                residualRiskAssessments
+              }
+              summary={
+                residualRiskSummary
+              }
+              decisions={
+                residualRiskDecisions
+              }
+              setDecisions={
+                setResidualRiskDecisions
+              }
+              onTreatmentStatusChange={
+                updateTreatmentStatusGlobally
+              }
+            />
           )}
 
 
@@ -1627,38 +1536,42 @@ export default function AssessmentPage() {
 
         {riskResult &&
           step9Complete && (
-            <div id="report-step10" style={{ scrollMarginTop: 24 }}>
-              <Step10DPDPMapping
-                result={riskResult}
-                dataSubjectTypes={
-                  dataSubjectTypes
-                }
-                encryptionStatuses={
-                  encryptionStatuses
-                }
-                retentionPeriods={
-                  retentionPeriods
-                }
-                deletionMethods={
-                  deletionMethods
-                }
-                privacyNotices={
-                  privacyNotices
-                }
-                consentStatuses={
-                  consentStatuses
-                }
-                parentalConsentStatuses={
-                  parentalConsentStatuses
-                }
-                crossBorderTransfers={
-                  crossBorderTransfers
-                }
-                treatmentActions={
-                  treatmentActions
-                }
-              />
-            </div>
+            <Step10DPDPMapping
+              result={riskResult}
+              dataSubjectTypes={
+                dataSubjectTypes
+              }
+              encryptionStatuses={
+                encryptionStatuses
+              }
+              retentionPeriods={
+                retentionPeriods
+              }
+              deletionMethods={
+                deletionMethods
+              }
+              privacyNotices={
+                privacyNotices
+              }
+              consentStatuses={
+                consentStatuses
+              }
+              parentalConsentStatuses={
+                parentalConsentStatuses
+              }
+              crossBorderTransfers={
+                crossBorderTransfers
+              }
+              treatmentActions={
+                treatmentActions
+              }
+              mappingStates={
+                dpdpMappingStates
+              }
+              onMappingStateChange={
+                updateDpdpMappingState
+              }
+            />
           )}
 
 
@@ -1674,19 +1587,17 @@ export default function AssessmentPage() {
 
         {riskResult &&
           step10Unlocked && (
-            <div id="report-step11" style={{ scrollMarginTop: 24 }}>
-              <Step11Governance
-                assessmentProfile={
-                  assessmentProfile
-                }
-                decisions={
-                  residualRiskDecisions
-                }
-                onUpdate={
-                  updateDecision
-                }
-              />
-            </div>
+            <Step11Governance
+              assessmentProfile={
+                assessmentProfile
+              }
+              decisions={
+                residualRiskDecisions
+              }
+              onUpdate={
+                updateDecision
+              }
+            />
           )}
 
 
@@ -1702,19 +1613,17 @@ export default function AssessmentPage() {
 
         {riskResult &&
           step11Complete && (
-            <div id="report-step12" style={{ scrollMarginTop: 24 }}>
-              <Step12RemediationTracker
-                assessmentProfile={
-                  assessmentProfile
-                }
-                actions={
-                  treatmentActions
-                }
-                onStatusChange={
-                  updateTreatmentStatusGlobally
-                }
-              />
-            </div>
+            <Step12RemediationTracker
+              assessmentProfile={
+                assessmentProfile
+              }
+              actions={
+                treatmentActions
+              }
+              onStatusChange={
+                updateTreatmentStatusGlobally
+              }
+            />
           )}
 
 
@@ -1727,25 +1636,23 @@ export default function AssessmentPage() {
 
         {riskResult &&
           step12Complete && (
-            <div id="report-step13" style={{ scrollMarginTop: 24 }}>
-              <Step13EvidenceClosure
-                assessmentProfile={
-                  assessmentProfile
-                }
-                actions={
-                  treatmentActions
-                }
-                decisions={
-                  residualRiskDecisions
-                }
-                evidenceRecords={
-                  evidenceRecords
-                }
-                onEvidenceChange={
-                  updateEvidence
-                }
-              />
-            </div>
+            <Step13EvidenceClosure
+              assessmentProfile={
+                assessmentProfile
+              }
+              actions={
+                treatmentActions
+              }
+              decisions={
+                residualRiskDecisions
+              }
+              evidenceRecords={
+                evidenceRecords
+              }
+              onEvidenceChange={
+                updateEvidence
+              }
+            />
           )}
 
 
