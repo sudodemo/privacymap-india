@@ -20,26 +20,10 @@ export type EvidenceRecords = Record<string, EvidenceRecord>;
    REPORT DATA MODEL
    ============================================================ */
 
-export interface ReportRiskSummary {
-  overallRisk: string;
-  riskScore: string;
-}
-
-export interface ReportFinding {
-  id: string;
-  title: string;
-  category: string;
-  risk: string;
-  description: string;
-  recommendedAction: string;
-}
-
 export interface AssessmentReportData {
   generatedAt: string;
   assessmentProfile: AssessmentProfile;
   riskResult: RiskResult | null;
-  riskSummary: ReportRiskSummary;
-  findings: ReportFinding[];
   treatmentActions: RiskTreatmentAction[];
   residualRiskDecisions: ResidualRiskDecisionRecord[];
   evidenceRecords: EvidenceRecords;
@@ -67,76 +51,6 @@ function display(value: unknown): string {
 function resultValue(result: RiskResult | null, key: string): unknown {
   if (!result) return undefined;
   return (result as unknown as Record<string, unknown>)[key];
-}
-
-function riskSummaryValue(result: RiskResult | null): ReportRiskSummary {
-  const overall = firstValue(result, [
-    "overallLevel",
-    "overallRisk",
-    "overallRiskLevel",
-    "riskLevel",
-    "posture",
-  ]);
-  const score = firstValue(result, [
-    "score",
-    "riskScore",
-    "overallScore",
-  ]);
-
-  return {
-    overallRisk: display(overall),
-    riskScore: display(score),
-  };
-}
-
-function findingText(finding: unknown, keys: string[]): string {
-  return display(firstValue(finding, keys));
-}
-
-export function getReportFindings(result: RiskResult | null): ReportFinding[] {
-  const raw = resultValue(result, "findings");
-  if (!Array.isArray(raw)) return [];
-
-  return raw.map((finding, index) => {
-    const item = finding as Record<string, unknown>;
-
-    return {
-      id: display(item.id ?? item.findingId ?? `finding-${index + 1}`),
-      title: display(item.title ?? item.riskTitle ?? item.name),
-      category: display(item.category ?? item.riskCategory),
-      risk: display(
-        item.severity ??
-          item.risk ??
-          item.riskLevel ??
-          item.level
-      ),
-      description: findingText(finding, [
-        "description",
-        "finding",
-        "analysis",
-        "details",
-        "summary",
-      ]),
-      recommendedAction: findingText(finding, [
-        "recommendedAction",
-        "recommendation",
-        "recommendedTreatment",
-        "treatment",
-        "action",
-      ]),
-    };
-  });
-}
-
-export function reportAnchorId(step: number, title: string): string {
-  const slug = text(title)
-    .toLowerCase()
-    .normalize("NFKD")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 100);
-
-  return `pm-step${step}-${slug || "item"}`;
 }
 
 function objectValue(value: unknown, key: string): unknown {
@@ -281,8 +195,6 @@ export function buildAssessmentReport(
     generatedAt: formatIndiaDateTime(new Date()),
     assessmentProfile,
     riskResult,
-    riskSummary: riskSummaryValue(riskResult),
-    findings: getReportFindings(riskResult),
     treatmentActions,
     residualRiskDecisions,
     evidenceRecords,
@@ -333,37 +245,6 @@ export function reportToCsv(report: AssessmentReportData): string {
     "Notes",
   ]);
 
-  for (const finding of report.findings) {
-    rows.push([
-      "Risk Finding",
-      text(profile.assessmentId),
-      text(profile.organisationName),
-      profileIndustry(profile),
-      profileBusinessType(profile),
-      text(profile.assessmentName),
-      report.generatedAt,
-      finding.id,
-      finding.category,
-      finding.title,
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      finding.risk,
-      "",
-      "",
-      finding.recommendedAction,
-      "",
-      "",
-      "",
-      "",
-      finding.description,
-    ]);
-  }
-
   for (const action of report.treatmentActions) {
     const decision = report.residualRiskDecisions.find(
       (d) => d.riskTitle === action.riskTitle && d.category === action.category
@@ -412,15 +293,18 @@ export function reportToXml(report: AssessmentReportData): string {
   const findingsValue = resultValue(result, "findings");
   const findings = Array.isArray(findingsValue) ? findingsValue : [];
 
-  const findingXml = findings.map((finding) => `
+  const findingXml = findings.map((finding) => {
+    const item = finding as Record<string, unknown>;
+    return `
       <finding>
-        <id>${escapeXml(finding.id)}</id>
-        <category>${escapeXml(finding.category)}</category>
-        <title>${escapeXml(finding.title)}</title>
-        <severity>${escapeXml(finding.risk)}</severity>
-        <description>${escapeXml(finding.description)}</description>
-        <recommendedAction>${escapeXml(finding.recommendedAction)}</recommendedAction>
-      </finding>`).join("");
+        <id>${escapeXml(item.id)}</id>
+        <category>${escapeXml(item.category)}</category>
+        <title>${escapeXml(item.title ?? item.riskTitle ?? item.name)}</title>
+        <severity>${escapeXml(item.severity ?? item.risk ?? item.riskLevel)}</severity>
+        <description>${escapeXml(item.description)}</description>
+        <recommendedAction>${escapeXml(item.recommendedAction ?? item.recommendation)}</recommendedAction>
+      </finding>`;
+  }).join("");
 
   const treatmentXml = report.treatmentActions.map((action) => {
     const decision = report.residualRiskDecisions.find(
@@ -491,8 +375,8 @@ export function reportToXml(report: AssessmentReportData): string {
     <assessmentVersion>${escapeXml(profile.assessmentVersion)}</assessmentVersion>
   </metadata>
   <riskSummary>
-    <overallRisk>${escapeXml(report.riskSummary.overallRisk)}</overallRisk>
-    <riskScore>${escapeXml(report.riskSummary.riskScore)}</riskScore>
+    <overallRisk>${escapeXml(resultValue(result, "overallRisk"))}</overallRisk>
+    <riskScore>${escapeXml(resultValue(result, "riskScore"))}</riskScore>
     <findingCount>${findings.length}</findingCount>
   </riskSummary>
   <findings>${findingXml}
@@ -527,20 +411,21 @@ export function reportToMarkdown(report: AssessmentReportData): string {
   lines.push(`**Generated:** ${escapeMarkdown(report.generatedAt)}`, "");
 
   lines.push("## Executive Summary", "");
-  lines.push(`- Overall Risk: **${report.riskSummary.overallRisk}**`);
-  lines.push(`- Risk Score: **${report.riskSummary.riskScore}**`);
+  lines.push(`- Overall Risk: **${display(resultValue(result, "overallRisk"))}**`);
+  lines.push(`- Risk Score: **${display(resultValue(result, "riskScore"))}**`);
   lines.push(`- Findings: **${findings.length}**`);
   lines.push(`- Treatment Actions: **${report.treatmentActions.length}**`);
   lines.push(`- Residual Risk Decisions: **${report.residualRiskDecisions.length}**`, "");
 
   lines.push("## Step 7 — Privacy Risk Findings", "");
   for (const finding of findings) {
-    lines.push(`### ${escapeMarkdown(finding.title)}`);
-    lines.push(`- ID: ${escapeMarkdown(finding.id)}`);
-    lines.push(`- Category: ${escapeMarkdown(finding.category)}`);
-    lines.push(`- Risk: ${escapeMarkdown(finding.risk)}`);
-    lines.push(`- Description: ${escapeMarkdown(finding.description)}`);
-    lines.push(`- Recommended action: ${escapeMarkdown(finding.recommendedAction)}`, "");
+    const item = finding as Record<string, unknown>;
+    lines.push(`### ${escapeMarkdown(item.title ?? item.riskTitle ?? item.name)}`);
+    lines.push(`- ID: ${escapeMarkdown(item.id)}`);
+    lines.push(`- Category: ${escapeMarkdown(item.category)}`);
+    lines.push(`- Risk: ${escapeMarkdown(item.severity ?? item.risk ?? item.riskLevel)}`);
+    lines.push(`- Description: ${escapeMarkdown(item.description)}`);
+    lines.push(`- Recommended action: ${escapeMarkdown(item.recommendedAction ?? item.recommendation)}`, "");
   }
 
   lines.push("## Step 8 — Risk Treatment & Action Plan", "");
@@ -621,56 +506,39 @@ export function downloadTextFile(content: string, filename: string, mimeType: st
 }
 
 /* ============================================================
-   DEPENDENCY-FREE PDF — REPORTING LAYER v4
+   DEPENDENCY-FREE PDF — REPORTING LAYER v5
 
-   This PDF renderer deliberately uses only native browser APIs and
-   the PDF specification. No npm package or jsPDF dependency is required.
-
-   Unlike the previous text-stream renderer, this version creates a
-   structured document with:
-   - branded title/header area
-   - assessment profile card
-   - executive-summary metric cards
-   - coloured section headings
-   - labelled key/value rows
-   - wrapped paragraphs
-   - page numbers and footer
-   - consistent margins and spacing
+   PDF presentation deliberately follows the compact 9OVG report style:
+   - strong blue top bar
+   - large blue report title
+   - compact assessment metadata
+   - six executive-summary metric cards
+   - full-width light-blue section bands
+   - clean white content cards
+   - conservative two-column metadata grids
+   - dynamic wrapping/heights to prevent overlap
+   - compact 3-page-style flow with automatic pagination
    ============================================================ */
 
 type PdfStyle = "body" | "small" | "label" | "value" | "title" | "section" | "subtitle";
-
-type PdfOp = {
-  page: number;
-  x: number;
-  y: number;
-  text?: string;
-  font?: "F1" | "F2";
-  size?: number;
-  color?: [number, number, number];
-  width?: number;
-  height?: number;
-  fill?: [number, number, number];
-  stroke?: [number, number, number];
-  radius?: number;
-};
 
 const PDF_PAGE_WIDTH = 595.28;
 const PDF_PAGE_HEIGHT = 841.89;
 const PDF_MARGIN_LEFT = 42;
 const PDF_MARGIN_RIGHT = 42;
-const PDF_TOP = 52;
+const PDF_TOP = 44;
 const PDF_BOTTOM = 48;
 const PDF_CONTENT_WIDTH = PDF_PAGE_WIDTH - PDF_MARGIN_LEFT - PDF_MARGIN_RIGHT;
 
 const PDF_COLORS = {
-  navy: [15, 23, 42] as [number, number, number],
+  topBlue: [37, 82, 184] as [number, number, number],
   blue: [29, 78, 216] as [number, number, number],
   blueLight: [239, 246, 255] as [number, number, number],
+  navy: [15, 23, 42] as [number, number, number],
   slate: [71, 85, 105] as [number, number, number],
   muted: [100, 116, 139] as [number, number, number],
-  border: [226, 232, 240] as [number, number, number],
-  surface: [248, 250, 252] as [number, number, number],
+  border: [218, 226, 236] as [number, number, number],
+  surface: [246, 248, 250] as [number, number, number],
   white: [255, 255, 255] as [number, number, number],
   green: [21, 128, 61] as [number, number, number],
   greenLight: [240, 253, 244] as [number, number, number],
@@ -681,10 +549,7 @@ const PDF_COLORS = {
 };
 
 function pdfEscape(value: string): string {
-  return pdfSafe(value)
-    .replace(/\\/g, "\\\\")
-    .replace(/\(/g, "\\(")
-    .replace(/\)/g, "\\)");
+  return pdfSafe(value).replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
 }
 
 function pdfColor(color: [number, number, number]): string {
@@ -692,26 +557,17 @@ function pdfColor(color: [number, number, number]): string {
 }
 
 function pdfTextWidth(value: string, size: number, bold = false): number {
-  // Helvetica is approximately 0.52em per character for ordinary report text.
-  // This conservative estimate keeps wrapping inside the printable area.
-  const factor = bold ? 0.55 : 0.52;
+  const factor = bold ? 0.55 : 0.50;
   return pdfSafe(value).length * size * factor;
 }
 
 function wrapPdfText(value: string, widthPt: number, size = 9.5, bold = false): string[] {
   const safe = pdfSafe(value).replace(/\r/g, "");
   if (!safe.trim()) return [""];
-
   const result: string[] = [];
-  const paragraphs = safe.split("\n");
-
-  for (const paragraph of paragraphs) {
+  for (const paragraph of safe.split("\n")) {
     const words = paragraph.split(/\s+/).filter(Boolean);
-    if (!words.length) {
-      result.push("");
-      continue;
-    }
-
+    if (!words.length) { result.push(""); continue; }
     let current = "";
     for (const word of words) {
       const candidate = current ? `${current} ${word}` : word;
@@ -724,36 +580,22 @@ function wrapPdfText(value: string, widthPt: number, size = 9.5, bold = false): 
     }
     if (current) result.push(current);
   }
-
   return result;
 }
 
 function styleFor(style: PdfStyle): { font: "F1" | "F2"; size: number; color: [number, number, number] } {
   switch (style) {
-    case "title":
-      return { font: "F2", size: 22, color: PDF_COLORS.navy };
-    case "subtitle":
-      return { font: "F1", size: 10, color: PDF_COLORS.slate };
-    case "section":
-      return { font: "F2", size: 11, color: PDF_COLORS.blue };
-    case "label":
-      return { font: "F2", size: 7.5, color: PDF_COLORS.muted };
-    case "value":
-      return { font: "F1", size: 9.5, color: PDF_COLORS.navy };
-    case "small":
-      return { font: "F1", size: 8, color: PDF_COLORS.muted };
-    default:
-      return { font: "F1", size: 9.5, color: PDF_COLORS.slate };
+    case "title": return { font: "F2", size: 22, color: PDF_COLORS.blue };
+    case "subtitle": return { font: "F1", size: 9.5, color: PDF_COLORS.slate };
+    case "section": return { font: "F2", size: 10.5, color: PDF_COLORS.blue };
+    case "label": return { font: "F2", size: 7.2, color: PDF_COLORS.muted };
+    case "value": return { font: "F1", size: 9.5, color: PDF_COLORS.navy };
+    case "small": return { font: "F1", size: 7.8, color: PDF_COLORS.muted };
+    default: return { font: "F1", size: 9.3, color: PDF_COLORS.slate };
   }
 }
 
-function addText(
-  commands: string[],
-  x: number,
-  y: number,
-  value: string,
-  style: PdfStyle = "body"
-): void {
+function addText(commands: string[], x: number, y: number, value: string, style: PdfStyle = "body"): void {
   const s = styleFor(style);
   commands.push(
     "BT",
@@ -765,56 +607,20 @@ function addText(
   );
 }
 
-function addRect(
-  commands: string[],
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  fill: [number, number, number],
-  stroke?: [number, number, number]
-): void {
-  commands.push(
-    `${pdfColor(fill)} rg`,
-    `${x.toFixed(2)} ${y.toFixed(2)} ${width.toFixed(2)} ${height.toFixed(2)} re`,
-    "f"
-  );
-  if (stroke) {
-    commands.push(
-      `${pdfColor(stroke)} RG`,
-      "0.6 w",
-      `${x.toFixed(2)} ${y.toFixed(2)} ${width.toFixed(2)} ${height.toFixed(2)} re`,
-      "S"
-    );
-  }
+function addRect(commands: string[], x: number, y: number, width: number, height: number, fill: [number, number, number], stroke?: [number, number, number]): void {
+  commands.push(`${pdfColor(fill)} rg`, `${x.toFixed(2)} ${y.toFixed(2)} ${width.toFixed(2)} ${height.toFixed(2)} re`, "f");
+  if (stroke) commands.push(`${pdfColor(stroke)} RG`, "0.6 w", `${x.toFixed(2)} ${y.toFixed(2)} ${width.toFixed(2)} ${height.toFixed(2)} re`, "S");
 }
 
 function addLine(commands: string[], x1: number, y1: number, x2: number, y2: number, color = PDF_COLORS.border): void {
-  commands.push(
-    `${pdfColor(color)} RG`,
-    "0.6 w",
-    `${x1.toFixed(2)} ${y1.toFixed(2)} m`,
-    `${x2.toFixed(2)} ${y2.toFixed(2)} l`,
-    "S"
-  );
+  commands.push(`${pdfColor(color)} RG`, "0.6 w", `${x1.toFixed(2)} ${y1.toFixed(2)} m`, `${x2.toFixed(2)} ${y2.toFixed(2)} l`, "S");
 }
 
-function addWrappedText(
-  commands: string[],
-  x: number,
-  y: number,
-  value: string,
-  width: number,
-  style: PdfStyle = "body",
-  lineHeight = 13
-): number {
+function addWrappedText(commands: string[], x: number, y: number, value: string, width: number, style: PdfStyle = "body", lineHeight = 13): number {
   const s = styleFor(style);
   const lines = wrapPdfText(value, width, s.size, s.font === "F2");
   let cursor = y;
-  for (const line of lines) {
-    addText(commands, x, cursor, line, style);
-    cursor -= lineHeight;
-  }
+  for (const line of lines) { addText(commands, x, cursor, line, style); cursor -= lineHeight; }
   return cursor;
 }
 
@@ -826,38 +632,233 @@ function pdfRiskColor(value: unknown): { fill: [number, number, number]; text: [
   return { fill: PDF_COLORS.surface, text: PDF_COLORS.slate };
 }
 
-function addLabelValue(
-  commands: string[],
-  x: number,
-  y: number,
-  label: string,
-  value: unknown,
-  width: number
-): number {
+function addLabelValue(commands: string[], x: number, y: number, label: string, value: unknown, width: number, lineHeight = 11): number {
   addText(commands, x, y, label.toUpperCase(), "label");
-  const next = addWrappedText(commands, x, y - 13, display(value), width, "value", 12);
-  return Math.min(next, y - 25);
+  return addWrappedText(commands, x, y - 12, display(value), width, "value", lineHeight);
 }
 
 function addSectionHeader(commands: string[], y: number, title: string): number {
-  addRect(commands, PDF_MARGIN_LEFT, y - 21, PDF_CONTENT_WIDTH, 26, PDF_COLORS.blueLight);
-  addText(commands, PDF_MARGIN_LEFT + 12, y - 11, title, "section");
-  return y - 36;
+  addRect(commands, PDF_MARGIN_LEFT, y - 20, PDF_CONTENT_WIDTH, 26, PDF_COLORS.blueLight);
+  addText(commands, PDF_MARGIN_LEFT + 10, y - 10, title, "section");
+  return y - 37;
 }
 
 function addFooter(commands: string[], pageNumber: number): void {
   addLine(commands, PDF_MARGIN_LEFT, 32, PDF_PAGE_WIDTH - PDF_MARGIN_RIGHT, 32);
-  addText(commands, PDF_MARGIN_LEFT, 20, "Confidential Information | PrivacyMap India | Atmanirbhar DPDP Assessment", "small");
+  addText(commands, PDF_MARGIN_LEFT, 20, "Confidential assessment output", "small");
   const pageText = `Page ${pageNumber}`;
   addText(commands, PDF_PAGE_WIDTH - PDF_MARGIN_RIGHT - pdfTextWidth(pageText, 8), 20, pageText, "small");
+}
+
+function reportOverallRisk(result: RiskResult | null): string {
+  return display(firstValue(result, ["overallLevel", "overallRisk", "overallRiskLevel", "riskLevel", "posture"]));
+}
+
+function reportRiskScore(result: RiskResult | null): string {
+  return display(firstValue(result, ["score", "riskScore", "overallScore"]));
+}
+
+function reportFindings(result: RiskResult | null): Array<Record<string, unknown>> {
+  const raw = resultValue(result, "findings");
+  if (!Array.isArray(raw)) return [];
+  return raw.map((finding) => (finding && typeof finding === "object" ? finding as Record<string, unknown> : {}));
+}
+
+function findingTitle(finding: Record<string, unknown>): string {
+  return display(firstValue(finding, ["title", "riskTitle", "name"]));
+}
+
+function findingId(finding: Record<string, unknown>): string {
+  return display(firstValue(finding, ["id", "findingId"]));
+}
+
+function findingCategory(finding: Record<string, unknown>): string {
+  return display(firstValue(finding, ["category", "riskCategory"]));
+}
+
+function findingRisk(finding: Record<string, unknown>): string {
+  return display(firstValue(finding, ["severity", "risk", "riskLevel", "level"]));
+}
+
+function findingDescription(finding: Record<string, unknown>): string {
+  const value = firstValue(finding, ["description", "finding", "analysis", "details", "summary"]);
+  return display(value || "The assessment identified this condition as a privacy risk requiring review and treatment.");
+}
+
+function findingRecommendation(finding: Record<string, unknown>): string {
+  const value = firstValue(finding, ["recommendedAction", "recommendation", "recommendedTreatment", "treatment", "action"]);
+  return display(value || "Review the identified condition, assign an accountable owner and implement appropriate treatment controls.");
+}
+
+function addMetricCard(commands: string[], x: number, y: number, width: number, label: string, value: string): void {
+  addRect(commands, x, y - 58, width, 62, PDF_COLORS.surface, PDF_COLORS.border);
+  addText(commands, x + 10, y - 15, label.toUpperCase(), "label");
+  const lines = wrapPdfText(value, width - 20, 10, true);
+  addText(commands, x + 10, y - 38, lines[0] || "Not Available", "value");
+  if (lines[1]) addText(commands, x + 10, y - 50, lines[1], "small");
+}
+
+function addMetadataCard(commands: string[], y: number, rows: Array<[string, string]>): number {
+  const rowHeight = 27;
+  const height = rows.length * rowHeight + 10;
+  addRect(commands, PDF_MARGIN_LEFT, y - height + 4, PDF_CONTENT_WIDTH, height, PDF_COLORS.surface, PDF_COLORS.border);
+  let cursor = y - 14;
+  for (const [label, value] of rows) {
+    addText(commands, PDF_MARGIN_LEFT + 10, cursor, label, "label");
+    addText(commands, PDF_MARGIN_LEFT + 115, cursor, value, "value");
+    cursor -= rowHeight;
+  }
+  return y - height - 10;
+}
+
+function addTwoColumnMetadata(commands: string[], x: number, y: number, width: number, rows: Array<[string, unknown]>): number {
+  let cursor = y;
+  for (const [label, value] of rows) {
+    addText(commands, x, cursor, label.toUpperCase(), "label");
+    const lines = wrapPdfText(display(value), width, 9.2, false);
+    let valueY = cursor - 12;
+    for (const line of lines) { addText(commands, x, valueY, line, "value"); valueY -= 11; }
+    cursor = valueY - 7;
+  }
+  return cursor;
+}
+
+function addRiskFindingCard(commands: string[], cursor: number, finding: Record<string, unknown>, index: number): number {
+  const title = findingTitle(finding);
+  const id = findingId(finding);
+  const category = findingCategory(finding);
+  const risk = findingRisk(finding);
+  const description = findingDescription(finding);
+  const recommendation = findingRecommendation(finding);
+  const descLines = wrapPdfText(description, PDF_CONTENT_WIDTH - 24, 9.3, false).length;
+  const recLines = wrapPdfText(recommendation, PDF_CONTENT_WIDTH - 24, 9.3, false).length;
+  const height = 104 + (descLines + recLines) * 12;
+
+  addRect(commands, PDF_MARGIN_LEFT, cursor - height + 8, PDF_CONTENT_WIDTH, height, PDF_COLORS.surface, PDF_COLORS.border);
+  addText(commands, PDF_MARGIN_LEFT + 10, cursor - 11, `${index + 1}. ${title}`, "value");
+  addText(commands, PDF_MARGIN_LEFT + 10, cursor - 28, `Finding ID: ${id}   |   Category: ${category}`, "small");
+
+  const riskStyle = pdfRiskColor(risk);
+  const riskWidth = Math.min(110, Math.max(52, pdfTextWidth(risk, 8) + 18));
+  const riskX = PDF_MARGIN_LEFT + PDF_CONTENT_WIDTH - riskWidth - 10;
+  addRect(commands, riskX, cursor - 44, riskWidth, 18, riskStyle.fill);
+  addText(commands, riskX + 9, cursor - 38, risk, "small");
+
+  let y = cursor - 59;
+  addText(commands, PDF_MARGIN_LEFT + 10, y, "DESCRIPTION", "label");
+  y = addWrappedText(commands, PDF_MARGIN_LEFT + 10, y - 12, description, PDF_CONTENT_WIDTH - 20, "body", 12) - 6;
+  addText(commands, PDF_MARGIN_LEFT + 10, y, "RECOMMENDED ACTION", "label");
+  addWrappedText(commands, PDF_MARGIN_LEFT + 10, y - 12, recommendation, PDF_CONTENT_WIDTH - 20, "body", 12);
+  return cursor - height - 10;
+}
+
+function addTreatmentCard(commands: string[], cursor: number, action: RiskTreatmentAction): number {
+  const treatment = display(actionTreatment(action));
+  const evidence = display(actionEvidence(action));
+  const treatmentLines = wrapPdfText(treatment, PDF_CONTENT_WIDTH - 20, 9.3, false).length;
+  const evidenceLines = wrapPdfText(evidence, PDF_CONTENT_WIDTH - 20, 8.8, false).length;
+  const height = 145 + (treatmentLines + evidenceLines) * 12;
+
+  addRect(commands, PDF_MARGIN_LEFT, cursor - height + 8, PDF_CONTENT_WIDTH, height, PDF_COLORS.surface, PDF_COLORS.border);
+  addText(commands, PDF_MARGIN_LEFT + 10, cursor - 11, display(action.riskTitle), "value");
+  addText(commands, PDF_MARGIN_LEFT + 10, cursor - 28, `Category: ${display(action.category)}`, "small");
+
+  const gap = 10;
+  const colW = (PDF_CONTENT_WIDTH - 20 - gap * 3) / 4;
+  const metaY = cursor - 48;
+  const meta = [
+    ["Status", action.status],
+    ["Priority", action.priority],
+    ["Owner", actionOwner(action)],
+    ["Effort", action.effort],
+  ] as Array<[string, unknown]>;
+  meta.forEach(([label, value], i) => addLabelValue(commands, PDF_MARGIN_LEFT + 10 + i * (colW + gap), metaY, label, value, colW, 10));
+
+  let y = cursor - 84;
+  addText(commands, PDF_MARGIN_LEFT + 10, y, "RECOMMENDED TREATMENT", "label");
+  y = addWrappedText(commands, PDF_MARGIN_LEFT + 10, y - 12, treatment, PDF_CONTENT_WIDTH - 20, "body", 12) - 6;
+  addText(commands, PDF_MARGIN_LEFT + 10, y, "EVIDENCE EXPECTED", "label");
+  addWrappedText(commands, PDF_MARGIN_LEFT + 10, y - 12, evidence, PDF_CONTENT_WIDTH - 20, "small", 11);
+  return cursor - height - 10;
+}
+
+function addDecisionCard(commands: string[], cursor: number, decision: ResidualRiskDecisionRecord): number {
+  const rationale = display(decision.rationale);
+  const rationaleLines = wrapPdfText(rationale, PDF_CONTENT_WIDTH - 20, 8.8, false).length;
+  const height = 132 + rationaleLines * 11;
+  addRect(commands, PDF_MARGIN_LEFT, cursor - height + 8, PDF_CONTENT_WIDTH, height, PDF_COLORS.surface, PDF_COLORS.border);
+  addText(commands, PDF_MARGIN_LEFT + 10, cursor - 11, display(decision.riskTitle), "value");
+  addText(commands, PDF_MARGIN_LEFT + 10, cursor - 28, `Finding ID: ${display(decision.findingId)}   |   Category: ${display(decision.category)}`, "small");
+
+  const gap = 10;
+  const colW = (PDF_CONTENT_WIDTH - 20 - gap * 2) / 3;
+  addLabelValue(commands, PDF_MARGIN_LEFT + 10, cursor - 48, "Inherent Risk", decision.inherentRisk, colW);
+  addLabelValue(commands, PDF_MARGIN_LEFT + 10 + colW + gap, cursor - 48, "Residual Risk", decision.residualRisk, colW);
+  addLabelValue(commands, PDF_MARGIN_LEFT + 10 + (colW + gap) * 2, cursor - 48, "Decision", decision.decision, colW);
+  addLabelValue(commands, PDF_MARGIN_LEFT + 10, cursor - 78, "Approval Status", decision.approvalStatus, colW);
+  addLabelValue(commands, PDF_MARGIN_LEFT + 10 + colW + gap, cursor - 78, "Treatment Status", decision.treatmentStatus, colW);
+  addLabelValue(commands, PDF_MARGIN_LEFT + 10 + (colW + gap) * 2, cursor - 78, "Review Date", decision.reviewDate, colW);
+
+  let y = cursor - 108;
+  addText(commands, PDF_MARGIN_LEFT + 10, y, "DECISION RATIONALE", "label");
+  y = addWrappedText(commands, PDF_MARGIN_LEFT + 10, y - 12, rationale, PDF_CONTENT_WIDTH - 20, "small", 11) - 4;
+  addText(commands, PDF_MARGIN_LEFT + 10, y, `Escalation Required: ${decision.escalationRequired ? "Yes" : "No"}`, "small");
+  return cursor - height - 10;
+}
+
+function addGovernanceCard(commands: string[], cursor: number, decision: ResidualRiskDecisionRecord): number {
+  const height = 166;
+  addRect(commands, PDF_MARGIN_LEFT, cursor - height + 8, PDF_CONTENT_WIDTH, height, PDF_COLORS.surface, PDF_COLORS.border);
+  addText(commands, PDF_MARGIN_LEFT + 10, cursor - 11, display(decision.riskTitle), "value");
+  const gap = 10;
+  const colW = (PDF_CONTENT_WIDTH - 20 - gap * 2) / 3;
+  const rows: Array<[string, unknown]> = [
+    ["Accountable Owner", decision.accountableOwner],
+    ["Decision Authority", decision.decisionAuthority],
+    ["Approval Status", decision.approvalStatus],
+    ["Review Date", decision.reviewDate],
+    ["Approval Date", decision.approvalDate],
+    ["Next Review", decision.nextReviewDate],
+    ["Treatment", decision.treatmentStatus],
+    ["Review Frequency", decision.reviewFrequency],
+    ["Target Resolution", decision.targetResolutionDate],
+  ];
+  rows.forEach(([label, value], i) => {
+    const col = i % 3;
+    const row = Math.floor(i / 3);
+    addLabelValue(commands, PDF_MARGIN_LEFT + 10 + col * (colW + gap), cursor - 34 - row * 32, label, value, colW, 10);
+  });
+  addLabelValue(commands, PDF_MARGIN_LEFT + 10, cursor - 130, "Escalation Required", decision.escalationRequired ? "Yes" : "No", colW);
+  addLabelValue(commands, PDF_MARGIN_LEFT + 10 + colW + gap, cursor - 130, "Escalation Reason", decision.escalationReason, colW * 2 + gap);
+  return cursor - height - 10;
+}
+
+function addEvidenceCard(commands: string[], cursor: number, action: RiskTreatmentAction, evidence: EvidenceRecord | undefined): number {
+  const notes = display(evidence?.notes);
+  const ref = display(evidence?.reference);
+  const owner = display(evidence?.owner);
+  const noteLines = wrapPdfText(notes, PDF_CONTENT_WIDTH - 20, 8.8, false).length;
+  const refLines = wrapPdfText(ref, PDF_CONTENT_WIDTH - 20, 8.8, false).length;
+  const height = 128 + (noteLines + refLines) * 10;
+  addRect(commands, PDF_MARGIN_LEFT, cursor - height + 8, PDF_CONTENT_WIDTH, height, PDF_COLORS.surface, PDF_COLORS.border);
+  addText(commands, PDF_MARGIN_LEFT + 10, cursor - 11, display(action.riskTitle), "value");
+  const gap = 10;
+  const colW = (PDF_CONTENT_WIDTH - 20 - gap * 2) / 3;
+  addLabelValue(commands, PDF_MARGIN_LEFT + 10, cursor - 32, "Treatment Status", action.status, colW);
+  addLabelValue(commands, PDF_MARGIN_LEFT + 10 + colW + gap, cursor - 32, "Evidence Verified", evidence?.verified ? "Yes" : "No", colW);
+  addLabelValue(commands, PDF_MARGIN_LEFT + 10 + (colW + gap) * 2, cursor - 32, "Evidence Owner", owner, colW);
+  let y = cursor - 62;
+  addText(commands, PDF_MARGIN_LEFT + 10, y, "REFERENCE", "label");
+  y = addWrappedText(commands, PDF_MARGIN_LEFT + 10, y - 12, ref, PDF_CONTENT_WIDTH - 20, "small", 10) - 5;
+  addText(commands, PDF_MARGIN_LEFT + 10, y, "CLOSURE NOTES", "label");
+  addWrappedText(commands, PDF_MARGIN_LEFT + 10, y - 12, notes, PDF_CONTENT_WIDTH - 20, "small", 10);
+  return cursor - height - 10;
 }
 
 function createPdfCommandPages(report: AssessmentReportData): string[][] {
   const profile = report.assessmentProfile;
   const result = report.riskResult;
-  const findingsValue = resultValue(result, "findings");
-  const findings = Array.isArray(findingsValue) ? findingsValue : [];
-
+  const findings = reportFindings(result);
   const pages: string[][] = [];
   let commands: string[] = [];
   let cursor = PDF_PAGE_HEIGHT - PDF_TOP;
@@ -881,196 +882,124 @@ function createPdfCommandPages(report: AssessmentReportData): string[][] {
   const addParagraph = (value: unknown, style: PdfStyle = "body", spacing = 8) => {
     const safe = display(value);
     const s = styleFor(style);
-    const wrapped = wrapPdfText(safe, PDF_CONTENT_WIDTH, s.size, s.font === "F2");
-    const required = wrapped.length * 13 + spacing;
-    ensure(required);
+    const lines = wrapPdfText(safe, PDF_CONTENT_WIDTH, s.size, s.font === "F2");
+    ensure(lines.length * 13 + spacing + 5);
     cursor = addWrappedText(commands, PDF_MARGIN_LEFT, cursor, safe, PDF_CONTENT_WIDTH, style, 13) - spacing;
   };
 
-  // Cover / profile header.
-  addRect(commands, 0, PDF_PAGE_HEIGHT - 118, PDF_PAGE_WIDTH, 118, PDF_COLORS.blueLight);
-  addText(commands, PDF_MARGIN_LEFT, PDF_PAGE_HEIGHT - 55, "PRIVACYMAP INDIA", "small");
-  addText(commands, PDF_MARGIN_LEFT, PDF_PAGE_HEIGHT - 82, "Atmanirbhar DPDP Assessment", "title");
-  addText(commands, PDF_MARGIN_LEFT, PDF_PAGE_HEIGHT - 101, "Assessment and governance report", "subtitle");
-  cursor = PDF_PAGE_HEIGHT - 145;
+  /* Page header — matches the preferred 9OVG visual language. */
+  addRect(commands, 0, PDF_PAGE_HEIGHT - 42, PDF_PAGE_WIDTH, 42, PDF_COLORS.topBlue);
+  addText(commands, PDF_MARGIN_LEFT, PDF_PAGE_HEIGHT - 27, "PrivacyMap India", "small");
+  addText(commands, PDF_PAGE_WIDTH - PDF_MARGIN_RIGHT - 150, PDF_PAGE_HEIGHT - 27, "DPDP Privacy Assessment Report", "small");
+  cursor = PDF_PAGE_HEIGHT - 78;
 
-  ensure(170);
-  addText(commands, PDF_MARGIN_LEFT, cursor, "Assessment Profile", "section");
-  cursor -= 18;
-  addRect(commands, PDF_MARGIN_LEFT, cursor - 132, PDF_CONTENT_WIDTH, 142, PDF_COLORS.surface, PDF_COLORS.border);
+  addText(commands, PDF_MARGIN_LEFT, cursor, "DPDP Privacy Assessment Report", "title");
+  cursor -= 29;
+  addText(commands, PDF_MARGIN_LEFT, cursor, display(profile.organisationName), "value");
+  cursor -= 24;
+  addText(commands, PDF_MARGIN_LEFT, cursor, display(profile.assessmentName), "subtitle");
+  cursor -= 25;
 
-  const colGap = 18;
-  const colWidth = (PDF_CONTENT_WIDTH - colGap) / 2;
-  let leftY = cursor - 18;
-  let rightY = cursor - 18;
+  cursor = addMetadataCard(commands, cursor, [
+    ["Assessment ID", text(profile.assessmentId)],
+    ["Generated", report.generatedAt],
+  ]);
+  cursor -= 3;
 
-  const profileRow = (side: "left" | "right", label: string, value: unknown) => {
-    const x = side === "left" ? PDF_MARGIN_LEFT + 14 : PDF_MARGIN_LEFT + 14 + colWidth + colGap;
-    const y = side === "left" ? leftY : rightY;
-    const next = addLabelValue(commands, x, y, label, value, colWidth - 28);
-    if (side === "left") leftY = next - 7;
-    else rightY = next - 7;
-  };
-
-  profileRow("left", "Organisation / School", profile.organisationName);
-  profileRow("left", "Industry", profileIndustry(profile));
-  profileRow("left", "Business Type", profileBusinessType(profile));
-  profileRow("left", "Assessment", profile.assessmentName);
-  profileRow("right", "Assessment Owner", profile.assessmentOwner);
-  profileRow("right", "Assessment ID", profile.assessmentId);
-  profileRow("right", "Assessment Date", profile.assessmentDate);
-  profileRow("right", "Assessment Version", profile.assessmentVersion);
-
-  cursor -= 155;
-  addText(commands, PDF_MARGIN_LEFT, cursor, "Report Generated", "label");
-  addText(commands, PDF_MARGIN_LEFT, cursor - 13, report.generatedAt, "value");
-  cursor -= 36;
-
-  addSection("Executive Summary");
-
-  const overallRisk = report.riskSummary.overallRisk;
-  const riskScore = report.riskSummary.riskScore;
-  const metricGap = 10;
+  addSection("EXECUTIVE SUMMARY");
+  const metricGap = 8;
   const metricWidth = (PDF_CONTENT_WIDTH - metricGap * 2) / 3;
-  const metricY = cursor - 4;
-  const metrics = [
-    ["Overall Risk", overallRisk],
-    ["Risk Score", riskScore],
-    ["Risk Findings", String(findings.length)],
-  ];
+  const metricY = cursor - 2;
+  addMetricCard(commands, PDF_MARGIN_LEFT, metricY, metricWidth, "Overall Risk", reportOverallRisk(result));
+  addMetricCard(commands, PDF_MARGIN_LEFT + metricWidth + metricGap, metricY, metricWidth, "Risk Score", reportRiskScore(result));
+  addMetricCard(commands, PDF_MARGIN_LEFT + (metricWidth + metricGap) * 2, metricY, metricWidth, "Privacy Risk Findings", String(findings.length));
+  const metricY2 = metricY - 76;
+  addMetricCard(commands, PDF_MARGIN_LEFT, metricY2, metricWidth, "Treatment Actions", String(report.treatmentActions.length));
+  addMetricCard(commands, PDF_MARGIN_LEFT + metricWidth + metricGap, metricY2, metricWidth, "Residual Risk Decisions", String(report.residualRiskDecisions.length));
+  addMetricCard(commands, PDF_MARGIN_LEFT + (metricWidth + metricGap) * 2, metricY2, metricWidth, "Evidence Items", String(Object.keys(report.evidenceRecords).length));
+  cursor = metricY2 - 76;
 
-  metrics.forEach(([label, value], index) => {
-    const x = PDF_MARGIN_LEFT + index * (metricWidth + metricGap);
-    addRect(commands, x, metricY - 58, metricWidth, 62, PDF_COLORS.surface, PDF_COLORS.border);
-    addText(commands, x + 10, metricY - 15, label.toUpperCase(), "label");
-    addText(commands, x + 10, metricY - 38, value, "value");
-  });
-  cursor = metricY - 78;
-  addParagraph(`Treatment Actions: ${report.treatmentActions.length} | Residual Risk Decisions: ${report.residualRiskDecisions.length}`, "small", 4);
+  addSection("ASSESSMENT PROFILE");
+  const profileGap = 18;
+  const profileColW = (PDF_CONTENT_WIDTH - profileGap) / 2;
+  const profileTop = cursor;
+  const leftEnd = addTwoColumnMetadata(commands, PDF_MARGIN_LEFT + 10, profileTop, profileColW - 20, [
+    ["Organisation / School", profile.organisationName],
+    ["Industry", profileIndustry(profile)],
+    ["Business Type", profileBusinessType(profile)],
+    ["Assessment", profile.assessmentName],
+  ]);
+  const rightEnd = addTwoColumnMetadata(commands, PDF_MARGIN_LEFT + profileColW + profileGap + 10, profileTop, profileColW - 20, [
+    ["Assessment Owner", profile.assessmentOwner],
+    ["Assessment ID", profile.assessmentId],
+    ["Assessment Date", profile.assessmentDate],
+    ["Assessment Version", profile.assessmentVersion],
+  ]);
+  const profileHeight = Math.max(profileTop - leftEnd, profileTop - rightEnd) + 8;
+  addRect(commands, PDF_MARGIN_LEFT, profileTop + 4 - profileHeight, PDF_CONTENT_WIDTH, profileHeight, PDF_COLORS.surface, PDF_COLORS.border);
+  /* Re-draw text over the background card so the card never covers content. */
+  addTwoColumnMetadata(commands, PDF_MARGIN_LEFT + 10, profileTop, profileColW - 20, [
+    ["Organisation / School", profile.organisationName], ["Industry", profileIndustry(profile)], ["Business Type", profileBusinessType(profile)], ["Assessment", profile.assessmentName],
+  ]);
+  addTwoColumnMetadata(commands, PDF_MARGIN_LEFT + profileColW + profileGap + 10, profileTop, profileColW - 20, [
+    ["Assessment Owner", profile.assessmentOwner], ["Assessment ID", profile.assessmentId], ["Assessment Date", profile.assessmentDate], ["Assessment Version", profile.assessmentVersion],
+  ]);
+  cursor = profileTop - profileHeight - 10;
 
-  addSection("Step 7 — Privacy Risk Findings");
-  if (!findings.length) {
-    addParagraph("No privacy risk findings are available in the assessment result.", "body", 10);
-  }
+  addText(commands, PDF_MARGIN_LEFT, cursor, "Report Generated", "label");
+  addText(commands, PDF_MARGIN_LEFT, cursor - 12, report.generatedAt, "value");
+  cursor -= 32;
+
+  addSection("PRIVACY RISK FINDINGS");
+  if (!findings.length) addParagraph("No privacy risk findings are available in the assessment result.", "body", 10);
   findings.forEach((finding, index) => {
-    const title = finding.title;
-    const category = finding.category;
-    const risk = finding.risk;
-    const description = finding.description;
-    const recommendation = finding.recommendedAction;
-
-    const descLines = wrapPdfText(description, PDF_CONTENT_WIDTH - 24, 9.5, false).length;
-    const recLines = wrapPdfText(recommendation, PDF_CONTENT_WIDTH - 24, 9.5, false).length;
-    const cardHeight = 116 + (descLines + recLines) * 13;
-    ensure(cardHeight + 10);
-
-    addRect(commands, PDF_MARGIN_LEFT, cursor - cardHeight + 8, PDF_CONTENT_WIDTH, cardHeight, PDF_COLORS.white, PDF_COLORS.border);
-    addText(commands, PDF_MARGIN_LEFT + 12, cursor - 10, `${index + 1}. ${title}`, "value");
-    addText(commands, PDF_MARGIN_LEFT + 12, cursor - 27, `Finding ID: ${display(finding.id)}   |   Category: ${category}`, "small");
-
-    const riskStyle = pdfRiskColor(risk);
-    const riskWidth = Math.min(110, Math.max(50, pdfTextWidth(risk, 8) + 20));
-    addRect(commands, PDF_MARGIN_LEFT + PDF_CONTENT_WIDTH - riskWidth - 12, cursor - 42, riskWidth, 18, riskStyle.fill);
-    commands.push("BT", "/F2 8 Tf", `${pdfColor(riskStyle.text)} rg`, `1 0 0 1 ${(PDF_MARGIN_LEFT + PDF_CONTENT_WIDTH - riskWidth - 12 + 10).toFixed(2)} ${(cursor - 36).toFixed(2)} Tm`, `(${pdfEscape(risk)}) Tj`, "ET");
-
-    let fy = cursor - 55;
-    addText(commands, PDF_MARGIN_LEFT + 12, fy, "DESCRIPTION", "label");
-    fy = addWrappedText(commands, PDF_MARGIN_LEFT + 12, fy - 13, description, PDF_CONTENT_WIDTH - 24, "body", 13) - 8;
-    addText(commands, PDF_MARGIN_LEFT + 12, fy, "RECOMMENDED ACTION", "label");
-    fy = addWrappedText(commands, PDF_MARGIN_LEFT + 12, fy - 13, recommendation, PDF_CONTENT_WIDTH - 24, "body", 13);
-    cursor = cursor - cardHeight - 12;
+    const estimated = 160;
+    ensure(estimated);
+    cursor = addRiskFindingCard(commands, cursor, finding, index);
   });
 
-  addSection("Step 8 — Risk Treatment & Action Plan");
+  addSection("RISK TREATMENT & ACTION PLAN");
   if (!report.treatmentActions.length) addParagraph("No treatment actions are available.", "body", 10);
   for (const action of report.treatmentActions) {
-    const cardHeight = 124;
-    ensure(cardHeight + 10);
-    addRect(commands, PDF_MARGIN_LEFT, cursor - cardHeight + 8, PDF_CONTENT_WIDTH, cardHeight, PDF_COLORS.white, PDF_COLORS.border);
-    addText(commands, PDF_MARGIN_LEFT + 12, cursor - 10, display(action.riskTitle), "value");
-    addText(commands, PDF_MARGIN_LEFT + 12, cursor - 27, `Category: ${display(action.category)}`, "small");
-    let y1 = cursor - 47;
-    addLabelValue(commands, PDF_MARGIN_LEFT + 12, y1, "Status", action.status, 105);
-    addLabelValue(commands, PDF_MARGIN_LEFT + 128, y1, "Priority", action.priority, 105);
-    addLabelValue(commands, PDF_MARGIN_LEFT + 244, y1, "Owner", actionOwner(action), 130);
-    addLabelValue(commands, PDF_MARGIN_LEFT + 386, y1, "Effort", action.effort, PDF_CONTENT_WIDTH - 398);
-    const treatment = display(actionTreatment(action));
-    addText(commands, PDF_MARGIN_LEFT + 12, cursor - 83, "RECOMMENDED TREATMENT", "label");
-    addWrappedText(commands, PDF_MARGIN_LEFT + 12, cursor - 96, treatment, PDF_CONTENT_WIDTH - 24, "body", 12);
-    addText(commands, PDF_MARGIN_LEFT + 12, cursor - 111, "EVIDENCE EXPECTED", "label");
-    addWrappedText(commands, PDF_MARGIN_LEFT + 12, cursor - 124, display(actionEvidence(action)), PDF_CONTENT_WIDTH - 24, "small", 11);
-    cursor -= cardHeight + 12;
+    ensure(190);
+    cursor = addTreatmentCard(commands, cursor, action);
   }
 
-  addSection("Step 9 — Residual Risk Decision Register");
+  addSection("RESIDUAL RISK GOVERNANCE");
   if (!report.residualRiskDecisions.length) addParagraph("No residual-risk decisions are available.", "body", 10);
   for (const decision of report.residualRiskDecisions) {
-    ensure(126);
-    addRect(commands, PDF_MARGIN_LEFT, cursor - 112, PDF_CONTENT_WIDTH, 118, PDF_COLORS.white, PDF_COLORS.border);
-    addText(commands, PDF_MARGIN_LEFT + 12, cursor - 12, display(decision.riskTitle), "value");
-    addText(commands, PDF_MARGIN_LEFT + 12, cursor - 29, `Finding ID: ${display(decision.findingId)}   |   Category: ${display(decision.category)}`, "small");
-    addLabelValue(commands, PDF_MARGIN_LEFT + 12, cursor - 49, "Inherent Risk", decision.inherentRisk, 115);
-    addLabelValue(commands, PDF_MARGIN_LEFT + 140, cursor - 49, "Residual Risk", decision.residualRisk, 115);
-    addLabelValue(commands, PDF_MARGIN_LEFT + 268, cursor - 49, "Decision", decision.decision, 140);
-    addLabelValue(commands, PDF_MARGIN_LEFT + 12, cursor - 82, "Approval Status", decision.approvalStatus, 115);
-    addLabelValue(commands, PDF_MARGIN_LEFT + 140, cursor - 82, "Treatment Status", decision.treatmentStatus, 115);
-    addLabelValue(commands, PDF_MARGIN_LEFT + 268, cursor - 82, "Review Date", decision.reviewDate, 140);
-    cursor -= 132;
+    ensure(175);
+    cursor = addDecisionCard(commands, cursor, decision);
   }
 
-  addSection("Step 10 — DPDP Requirement Mapping");
-  addParagraph("DPDP control mappings are maintained by the Step 10 assessment component. The report exporter does not invent mapping values that are not present in the report state.", "body", 10);
-
-  addSection("Step 11 — Risk Governance & Approval");
+  addSection("RISK GOVERNANCE & APPROVAL");
   for (const decision of report.residualRiskDecisions) {
-    ensure(146);
-    addRect(commands, PDF_MARGIN_LEFT, cursor - 132, PDF_CONTENT_WIDTH, 138, PDF_COLORS.white, PDF_COLORS.border);
-    addText(commands, PDF_MARGIN_LEFT + 12, cursor - 12, display(decision.riskTitle), "value");
-    addLabelValue(commands, PDF_MARGIN_LEFT + 12, cursor - 34, "Accountable Owner", decision.accountableOwner, 160);
-    addLabelValue(commands, PDF_MARGIN_LEFT + 188, cursor - 34, "Decision Authority", decision.decisionAuthority, 160);
-    addLabelValue(commands, PDF_MARGIN_LEFT + 364, cursor - 34, "Approval Status", decision.approvalStatus, 145);
-    addLabelValue(commands, PDF_MARGIN_LEFT + 12, cursor - 70, "Review Date", decision.reviewDate, 115);
-    addLabelValue(commands, PDF_MARGIN_LEFT + 140, cursor - 70, "Approval Date", decision.approvalDate, 115);
-    addLabelValue(commands, PDF_MARGIN_LEFT + 268, cursor - 70, "Next Review", decision.nextReviewDate, 115);
-    addLabelValue(commands, PDF_MARGIN_LEFT + 396, cursor - 70, "Treatment", decision.treatmentStatus, 112);
-    addLabelValue(commands, PDF_MARGIN_LEFT + 12, cursor - 106, "Escalation Required", decision.escalationRequired ? "Yes" : "No", 150);
-    addLabelValue(commands, PDF_MARGIN_LEFT + 176, cursor - 106, "Review Frequency", decision.reviewFrequency, 150);
-    addLabelValue(commands, PDF_MARGIN_LEFT + 340, cursor - 106, "Target Resolution", decision.targetResolutionDate, 168);
-    cursor -= 152;
+    ensure(190);
+    cursor = addGovernanceCard(commands, cursor, decision);
   }
 
-  addSection("Step 12 — Remediation Tracker");
+  addSection("REMEDIATION TRACKER");
   for (const action of report.treatmentActions) {
-    ensure(92);
+    ensure(95);
     addRect(commands, PDF_MARGIN_LEFT, cursor - 78, PDF_CONTENT_WIDTH, 84, PDF_COLORS.surface, PDF_COLORS.border);
-    addText(commands, PDF_MARGIN_LEFT + 12, cursor - 12, display(action.riskTitle), "value");
-    addLabelValue(commands, PDF_MARGIN_LEFT + 12, cursor - 32, "Status", action.status, 105);
-    addLabelValue(commands, PDF_MARGIN_LEFT + 128, cursor - 32, "Priority", action.priority, 105);
-    addLabelValue(commands, PDF_MARGIN_LEFT + 244, cursor - 32, "Owner", actionOwner(action), 130);
-    addLabelValue(commands, PDF_MARGIN_LEFT + 386, cursor - 32, "Effort", action.effort, PDF_CONTENT_WIDTH - 398);
-    addLabelValue(commands, PDF_MARGIN_LEFT + 12, cursor - 62, "Timeframe", actionTimeframe(action), 200);
+    addText(commands, PDF_MARGIN_LEFT + 10, cursor - 11, display(action.riskTitle), "value");
+    const gap = 10;
+    const colW = (PDF_CONTENT_WIDTH - 20 - gap * 3) / 4;
+    addLabelValue(commands, PDF_MARGIN_LEFT + 10, cursor - 31, "Status", action.status, colW);
+    addLabelValue(commands, PDF_MARGIN_LEFT + 10 + colW + gap, cursor - 31, "Priority", action.priority, colW);
+    addLabelValue(commands, PDF_MARGIN_LEFT + 10 + (colW + gap) * 2, cursor - 31, "Owner", actionOwner(action), colW);
+    addLabelValue(commands, PDF_MARGIN_LEFT + 10 + (colW + gap) * 3, cursor - 31, "Effort", action.effort, colW);
+    addLabelValue(commands, PDF_MARGIN_LEFT + 10, cursor - 61, "Timeframe", actionTimeframe(action), PDF_CONTENT_WIDTH - 20);
     cursor -= 96;
   }
 
-  addSection("Step 13 — Evidence & Closure");
+  addSection("EVIDENCE & CLOSURE");
   for (const action of report.treatmentActions) {
-    const evidence = report.evidenceRecords[action.id];
-    ensure(112);
-    addRect(commands, PDF_MARGIN_LEFT, cursor - 98, PDF_CONTENT_WIDTH, 104, PDF_COLORS.white, PDF_COLORS.border);
-    addText(commands, PDF_MARGIN_LEFT + 12, cursor - 12, display(action.riskTitle), "value");
-    addLabelValue(commands, PDF_MARGIN_LEFT + 12, cursor - 34, "Treatment Status", action.status, 130);
-    addLabelValue(commands, PDF_MARGIN_LEFT + 154, cursor - 34, "Evidence Verified", evidence?.verified ? "Yes" : "No", 120);
-    addLabelValue(commands, PDF_MARGIN_LEFT + 286, cursor - 34, "Evidence Owner", evidence?.owner, 130);
-    addLabelValue(commands, PDF_MARGIN_LEFT + 430, cursor - 34, "Reference", evidence?.reference, 92);
-    addLabelValue(commands, PDF_MARGIN_LEFT + 12, cursor - 70, "Closure Notes", evidence?.notes, PDF_CONTENT_WIDTH - 24);
-    cursor -= 116;
+    ensure(160);
+    cursor = addEvidenceCard(commands, cursor, action, report.evidenceRecords[action.id]);
   }
 
-  addSection("Confidential Information");
-  addParagraph("Confidential Information | PrivacyMap India | Atmanirbhar DPDP Assessment", "body", 8);
-  addParagraph("This assessment report is intended for the organisation and its authorised recipients.", "body", 8);
-
-  addSection("Important Disclaimer");
+  addSection("IMPORTANT DISCLAIMER");
   addParagraph("PrivacyMap India assessment output is a risk-assessment and governance aid. It is not a legal opinion, certification or automatic determination of DPDP compliance.", "body", 8);
   addParagraph("DPDP control mappings are reference mappings and should be validated against the official notified Act, Rules and subsequent amendments or corrigenda.", "body", 8);
 
