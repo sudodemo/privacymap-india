@@ -1011,8 +1011,8 @@ function createPdfCommandPages(report: AssessmentReportData): string[][] {
   cursor -= 29;
   addText(commands, PDF_MARGIN_LEFT, cursor, display(profile.organisationName), "value");
   cursor -= 24;
-  addText(commands, PDF_MARGIN_LEFT, cursor, display(profile.assessmentName), "subtitle");
-  cursor -= 25;
+  //addText(commands, PDF_MARGIN_LEFT, cursor, display(profile.assessmentName), "subtitle");
+  //cursor -= 25;
 
   cursor = addMetadataCard(commands, cursor, [
     ["Assessment ID", text(profile.assessmentId)],
