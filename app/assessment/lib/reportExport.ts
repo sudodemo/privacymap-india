@@ -559,7 +559,7 @@ export function downloadTextFile(content: string, filename: string, mimeType: st
    - compact 3-page-style flow with automatic pagination
    ============================================================ */
 
-type PdfStyle = "body" | "small" | "label" | "value" | "title" | "section" | "subtitle";
+type PdfStyle = "body" | "small" | "label" | "value" | "metricValue" | "title" | "section" | "subtitle";
 
 const PDF_PAGE_WIDTH = 595.28;
 const PDF_PAGE_HEIGHT = 841.89;
@@ -624,11 +624,13 @@ function wrapPdfText(value: string, widthPt: number, size = 9.5, bold = false): 
 
 function styleFor(style: PdfStyle): { font: "F1" | "F2"; size: number; color: [number, number, number] } {
   switch (style) {
+    case "header": return { font: "F2", size: 15, color: PDF_COLORS.white };
     case "title": return { font: "F2", size: 22, color: PDF_COLORS.blue };
     case "subtitle": return { font: "F1", size: 9.5, color: PDF_COLORS.slate };
     case "section": return { font: "F2", size: 10.5, color: PDF_COLORS.blue };
     case "label": return { font: "F2", size: 7.2, color: PDF_COLORS.muted };
     case "value": return { font: "F1", size: 9.5, color: PDF_COLORS.navy };
+    case "metricValue": return { font: "F2", size: 17, color: PDF_COLORS.navy };
     case "small": return { font: "F1", size: 7.8, color: PDF_COLORS.muted };
     default: return { font: "F1", size: 9.3, color: PDF_COLORS.slate };
   }
@@ -677,16 +679,29 @@ function addLabelValue(commands: string[], x: number, y: number, label: string, 
 }
 
 function addSectionHeader(commands: string[], y: number, title: string): number {
-  addRect(commands, PDF_MARGIN_LEFT, y - 20, PDF_CONTENT_WIDTH, 26, PDF_COLORS.blueLight);
-  addText(commands, PDF_MARGIN_LEFT + 10, y - 10, title, "section");
-  return y - 37;
+  addRect(commands, PDF_MARGIN_LEFT, y - 22, PDF_CONTENT_WIDTH, 30, PDF_COLORS.blueLight);
+  addText(commands, PDF_MARGIN_LEFT + 10, y - 11, title, "section");
+  return y - 43;
 }
 
 function addFooter(commands: string[], pageNumber: number): void {
-  addLine(commands, PDF_MARGIN_LEFT, 32, PDF_PAGE_WIDTH - PDF_MARGIN_RIGHT, 32);
-  addText(commands, PDF_MARGIN_LEFT, 20, "Confidential assessment output", "small");
+  addLine(commands, PDF_MARGIN_LEFT, 43, PDF_PAGE_WIDTH - PDF_MARGIN_RIGHT, 43);
+  addText(
+    commands,
+    PDF_MARGIN_LEFT,
+    30,
+    "Assessment Output - Confidential Information | PrivacyMap India | Atmanirbhar DPDP Privacy Assessment",
+    "small"
+  );
+  addText(
+    commands,
+    PDF_MARGIN_LEFT,
+    18,
+    "This assessment report is intended for the organisation and its authorised recipients.",
+    "small"
+  );
   const pageText = `Page ${pageNumber}`;
-  addText(commands, PDF_PAGE_WIDTH - PDF_MARGIN_RIGHT - pdfTextWidth(pageText, 8), 20, pageText, "small");
+  addText(commands, PDF_PAGE_WIDTH - PDF_MARGIN_RIGHT - pdfTextWidth(pageText, 8), 18, pageText, "small");
 }
 
 function reportOverallRisk(result: RiskResult | null): string {
@@ -759,11 +774,11 @@ export function reportAnchorId(step: number, title: string): string {
 }
 
 function addMetricCard(commands: string[], x: number, y: number, width: number, label: string, value: string): void {
-  addRect(commands, x, y - 58, width, 62, PDF_COLORS.surface, PDF_COLORS.border);
+  addRect(commands, x, y - 66, width, 70, PDF_COLORS.white, PDF_COLORS.border);
   addText(commands, x + 10, y - 15, label.toUpperCase(), "label");
-  const lines = wrapPdfText(value, width - 20, 10, true);
-  addText(commands, x + 10, y - 38, lines[0] || "Not Available", "value");
-  if (lines[1]) addText(commands, x + 10, y - 50, lines[1], "small");
+  const lines = wrapPdfText(value, width - 20, 17, true);
+  addText(commands, x + 10, y - 42, lines[0] || "Not Available", "metricValue");
+  if (lines[1]) addText(commands, x + 10, y - 59, lines[1], "small");
 }
 
 function addMetadataCard(commands: string[], y: number, rows: Array<[string, string]>): number {
@@ -955,11 +970,33 @@ function createPdfCommandPages(report: AssessmentReportData): string[][] {
     cursor = addWrappedText(commands, PDF_MARGIN_LEFT, cursor, safe, PDF_CONTENT_WIDTH, style, 13) - spacing;
   };
 
-  /* Page header — matches the preferred 9OVG visual language. */
-  addRect(commands, 0, PDF_PAGE_HEIGHT - 42, PDF_PAGE_WIDTH, 42, PDF_COLORS.topBlue);
-  addText(commands, PDF_MARGIN_LEFT, PDF_PAGE_HEIGHT - 27, "PrivacyMap India", "small");
-  addText(commands, PDF_PAGE_WIDTH - PDF_MARGIN_RIGHT - 150, PDF_PAGE_HEIGHT - 27, "DPDP Privacy Assessment Report", "small");
-  cursor = PDF_PAGE_HEIGHT - 78;
+  /* Branded two-sided header — based on the preferred 9OVG visual language. */
+  const headerY = PDF_PAGE_HEIGHT - 52;
+  const headerH = 42;
+  const headerGap = 10;
+  const headerLeftW = 185;
+  const headerRightW = PDF_CONTENT_WIDTH - headerLeftW - headerGap;
+
+  addRect(commands, PDF_MARGIN_LEFT, headerY, headerLeftW, headerH, PDF_COLORS.topBlue, PDF_COLORS.topBlue);
+  addRect(
+    commands,
+    PDF_MARGIN_LEFT + headerLeftW + headerGap,
+    headerY,
+    headerRightW,
+    headerH,
+    PDF_COLORS.topBlue,
+    PDF_COLORS.topBlue
+  );
+
+  addText(commands, PDF_MARGIN_LEFT + 12, headerY + 16, "PrivacyMap India", "header");
+  addText(
+    commands,
+    PDF_MARGIN_LEFT + headerLeftW + headerGap + 12,
+    headerY + 16,
+    "Atmanirbhar DPDP Assessment",
+    "header"
+  );
+  cursor = headerY - 30;
 
   addText(commands, PDF_MARGIN_LEFT, cursor, "DPDP Privacy Assessment Report", "title");
   cursor -= 29;
@@ -981,11 +1018,11 @@ function createPdfCommandPages(report: AssessmentReportData): string[][] {
   addMetricCard(commands, PDF_MARGIN_LEFT, metricY, metricWidth, "Overall Risk", reportOverallRisk(result));
   addMetricCard(commands, PDF_MARGIN_LEFT + metricWidth + metricGap, metricY, metricWidth, "Risk Score", reportRiskScore(result));
   addMetricCard(commands, PDF_MARGIN_LEFT + (metricWidth + metricGap) * 2, metricY, metricWidth, "Privacy Risk Findings", String(findings.length));
-  const metricY2 = metricY - 76;
+  const metricY2 = metricY - 84;
   addMetricCard(commands, PDF_MARGIN_LEFT, metricY2, metricWidth, "Treatment Actions", String(report.treatmentActions.length));
   addMetricCard(commands, PDF_MARGIN_LEFT + metricWidth + metricGap, metricY2, metricWidth, "Residual Risk Decisions", String(report.residualRiskDecisions.length));
   addMetricCard(commands, PDF_MARGIN_LEFT + (metricWidth + metricGap) * 2, metricY2, metricWidth, "Evidence Items", String(Object.keys(report.evidenceRecords).length));
-  cursor = metricY2 - 76;
+  cursor = metricY2 - 84;
 
   addSection("ASSESSMENT PROFILE");
   const profileGap = 18;
@@ -1048,17 +1085,21 @@ function createPdfCommandPages(report: AssessmentReportData): string[][] {
 
   addSection("REMEDIATION TRACKER");
   for (const action of report.treatmentActions) {
-    ensure(95);
-    addRect(commands, PDF_MARGIN_LEFT, cursor - 78, PDF_CONTENT_WIDTH, 84, PDF_COLORS.surface, PDF_COLORS.border);
-    addText(commands, PDF_MARGIN_LEFT + 10, cursor - 11, display(action.riskTitle), "value");
+    const ownerLines = wrapPdfText(display(actionOwner(action)), 110, 9.5, false).length;
+    const titleLines = wrapPdfText(display(action.riskTitle), PDF_CONTENT_WIDTH - 20, 9.5, false).length;
+    const remHeight = Math.max(92, 74 + Math.max(ownerLines - 1, 0) * 11 + Math.max(titleLines - 1, 0) * 11);
+    ensure(remHeight + 12);
+    addRect(commands, PDF_MARGIN_LEFT, cursor - remHeight + 8, PDF_CONTENT_WIDTH, remHeight, PDF_COLORS.surface, PDF_COLORS.border);
+    addWrappedText(commands, PDF_MARGIN_LEFT + 10, cursor - 11, display(action.riskTitle), PDF_CONTENT_WIDTH - 20, "value", 11);
     const gap = 10;
     const colW = (PDF_CONTENT_WIDTH - 20 - gap * 3) / 4;
-    addLabelValue(commands, PDF_MARGIN_LEFT + 10, cursor - 31, "Status", action.status, colW);
-    addLabelValue(commands, PDF_MARGIN_LEFT + 10 + colW + gap, cursor - 31, "Priority", action.priority, colW);
-    addLabelValue(commands, PDF_MARGIN_LEFT + 10 + (colW + gap) * 2, cursor - 31, "Owner", actionOwner(action), colW);
-    addLabelValue(commands, PDF_MARGIN_LEFT + 10 + (colW + gap) * 3, cursor - 31, "Effort", action.effort, colW);
-    addLabelValue(commands, PDF_MARGIN_LEFT + 10, cursor - 61, "Timeframe", actionTimeframe(action), PDF_CONTENT_WIDTH - 20);
-    cursor -= 96;
+    const metaY = cursor - 11 - titleLines * 11 - 8;
+    addLabelValue(commands, PDF_MARGIN_LEFT + 10, metaY, "Status", action.status, colW);
+    addLabelValue(commands, PDF_MARGIN_LEFT + 10 + colW + gap, metaY, "Priority", action.priority, colW);
+    addLabelValue(commands, PDF_MARGIN_LEFT + 10 + (colW + gap) * 2, metaY, "Owner", actionOwner(action), colW);
+    addLabelValue(commands, PDF_MARGIN_LEFT + 10 + (colW + gap) * 3, metaY, "Effort", action.effort, colW);
+    addLabelValue(commands, PDF_MARGIN_LEFT + 10, metaY - 30, "Timeframe", actionTimeframe(action), PDF_CONTENT_WIDTH - 20);
+    cursor -= remHeight + 12;
   }
 
   addSection("EVIDENCE & CLOSURE");
@@ -1067,9 +1108,19 @@ function createPdfCommandPages(report: AssessmentReportData): string[][] {
     cursor = addEvidenceCard(commands, cursor, action, report.evidenceRecords[action.id]);
   }
 
+  /* Always place the disclaimer on a clean final page when necessary. */
+  ensure(150);
   addSection("IMPORTANT DISCLAIMER");
-  addParagraph("PrivacyMap India assessment output is a risk-assessment and governance aid. It is not a legal opinion, certification or automatic determination of DPDP compliance.", "body", 8);
-  addParagraph("DPDP control mappings are reference mappings and should be validated against the official notified Act, Rules and subsequent amendments or corrigenda.", "body", 8);
+  addParagraph(
+    "PrivacyMap India assessment output is a risk-assessment and governance aid. It is not a legal opinion, certification or automatic determination of DPDP compliance.",
+    "body",
+    10
+  );
+  addParagraph(
+    "DPDP control mappings are reference mappings and should be validated against the official notified Act, Rules and subsequent amendments or corrigenda.",
+    "body",
+    10
+  );
 
   if (commands.length) finishPage();
   return pages;
