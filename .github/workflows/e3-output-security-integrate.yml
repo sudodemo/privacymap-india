@@ -1,0 +1,123 @@
+name: PrivacyMap E3 Output Security Integration
+
+on:
+  push:
+    branches:
+      - step0-profile-working
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Integrate E3 output security
+        shell: python
+        run: |
+          from pathlib import Path
+
+          report_path = Path("app/assessment/lib/reportExport.ts")
+          security_path = Path("app/assessment/lib/outputSecurity.ts")
+          report = report_path.read_text(encoding="utf-8")
+          security = security_path.read_text(encoding="utf-8")
+
+          marker = "/* E3-INTEGRATED: Output Security Layer */"
+          changed = False
+
+          if marker not in report:
+              import_anchor = 'import type { ResidualRiskDecisionRecord } from "../lib/governanceEngine";'
+              import_block = import_anchor + '\n\n' + marker + '\nimport {\n  escapeCsvSecure,\n  escapeXmlSecure,\n  escapeMarkdownSecure,\n  escapePdfTextSecure,\n  safeReportFilename,\n  validateGeneratedArtifact,\n  validateGeneratedBlob,\n} from "./outputSecurity";'
+              if import_anchor not in report:
+                  raise SystemExit("E3 integration: reportExport import anchor not found")
+              report = report.replace(import_anchor, import_block, 1)
+
+              replacements = {
+                  '''function escapeCsv(value: unknown): string {\n  const s = text(value);\n  if (s.includes(",") || s.includes('"') || s.includes("\\n") || s.includes("\\r")) {\n    return `"${s.replace(/"/g, '\"\"')}"`;\n  }\n  return s;\n}''': '''function escapeCsv(value: unknown): string {\n  return escapeCsvSecure(value);\n}''',
+                  '''function escapeXml(value: unknown): string {\n  return text(value)\n    .replace(/&/g, "&amp;")\n    .replace(/</g, "&lt;")\n    .replace(/>/g, "&gt;")\n    .replace(/"/g, "&quot;")\n    .replace(/'/g, "&apos;");\n}''': '''function escapeXml(value: unknown): string {\n  return escapeXmlSecure(value);\n}''',
+                  '''function escapeMarkdown(value: unknown): string {\n  return text(value)\n    .replace(/\\|/g, "\\\\|")\n    .replace(/\\r?\\n/g, "<br>");\n}''': '''function escapeMarkdown(value: unknown): string {\n  return escapeMarkdownSecure(value);\n}''',
+                  '''function pdfSafe(value: unknown): string {\n  return text(value)\n    .replace(/[\\u2018\\u2019]/g, "'")\n    .replace(/[\\u201C\\u201D]/g, '\"')\n    .replace(/[\\u2013\\u2014]/g, "-")\n    .replace(/\\u2026/g, "...")\n    .replace(/\\u00A0/g, " ")\n    .replace(/[^\\x09\\x0A\\x0D\\x20-\\x7E]/g, "?");\n}''': '''function pdfSafe(value: unknown): string {\n  return escapePdfTextSecure(value);\n}'''
+              }
+
+              for old, new in replacements.items():
+                  if old not in report:
+                      raise SystemExit("E3 integration: expected exporter helper not found")
+                  report = report.replace(old, new, 1)
+
+              old = '''export function reportToJson(report: AssessmentReportData): string {\n  return JSON.stringify(report, null, 2);\n}'''
+              new = '''export function reportToJson(report: AssessmentReportData): string {\n  const content = JSON.stringify(report, null, 2);\n  validateGeneratedArtifact(content, "application/json;charset=utf-8");\n  return content;\n}'''
+              if old not in report:
+                  raise SystemExit("E3 integration: JSON exporter not found")
+              report = report.replace(old, new, 1)
+
+              old = '''  return rows.map((row) => row.map(escapeCsv).join(",")).join("\\r\\n");\n}'''
+              new = '''  const content = rows.map((row) => row.map(escapeCsv).join(",")).join("\\r\\n");\n  validateGeneratedArtifact(content, "text/csv;charset=utf-8");\n  return content;\n}'''
+              if old not in report:
+                  raise SystemExit("E3 integration: CSV return not found")
+              report = report.replace(old, new, 1)
+
+              old = '''  return `<?xml version="1.0" encoding="UTF-8"?>'''
+              # XML is assembled as a template literal; validate immediately before returning it.
+              # We use a targeted replacement of the function's final return expression.
+              xml_end = '''</privacyMapAssessment>`;\n}\n\n/* ============================================================\n   MARKDOWN'''
+              if xml_end not in report:
+                  raise SystemExit("E3 integration: XML end anchor not found")
+              report = report.replace(xml_end, '''</privacyMapAssessment>`;\n  validateGeneratedArtifact(xml, "application/xml;charset=utf-8");\n  return xml;\n}\n\n/* ============================================================\n   MARKDOWN'''.replace("`\\n  validate", "`\\n  validate"), 1)
+              # The preceding replacement needs the return expression assigned to a variable.
+              # Normalize the XML function by replacing the first return statement inside it.
+              xml_start = report.index("export function reportToXml")
+              xml_end_idx = report.index("/* ============================================================\n   MARKDOWN", xml_start)
+              xml_fn = report[xml_start:xml_end_idx]
+              if "const xml = `<?xml" not in xml_fn:
+                  xml_fn = xml_fn.replace("  return `<?xml", "  const xml = `<?xml", 1)
+                  report = report[:xml_start] + xml_fn + report[xml_end_idx:]
+
+              old = '''  return lines.join("\\n");\n}'''
+              new = '''  const content = lines.join("\\n");\n  validateGeneratedArtifact(content, "text/markdown;charset=utf-8");\n  return content;\n}'''
+              if old not in report:
+                  raise SystemExit("E3 integration: Markdown return not found")
+              report = report.replace(old, new, 1)
+
+              old = '''export function downloadTextFile(content: string, filename: string, mimeType: string): void {\n  if (typeof window === "undefined") return;\n\n  const blob = new Blob([content], { type: mimeType });\n  const url = URL.createObjectURL(blob);\n  const anchor = document.createElement("a");\n  anchor.href = url;\n  anchor.download = filename;'''
+              new = '''export function downloadTextFile(content: string, filename: string, mimeType: string): void {\n  if (typeof window === "undefined") return;\n\n  validateGeneratedArtifact(content, mimeType);\n  const match = filename.match(/\\.([A-Za-z0-9]+)$/);\n  const extension = match?.[1] || "txt";\n  const base = match ? filename.slice(0, -(extension.length + 1)) : filename;\n  const safeFilename = safeReportFilename(base, extension);\n\n  const blob = new Blob([content], { type: mimeType });\n  const url = URL.createObjectURL(blob);\n  const anchor = document.createElement("a");\n  anchor.href = url;\n  anchor.download = safeFilename;'''
+              if old not in report:
+                  raise SystemExit("E3 integration: text download function not found")
+              report = report.replace(old, new, 1)
+
+              old = '''export function downloadPdf(report: AssessmentReportData, filename: string): void {\n  if (typeof window === "undefined") return;\n\n  const blob = createPdfBlob(report);\n  const url = URL.createObjectURL(blob);\n  const anchor = document.createElement("a");\n  anchor.href = url;\n  anchor.download = filename;'''
+              new = '''export function downloadPdf(report: AssessmentReportData, filename: string): void {\n  if (typeof window === "undefined") return;\n\n  const blob = createPdfBlob(report);\n  validateGeneratedBlob(blob, "application/pdf");\n  const match = filename.match(/\\.([A-Za-z0-9]+)$/);\n  const extension = match?.[1] || "pdf";\n  const base = match ? filename.slice(0, -(extension.length + 1)) : filename;\n  const safeFilename = safeReportFilename(base, extension);\n\n  const url = URL.createObjectURL(blob);\n  const anchor = document.createElement("a");\n  anchor.href = url;\n  anchor.download = safeFilename;'''
+              if old not in report:
+                  raise SystemExit("E3 integration: PDF download function not found")
+              report = report.replace(old, new, 1)
+
+              report_path.write_text(report, encoding="utf-8")
+              changed = True
+
+          blob_marker = "export function validateGeneratedBlob"
+          if blob_marker not in security:
+              addition = '''\n\n/** Final guard for binary report artifacts such as PDF. */\nexport function validateGeneratedBlob(blob: Blob, mimeType: string): void {\n  if (!(blob instanceof Blob)) {\n    throw new Error("Invalid generated report artifact.");\n  }\n  if (!mimeType || mimeType.length > 120 || /[\\r\\n]/.test(mimeType)) {\n    throw new Error("Invalid report MIME type.");\n  }\n  if (blob.size > 5_000_000) {\n    throw new Error("Generated report exceeds the permitted output size.");\n  }\n}\n'''
+              security = security.rstrip() + addition
+              security_path.write_text(security, encoding="utf-8")
+              changed = True
+
+          if not changed:
+              print("E3 integration already present; nothing to change.")
+          else:
+              print("E3 integration applied successfully.")
+
+      - name: Commit E3 integration
+        if: success()
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git config user.name "PrivacyMap Security Automation"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/assessment/lib/reportExport.ts app/assessment/lib/outputSecurity.ts
+          git commit -m "security: integrate E3 output security into report exports"
+          git push origin step0-profile-working
