@@ -3,6 +3,17 @@ import type { RiskResult } from "../lib/riskEngine";
 import type { RiskTreatmentAction } from "../lib/remediationEngine";
 import type { ResidualRiskDecisionRecord } from "../lib/governanceEngine";
 
+/* E3-INTEGRATED: Output Security Layer */
+import {
+  escapeCsvSecure,
+  escapeXmlSecure,
+  escapeMarkdownSecure,
+  escapePdfTextSecure,
+  safeReportFilename,
+  validateGeneratedArtifact,
+  validateGeneratedBlob,
+} from "./outputSecurity";
+
 /* ============================================================
    STEP 13 EVIDENCE MODEL
    ============================================================ */
@@ -185,36 +196,19 @@ export function formatIndiaDateTime(date: Date = new Date()): string {
    ============================================================ */
 
 function escapeCsv(value: unknown): string {
-  const s = text(value);
-  if (s.includes(",") || s.includes('"') || s.includes("\n") || s.includes("\r")) {
-    return `"${s.replace(/"/g, '""')}"`;
-  }
-  return s;
+  return escapeCsvSecure(value);
 }
 
 function escapeXml(value: unknown): string {
-  return text(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
+  return escapeXmlSecure(value);
 }
 
 function escapeMarkdown(value: unknown): string {
-  return text(value)
-    .replace(/\|/g, "\\|")
-    .replace(/\r?\n/g, "<br>");
+  return escapeMarkdownSecure(value);
 }
 
 function pdfSafe(value: unknown): string {
-  return text(value)
-    .replace(/[\u2018\u2019]/g, "'")
-    .replace(/[\u201C\u201D]/g, '"')
-    .replace(/[\u2013\u2014]/g, "-")
-    .replace(/\u2026/g, "...")
-    .replace(/\u00A0/g, " ")
-    .replace(/[^\x09\x0A\x0D\x20-\x7E]/g, "?");
+  return escapePdfTextSecure(value);
 }
 
 /* ============================================================
@@ -245,7 +239,9 @@ export function buildAssessmentReport(
    ============================================================ */
 
 export function reportToJson(report: AssessmentReportData): string {
-  return JSON.stringify(report, null, 2);
+  const content = JSON.stringify(report, null, 2);
+  validateGeneratedArtifact(content, "application/json;charset=utf-8");
+  return content;
 }
 
 /* ============================================================
@@ -319,7 +315,9 @@ export function reportToCsv(report: AssessmentReportData): string {
     ]);
   }
 
-  return rows.map((row) => row.map(escapeCsv).join(",")).join("\r\n");
+  const content = rows.map((row) => row.map(escapeCsv).join(",")).join("\r\n");
+  validateGeneratedArtifact(content, "text/csv;charset=utf-8");
+  return content;
 }
 
 /* ============================================================
@@ -400,7 +398,7 @@ export function reportToXml(report: AssessmentReportData): string {
         <escalationReason>${escapeXml(decision.escalationReason)}</escalationReason>
       </decision>`).join("");
 
-  return `<?xml version="1.0" encoding="UTF-8"?>
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <privacyMapAssessment>
   <metadata>
     <generatedAt>${escapeXml(report.generatedAt)}</generatedAt>
@@ -425,6 +423,8 @@ export function reportToXml(report: AssessmentReportData): string {
   <treatmentActions>${treatmentXml}
   </treatmentActions>
 </privacyMapAssessment>`;
+  validateGeneratedArtifact(xml, "application/xml;charset=utf-8");
+  return xml;
 }
 
 /* ============================================================
@@ -522,7 +522,9 @@ export function reportToMarkdown(report: AssessmentReportData): string {
   lines.push("---", "");
   lines.push("PrivacyMap India assessment output is a risk-assessment and governance aid. It is not a legal opinion, certification or automatic determination of DPDP compliance.");
 
-  return lines.join("\n");
+  const content = lines.join("\n");
+  validateGeneratedArtifact(content, "text/markdown;charset=utf-8");
+  return content;
 }
 
 /* ============================================================
@@ -532,11 +534,17 @@ export function reportToMarkdown(report: AssessmentReportData): string {
 export function downloadTextFile(content: string, filename: string, mimeType: string): void {
   if (typeof window === "undefined") return;
 
+  validateGeneratedArtifact(content, mimeType);
+  const match = filename.match(/\.([A-Za-z0-9]+)$/);
+  const extension = match?.[1] || "txt";
+  const base = match ? filename.slice(0, -(extension.length + 1)) : filename;
+  const safeFilename = safeReportFilename(base, extension);
+
   const blob = new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = filename;
+  anchor.download = safeFilename;
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
@@ -1196,10 +1204,16 @@ export function downloadPdf(report: AssessmentReportData, filename: string): voi
   if (typeof window === "undefined") return;
 
   const blob = createPdfBlob(report);
+  validateGeneratedBlob(blob, "application/pdf");
+  const match = filename.match(/\.([A-Za-z0-9]+)$/);
+  const extension = match?.[1] || "pdf";
+  const base = match ? filename.slice(0, -(extension.length + 1)) : filename;
+  const safeFilename = safeReportFilename(base, extension);
+
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = filename;
+  anchor.download = safeFilename;
   anchor.style.display = "none";
   document.body.appendChild(anchor);
   anchor.click();

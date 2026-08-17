@@ -114,3 +114,16 @@ export function validateGeneratedArtifact(content: string, mimeType: string): vo
     throw new Error("Invalid report MIME type.");
   }
 }
+
+/** Final guard for binary report artifacts such as PDF. */
+export function validateGeneratedBlob(blob: Blob, mimeType: string): void {
+  if (!(blob instanceof Blob)) {
+    throw new Error("Invalid generated report artifact.");
+  }
+  if (!mimeType || mimeType.length > 120 || /[\r\n]/.test(mimeType)) {
+    throw new Error("Invalid report MIME type.");
+  }
+  if (blob.size > 5_000_000) {
+    throw new Error("Generated report exceeds the permitted output size.");
+  }
+}
