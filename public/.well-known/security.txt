@@ -1,5 +1,0 @@
-Contact: mailto:security@privacymap.in
-Expires: 2027-12-31T23:59:59Z
-Preferred-Languages: en
-Canonical: https://privacymap-india.vercel.app/.well-known/security.txt
-Policy: https://privacymap-india.vercel.app/security
