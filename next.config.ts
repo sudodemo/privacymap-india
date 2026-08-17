@@ -5,13 +5,8 @@ const isDevelopment = process.env.NODE_ENV !== "production";
 /*
  * Phase E — PrivacyMap Application Security Layer
  *
- * These headers establish browser-side defence-in-depth for the public
- * application. The assessment remains browser-only; no security decision
- * here depends on a server-side database or authentication layer.
- *
- * CSP intentionally permits inline styles because the current application
- * uses React style objects extensively. JavaScript remains same-origin and
- * eval is allowed only during local development.
+ * Browser-side defence-in-depth for the public, browser-only assessment.
+ * No control here depends on authentication or a server-side database.
  */
 const contentSecurityPolicy = [
   "default-src 'self'",
@@ -34,24 +29,25 @@ const contentSecurityPolicy = [
 const securityHeaders = [
   { key: "Content-Security-Policy", value: contentSecurityPolicy },
   { key: "X-Content-Type-Options", value: "nosniff" },
-  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "X-Frame-Options", value: "DENY" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   {
     key: "Permissions-Policy",
     value: "camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=(), accelerometer=(), gyroscope=(), magnetometer=()",
   },
-  {
-    key: "Cross-Origin-Opener-Policy",
-    value: "same-origin",
-  },
-  {
-    key: "Cross-Origin-Resource-Policy",
-    value: "same-origin",
-  },
-  {
-    key: "X-DNS-Prefetch-Control",
-    value: "off",
-  },
+  { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+  { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
+  { key: "Origin-Agent-Cluster", value: "?1" },
+  { key: "X-DNS-Prefetch-Control", value: "off" },
+  { key: "X-Permitted-Cross-Domain-Policies", value: "none" },
+  ...(isDevelopment
+    ? []
+    : [
+        {
+          key: "Strict-Transport-Security",
+          value: "max-age=31536000; includeSubDomains",
+        },
+      ]),
 ];
 
 const nextConfig: NextConfig = {
