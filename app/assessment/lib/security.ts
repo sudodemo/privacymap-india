@@ -3,10 +3,6 @@
  *
  * Browser-first security controls for untrusted assessment input,
  * imported assessment packages, and report/export output.
- *
- * This layer deliberately does NOT attempt to "sanitize everything".
- * Validation is field/context aware; React remains responsible for
- * safe HTML rendering through normal text interpolation.
  */
 
 export const SECURITY_LIMITS = {
@@ -40,15 +36,39 @@ export function normalizePlainText(value: unknown): string {
     .replace(/\r\n?/g, "\n");
 }
 
+/**
+ * Sanitises ordinary assessment text at the browser input boundary.
+ * This is deliberately NOT an HTML sanitizer. PrivacyMap fields are plain
+ * text, so HTML-like tags are removed rather than interpreted as markup.
+ */
 export function sanitizeText(value: unknown, options: TextValidationOptions = {}): string {
-  const normalized = normalizePlainText(value);
+  let normalized = normalizePlainText(value);
+
+  if (options.rejectMarkup !== false) {
+    normalized = normalized.replace(/<\s*\/?\s*[a-z][^>]*>/gi, "");
+  }
+
   const withoutNewlines = options.allowNewlines
     ? normalized
     : normalized.replace(/[\n\t]+/g, " ");
   const collapsed = options.allowNewlines
     ? withoutNewlines
     : withoutNewlines.replace(/\s+/g, " ");
+
   return collapsed.trim().slice(0, options.maxLength ?? SECURITY_LIMITS.genericText);
+}
+
+/**
+ * Browser-boundary normalisation for input/textarea values. It preserves
+ * legitimate punctuation such as apostrophes, ampersands and parentheses,
+ * while removing control characters and HTML-like tags from plain-text fields.
+ */
+export function sanitizeInteractiveText(value: unknown, maxLength = SECURITY_LIMITS.genericText): string {
+  return sanitizeText(value, {
+    maxLength,
+    allowNewlines: true,
+    rejectMarkup: true,
+  });
 }
 
 export function validateText(value: unknown, options: TextValidationOptions = {}): string {
