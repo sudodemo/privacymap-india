@@ -3,14 +3,21 @@ import type { NextConfig } from "next";
 const isDevelopment = process.env.NODE_ENV !== "production";
 
 /*
- * Phase E — PrivacyMap Application Security Layer
+ * Phase E4 — Browser / Client Security
  *
- * Browser-side defence-in-depth for the public, browser-only assessment.
- * No control here depends on authentication or a server-side database.
+ * PrivacyMap is intentionally a public, browser-only assessment application.
+ * These headers provide defence-in-depth without requiring authentication or
+ * a server-side database.
+ *
+ * Note: Next/React and the current application use inline styles. Therefore
+ * style-src and script-src retain the minimum compatibility allowances needed
+ * by the current architecture. A nonce-based CSP can be introduced later if
+ * the application is migrated away from inline styles/scripts.
  */
 const contentSecurityPolicy = [
   "default-src 'self'",
   `script-src 'self'${isDevelopment ? " 'unsafe-eval'" : ""} 'unsafe-inline'`,
+  "script-src-attr 'none'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
@@ -33,7 +40,8 @@ const securityHeaders = [
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   {
     key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=(), accelerometer=(), gyroscope=(), magnetometer=()",
+    value:
+      "camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=(), accelerometer=(), gyroscope=(), magnetometer=()",
   },
   { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
   { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
@@ -58,6 +66,18 @@ const nextConfig: NextConfig = {
       {
         source: "/(.*)",
         headers: securityHeaders,
+      },
+      {
+        source: "/assessment/:path*",
+        headers: [
+          // Assessment content is client-side only. Avoid intermediary/browser
+          // caching of the application response as an additional defence-in-depth
+          // measure. This does not affect localStorage-based continuity.
+          {
+            key: "Cache-Control",
+            value: "private, no-store, max-age=0, must-revalidate",
+          },
+        ],
       },
     ];
   },
