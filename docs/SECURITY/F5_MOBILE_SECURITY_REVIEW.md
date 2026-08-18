@@ -61,7 +61,7 @@ This review does not claim that the user's mobile device is secure. Device compr
 - [ ] Privacy assurance messaging remains understandable to non-technical users.
 - [ ] Browser/device limitations are not presented as a guarantee of device security.
 
-The existing browser assurance checks are intentionally limited to what the application can observe. fileciteturn73file0L2-L2
+The existing browser assurance checks are intentionally limited to what the application can observe.
 
 ## F4 continuity regression checks
 
@@ -96,4 +96,4 @@ Verify:
 
 F5 is **PASS** when the E1–E5 regression checks and mobile continuity checks above pass, with no new security regression introduced by responsive implementation.
 
-F5 does **not** close E6's production verification requirements. E6 remains the final release gate and remains CONDITIONAL until its manual production checks are completed. The existing E6 design explicitly separates browser-observable checks from deployment verification. fileciteturn74file0L2-L2
+F5 does **not** close E6's production verification requirements. E6 remains the final release gate and remains CONDITIONAL until its manual production checks are completed. The existing E6 design explicitly separates browser-observable checks from deployment verification.
