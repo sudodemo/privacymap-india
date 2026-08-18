@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import "./assessment/assessment-responsive.css";
 
 export const metadata: Metadata = {
   title: "PrivacyMap India",
