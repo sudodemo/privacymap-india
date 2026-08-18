@@ -50,11 +50,9 @@ function formatDate(dateIso: string): string {
 
 export default function DpdpReadinessTicker() {
   const [days, setDays] = useState(() => getRemainingDays(DPDP_READINESS_DATE));
-  const [isLandingPage, setIsLandingPage] = useState(true);
+  const targetDate = useMemo(() => formatDate(DPDP_READINESS_DATE), []);
 
   useEffect(() => {
-    setIsLandingPage(window.location.pathname === "/");
-
     const refresh = () => setDays(getRemainingDays(DPDP_READINESS_DATE));
     refresh();
 
@@ -62,58 +60,77 @@ export default function DpdpReadinessTicker() {
     return () => window.clearInterval(timer);
   }, []);
 
-  const targetDate = useMemo(() => formatDate(DPDP_READINESS_DATE), []);
-
   return (
     <aside
-      aria-label="DPDP readiness timeline"
+      aria-label="DPDP readiness countdown"
       style={{
-        marginBottom: 18,
-        marginLeft: "auto",
         width: "100%",
-        maxWidth: isLandingPage ? 560 : 420,
-        padding: isLandingPage ? "14px 16px" : "10px 12px",
-        borderRadius: 12,
-        background: "#eff6ff",
+        padding: "20px 22px",
+        borderRadius: 16,
+        background: "linear-gradient(135deg, #eff6ff 0%, #ffffff 100%)",
         border: "1px solid #bfdbfe",
         boxSizing: "border-box",
+        textAlign: "center",
       }}
     >
-      <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1.2, color: "#1e3a8a" }}>
+      <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5, color: "#1e3a8a" }}>
         DPDP READINESS COUNTDOWN
       </div>
-      <div style={{ marginTop: 3, fontSize: isLandingPage ? 22 : 20, fontWeight: 800, color: "#1d4ed8" }}>
-        {days} days remaining
+      <div style={{ marginTop: 8, fontSize: "clamp(34px, 6vw, 48px)", lineHeight: 1, fontWeight: 900, color: "#1d4ed8" }}>
+        {days}
       </div>
-      <div style={{ marginTop: 2, fontSize: 11, color: "#475569" }}>
-        Primary readiness target: {targetDate} IST
+      <div style={{ marginTop: 5, fontSize: 13, fontWeight: 800, color: "#334155", letterSpacing: 0.4 }}>
+        DAYS REMAINING
+      </div>
+      <div style={{ marginTop: 10, fontSize: 12, color: "#64748b" }}>
+        Primary readiness target
+      </div>
+      <div style={{ marginTop: 2, fontSize: 15, fontWeight: 800, color: "#0f172a" }}>
+        {targetDate} IST
+      </div>
+    </aside>
+  );
+}
+
+export function DpdpEnforcementTimeline() {
+  return (
+    <section
+      aria-labelledby="dpdp-enforcement-timeline"
+      style={{
+        marginTop: 56,
+        padding: "28px 24px",
+        background: "#ffffff",
+        border: "1px solid #e2e8f0",
+        borderRadius: 16,
+      }}
+    >
+      <div style={{ textAlign: "center", marginBottom: 24 }}>
+        <h2 id="dpdp-enforcement-timeline" style={{ margin: 0, color: "#0f172a", fontSize: 26 }}>
+          DPDP Enforcement Timeline
+        </h2>
+        <p style={{ margin: "8px auto 0", maxWidth: 700, color: "#64748b", lineHeight: 1.6, fontSize: 14 }}>
+          Key commencement milestones used by PrivacyMap as readiness reference points.
+        </p>
       </div>
 
-      {isLandingPage && (
-        <div style={{ display: "grid", gap: 8, marginTop: 14 }}>
-          {DPDP_ENFORCEMENT_PHASES.map((milestone) => (
-            <div
-              key={milestone.phase}
-              style={{
-                padding: "9px 10px",
-                borderRadius: 8,
-                background: "rgba(255,255,255,0.72)",
-                border: "1px solid #dbeafe",
-              }}
-            >
-              <div style={{ fontSize: 11, fontWeight: 800, color: "#1e3a8a" }}>
-                {milestone.phase} · {formatDate(milestone.date)}
-              </div>
-              <div style={{ marginTop: 2, fontSize: 12, fontWeight: 700, color: "#1e293b" }}>
-                {milestone.label}
-              </div>
-              <div style={{ marginTop: 2, fontSize: 11, lineHeight: 1.45, color: "#475569" }}>
-                {milestone.description}
-              </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
+        {DPDP_ENFORCEMENT_PHASES.map((milestone) => (
+          <article
+            key={milestone.phase}
+            style={{ padding: "18px", borderRadius: 12, background: "#f8fafc", border: "1px solid #e2e8f0" }}
+          >
+            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.8, color: "#1e40af" }}>
+              {milestone.phase} · {formatDate(milestone.date)}
             </div>
-          ))}
-        </div>
-      )}
-    </aside>
+            <h3 style={{ margin: "8px 0 6px", fontSize: 16, color: "#0f172a" }}>
+              {milestone.label}
+            </h3>
+            <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: "#475569" }}>
+              {milestone.description}
+            </p>
+          </article>
+        ))}
+      </div>
+    </section>
   );
 }
