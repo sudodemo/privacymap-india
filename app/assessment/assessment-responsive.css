@@ -1,0 +1,150 @@
+/* Phase F2 — mobile responsive assessment foundation.
+ * Scoped to the assessment page so the landing page remains unchanged.
+ */
+
+body:has(#assessment-profile) {
+  overflow-x: hidden;
+}
+
+body:has(#assessment-profile) main {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+  overflow-x: clip;
+}
+
+body:has(#assessment-profile) main,
+body:has(#assessment-profile) main * {
+  box-sizing: border-box;
+}
+
+body:has(#assessment-profile) input,
+body:has(#assessment-profile) select,
+body:has(#assessment-profile) textarea {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+body:has(#assessment-profile) button,
+body:has(#assessment-profile) [role="button"] {
+  min-height: 44px;
+  max-width: 100%;
+  white-space: normal;
+}
+
+body:has(#assessment-profile) img,
+body:has(#assessment-profile) svg {
+  max-width: 100%;
+}
+
+body:has(#assessment-profile) table {
+  max-width: 100%;
+}
+
+body:has(#assessment-profile) pre,
+body:has(#assessment-profile) code {
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+body:has(#assessment-profile) a {
+  overflow-wrap: anywhere;
+}
+
+/* Prevent long finding names, URLs and evidence references from widening cards. */
+body:has(#assessment-profile) h1,
+body:has(#assessment-profile) h2,
+body:has(#assessment-profile) h3,
+body:has(#assessment-profile) h4,
+body:has(#assessment-profile) p,
+body:has(#assessment-profile) label,
+body:has(#assessment-profile) td,
+body:has(#assessment-profile) th {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 767px) {
+  body:has(#assessment-profile) main {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  body:has(#assessment-profile) main > div {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  body:has(#assessment-profile) [style*="display: grid"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  body:has(#assessment-profile) [style*="display: flex"] {
+    flex-wrap: wrap !important;
+    min-width: 0 !important;
+  }
+
+  body:has(#assessment-profile) [style*="padding: 28px"] {
+    padding: 18px !important;
+  }
+
+  body:has(#assessment-profile) [style*="padding: 24px"] {
+    padding: 16px !important;
+  }
+
+  body:has(#assessment-profile) h1 {
+    font-size: clamp(26px, 8vw, 36px) !important;
+    line-height: 1.15 !important;
+  }
+
+  body:has(#assessment-profile) h2 {
+    font-size: clamp(20px, 6vw, 28px) !important;
+    line-height: 1.2 !important;
+  }
+
+  body:has(#assessment-profile) h3 {
+    font-size: clamp(17px, 5vw, 22px) !important;
+    line-height: 1.25 !important;
+  }
+
+  /* Touch-friendly controls without changing the desktop interaction model. */
+  body:has(#assessment-profile) button,
+  body:has(#assessment-profile) [role="button"],
+  body:has(#assessment-profile) input,
+  body:has(#assessment-profile) select {
+    min-height: 44px;
+  }
+
+  /* Horizontally scroll only genuinely tabular content rather than the page. */
+  body:has(#assessment-profile) table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Navigation/action rows become comfortable stacked controls on phones. */
+  body:has(#assessment-profile) nav,
+  body:has(#assessment-profile) [aria-label*="navigation" i] {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  body:has(#assessment-profile) nav button,
+  body:has(#assessment-profile) nav a {
+    flex: 1 1 160px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  body:has(#assessment-profile) main {
+    padding-left: 18px !important;
+    padding-right: 18px !important;
+  }
+
+  body:has(#assessment-profile) [style*="display: grid"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
