@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type Dispatch, type SetStateAction, type ReactNode } from "react";
+import { useEffect, useState, type Dispatch, type SetStateAction, type ReactNode } from "react";
 import type { AssessmentProfile } from "../types";
 import {
   SECURITY_LIMITS,
@@ -65,6 +65,18 @@ export function createDefaultAssessmentProfile(): AssessmentProfile {
 export default function Step0AssessmentProfile({ profile, setProfile }: Step0AssessmentProfileProps) {
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (typeof window === "undefined" || window.location.hash !== "#organisation-name") return;
+
+    const timer = window.setTimeout(() => {
+      const input = document.getElementById("organisation-name") as HTMLInputElement | null;
+      input?.scrollIntoView({ behavior: "smooth", block: "center" });
+      input?.focus({ preventScroll: true });
+    }, 100);
+
+    return () => window.clearTimeout(timer);
+  }, []);
+
   function updateTextField(
     field: "organisationName" | "assessmentName" | "assessmentOwner",
     value: string,
@@ -85,7 +97,7 @@ export default function Step0AssessmentProfile({ profile, setProfile }: Step0Ass
   }
 
   return (
-    <section style={cardStyle}>
+    <section id="assessment-profile" style={cardStyle}>
       <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#1d4ed8", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, marginBottom: 16 }}>
         0
       </div>
@@ -97,6 +109,7 @@ export default function Step0AssessmentProfile({ profile, setProfile }: Step0Ass
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 16 }}>
         <Field label="Organisation / School Name *">
           <input
+            id="organisation-name"
             value={profile.organisationName}
             maxLength={SECURITY_LIMITS.organisationName}
             onChange={(e) => updateTextField("organisationName", e.target.value, SECURITY_LIMITS.organisationName)}
