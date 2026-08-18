@@ -53,13 +53,6 @@ export function sanitizeText(value: unknown, options: TextValidationOptions = {}
   return collapsed.trim().slice(0, options.maxLength ?? SECURITY_LIMITS.genericText);
 }
 
-/**
- * Sanitizes text entered interactively by an assessment user.
- *
- * maxLength deliberately accepts any number rather than the literal type of
- * one SECURITY_LIMITS property. This allows individual fields to pass their
- * own security limit without TypeScript narrowing the parameter to 5000.
- */
 export function sanitizeInteractiveText(
   value: unknown,
   maxLength: number = SECURITY_LIMITS.genericText
@@ -194,28 +187,42 @@ export function validateImportedValue(value: unknown, path = "package", depth = 
 }
 
 /**
- * Validates the security-sensitive fields of an assessment profile.
+ * Validates an assessment profile at a security boundary.
  *
- * The explicit structural type intentionally accepts both the concrete
- * AssessmentProfile domain type and plain records produced by package import.
- * A generic Record<string, unknown> constraint is not structurally compatible
- * with TypeScript interfaces that do not declare an index signature.
+ * This accepts unknown data because imported assessment packages are
+ * untrusted. Runtime validation establishes the required shape before the
+ * fields are accessed. The concrete AssessmentProfile domain type is also
+ * structurally compatible with this validated profile shape.
  */
-export function validateAssessmentProfileSecurity(profile: {
-  organisationName: string;
-  assessmentName: string;
-  assessmentOwner: string;
-  assessmentId: string;
-  assessmentDate: string;
-  assessmentVersion: string;
-}): typeof profile {
-  validateText(profile.organisationName, { fieldName: "Organisation / School Name", maxLength: SECURITY_LIMITS.organisationName, rejectMarkup: true });
-  validateText(profile.assessmentName, { fieldName: "Assessment Name", maxLength: SECURITY_LIMITS.assessmentName, rejectMarkup: true });
-  validateText(profile.assessmentOwner, { fieldName: "Assessment Owner", maxLength: SECURITY_LIMITS.assessmentOwner, rejectMarkup: true });
+export function validateAssessmentProfileSecurity(value: unknown): void {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("Assessment profile is invalid.");
+  }
+
+  const profile = value as Record<string, unknown>;
+
+  validateText(profile.organisationName, {
+    fieldName: "Organisation / School Name",
+    maxLength: SECURITY_LIMITS.organisationName,
+    rejectMarkup: true,
+  });
+  validateText(profile.assessmentName, {
+    fieldName: "Assessment Name",
+    maxLength: SECURITY_LIMITS.assessmentName,
+    rejectMarkup: true,
+  });
+  validateText(profile.assessmentOwner, {
+    fieldName: "Assessment Owner",
+    maxLength: SECURITY_LIMITS.assessmentOwner,
+    rejectMarkup: true,
+  });
   validateIdentifier(profile.assessmentId, "Assessment ID");
   validateDateString(profile.assessmentDate, "Assessment Date");
-  validateText(profile.assessmentVersion, { fieldName: "Assessment Version", maxLength: SECURITY_LIMITS.assessmentVersion, rejectMarkup: true });
-  return profile;
+  validateText(profile.assessmentVersion, {
+    fieldName: "Assessment Version",
+    maxLength: SECURITY_LIMITS.assessmentVersion,
+    rejectMarkup: true,
+  });
 }
 
 export function validateAssessmentInputStateSecurity(value: unknown): void {
