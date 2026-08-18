@@ -4,7 +4,6 @@ import { useRef, useState } from "react";
 import type { SavedAssessmentIndexItem, AssessmentPackage } from "../lib/assessmentContinuity";
 import {
   ASSESSMENT_STORAGE_KEY,
-  buildAssessmentIndex,
   createEmptyAssessmentStore,
   createNewAssessmentFromPrevious,
   parseAssessmentStore,
@@ -16,6 +15,7 @@ import {
   exportAssessmentPackage,
   readAssessmentPackageFile,
 } from "../lib/assessmentPackageIO";
+import { parseAssessmentJson } from "../lib/assessmentJsonIO";
 import DpdpReadinessTicker from "./DpdpReadinessTicker";
 import ReportProtectionNotice from "./ReportProtectionNotice";
 import PrivacyAssurancePanel from "./PrivacyAssurancePanel";
@@ -31,13 +31,7 @@ interface AssessmentContinuityPanelProps {
 
 function formatSavedTime(value: string): string {
   try {
-    return new Intl.DateTimeFormat("en-IN", {
-      dateStyle: "medium",
-      timeStyle: "short",
-      hour12: false,
-      timeZone: "Asia/Kolkata",
-      timeZoneName: "short",
-    }).format(new Date(value));
+    return new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short", hour12: false, timeZone: "Asia/Kolkata", timeZoneName: "short" }).format(new Date(value));
   } catch {
     return value;
   }
@@ -60,15 +54,9 @@ function makeNewAssessmentId(): string {
   return `PMI-${stamp}-${suffix}`;
 }
 
-export default function AssessmentContinuityPanel({
-  savedAssessments,
-  saving,
-  lastSavedAt,
-  onResume,
-  onDelete,
-  onStartNew,
-}: AssessmentContinuityPanelProps) {
+export default function AssessmentContinuityPanel({ savedAssessments, saving, lastSavedAt, onResume, onDelete, onStartNew }: AssessmentContinuityPanelProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const jsonInputRef = useRef<HTMLInputElement | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -91,23 +79,11 @@ export default function AssessmentContinuityPanel({
     const store = readStore();
     const previous = store.assessments[assessmentId];
     if (!previous) return;
-
     try {
       setBusyId(assessmentId);
-      const nextState = createNewAssessmentFromPrevious(previous.assessment, {
-        assessmentId: makeNewAssessmentId(),
-        assessmentName: `${previous.assessment.assessmentProfile.assessmentName} - New Assessment`,
-      });
-      const nextPackage = buildAssessmentPackage(nextState, {
-        applicationVersion: "Phase-D",
-      });
-      const nextStore = {
-        ...store,
-        assessments: {
-          ...store.assessments,
-          [nextPackage.metadata.assessmentId]: nextPackage,
-        },
-      };
+      const nextState = createNewAssessmentFromPrevious(previous.assessment, { assessmentId: makeNewAssessmentId(), assessmentName: `${previous.assessment.assessmentProfile.assessmentName} - New Assessment` });
+      const nextPackage = buildAssessmentPackage(nextState, { applicationVersion: "Phase-D" });
+      const nextStore = { ...store, assessments: { ...store.assessments, [nextPackage.metadata.assessmentId]: nextPackage } };
       window.localStorage.setItem(ASSESSMENT_STORAGE_KEY, serializeAssessmentStore(nextStore));
       setMessage(`New assessment created from ${assessmentId}.`);
       window.setTimeout(() => window.location.reload(), 250);
@@ -123,13 +99,7 @@ export default function AssessmentContinuityPanel({
       setBusyId("IMPORT");
       const pkg: AssessmentPackage = await readAssessmentPackageFile(file);
       const store = readStore();
-      const nextStore = {
-        ...store,
-        assessments: {
-          ...store.assessments,
-          [pkg.metadata.assessmentId]: pkg,
-        },
-      };
+      const nextStore = { ...store, assessments: { ...store.assessments, [pkg.metadata.assessmentId]: pkg } };
       window.localStorage.setItem(ASSESSMENT_STORAGE_KEY, serializeAssessmentStore(nextStore));
       setMessage(`Imported ${pkg.metadata.assessmentId}. Click Resume to continue it.`);
       window.setTimeout(() => window.location.reload(), 350);
@@ -140,103 +110,59 @@ export default function AssessmentContinuityPanel({
     }
   }
 
-  return (
-    <section
-      style={{
-        background: "#eff6ff",
-        border: "1px solid #bfdbfe",
-        borderRadius: 14,
-        padding: 20,
-        marginBottom: 24,
-      }}
-    >
-      <DpdpReadinessTicker />
+  async function handleImportJson(file: File) {
+    try {
+      setBusyId("JSON_IMPORT");
+      const pkg = parseAssessmentJson(await file.text());
+      const store = readStore();
+      const nextStore = { ...store, assessments: { ...store.assessments, [pkg.metadata.assessmentId]: pkg } };
+      window.localStorage.setItem(ASSESSMENT_STORAGE_KEY, serializeAssessmentStore(nextStore));
+      setMessage(`JSON assessment imported and validated: ${pkg.metadata.assessmentId}. Click Resume to continue it.`);
+      window.setTimeout(() => window.location.reload(), 350);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Unable to import the JSON assessment.");
+    } finally {
+      window.setTimeout(() => setBusyId(null), 500);
+    }
+  }
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          gap: 16,
-          flexWrap: "wrap",
-        }}
-      >
+  return (
+    <section style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 14, padding: 20, marginBottom: 24 }}>
+      <DpdpReadinessTicker />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
         <div>
-          <div style={{ color: "#1e3a8a", fontWeight: 800, fontSize: 17, marginBottom: 5 }}>
-            Assessment Continuity
-          </div>
-          <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.6 }}>
-            Your assessment is saved locally in this browser. No assessment data is uploaded to PrivacyMap.
-          </div>
+          <div style={{ color: "#1e3a8a", fontWeight: 800, fontSize: 17, marginBottom: 5 }}>Assessment Continuity</div>
+          <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.6 }}>Your assessment is saved locally in this browser. No assessment data is uploaded to PrivacyMap.</div>
         </div>
-        <div style={{ color: saving ? "#b45309" : "#166534", fontWeight: 700, fontSize: 13 }}>
-          {saving ? "Saving locally…" : lastSavedAt ? `Saved locally • ${formatSavedTime(lastSavedAt)}` : "Local autosave ready"}
-        </div>
+        <div style={{ color: saving ? "#b45309" : "#166534", fontWeight: 700, fontSize: 13 }}>{saving ? "Saving locally…" : lastSavedAt ? `Saved locally • ${formatSavedTime(lastSavedAt)}` : "Local autosave ready"}</div>
       </div>
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 16 }}>
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={busyId === "IMPORT"}
-          style={{ border: "1px solid #93c5fd", borderRadius: 8, background: "white", color: "#1d4ed8", padding: "9px 14px", fontWeight: 700, cursor: "pointer" }}
-        >
-          {busyId === "IMPORT" ? "Importing…" : "Import Assessment Package"}
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".privacymap,.json,application/json"
-          style={{ display: "none" }}
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            event.target.value = "";
-            if (file) void handleImport(file);
-          }}
-        />
+        <button type="button" onClick={() => fileInputRef.current?.click()} disabled={busyId === "IMPORT"} style={{ border: "1px solid #93c5fd", borderRadius: 8, background: "white", color: "#1d4ed8", padding: "9px 14px", fontWeight: 700, cursor: "pointer" }}>{busyId === "IMPORT" ? "Importing…" : "Import Assessment Package"}</button>
+        <button type="button" onClick={() => jsonInputRef.current?.click()} disabled={busyId === "JSON_IMPORT"} style={{ border: "1px solid #93c5fd", borderRadius: 8, background: "white", color: "#1d4ed8", padding: "9px 14px", fontWeight: 700, cursor: "pointer" }}>{busyId === "JSON_IMPORT" ? "Checking JSON…" : "Import JSON Assessment"}</button>
+        <input ref={fileInputRef} type="file" accept=".privacymap,application/zip" style={{ display: "none" }} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; if (file) void handleImport(file); }} />
+        <input ref={jsonInputRef} type="file" accept=".json,application/json" style={{ display: "none" }} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; if (file) void handleImportJson(file); }} />
       </div>
+      <div style={{ marginTop: 8, color: "#64748b", fontSize: 11, lineHeight: 1.5 }}>Import from this device. JSON files are treated as untrusted input and checked before they are accepted.</div>
 
-      {message && (
-        <div style={{ marginTop: 10, padding: "9px 11px", borderRadius: 8, background: "white", border: "1px solid #dbeafe", color: "#334155", fontSize: 12, lineHeight: 1.5 }}>
-          {message}
-        </div>
-      )}
+      {message && <div style={{ marginTop: 10, padding: "9px 11px", borderRadius: 8, background: "white", border: "1px solid #dbeafe", color: "#334155", fontSize: 12, lineHeight: 1.5 }}>{message}</div>}
 
       {savedAssessments.length > 0 && (
         <div style={{ marginTop: 18 }}>
-          <div style={{ fontWeight: 800, color: "#0f172a", marginBottom: 10, fontSize: 14 }}>
-            Saved assessments in this browser
-          </div>
+          <div style={{ fontWeight: 800, color: "#0f172a", marginBottom: 10, fontSize: 14 }}>Saved assessments in this browser</div>
           <div style={{ display: "grid", gap: 10 }}>
             {savedAssessments.map((item) => (
-              <div
-                key={item.assessmentId}
-                style={{ background: "white", border: "1px solid #dbeafe", borderRadius: 10, padding: "13px 14px" }}
-              >
+              <div key={item.assessmentId} style={{ background: "white", border: "1px solid #dbeafe", borderRadius: 10, padding: "13px 14px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
                   <div style={{ minWidth: 240 }}>
-                    <div style={{ fontWeight: 800, color: "#0f172a", marginBottom: 3 }}>
-                      {item.organisationName || "Unnamed organisation"}
-                    </div>
-                    <div style={{ color: "#475569", fontSize: 12, lineHeight: 1.5 }}>
-                      {item.assessmentName || "DPDP Privacy Assessment"} • {item.assessmentId}
-                      <br />
-                      Progress: Step {item.lastCompletedStep} completed • Saved: {formatSavedTime(item.lastSavedAt)}
-                    </div>
+                    <div style={{ fontWeight: 800, color: "#0f172a", marginBottom: 3 }}>{item.organisationName || "Unnamed organisation"}</div>
+                    <div style={{ color: "#475569", fontSize: 12, lineHeight: 1.5 }}>{item.assessmentName || "DPDP Privacy Assessment"} • {item.assessmentId}<br />Progress: Step {item.lastCompletedStep} completed • Saved: {formatSavedTime(item.lastSavedAt)}</div>
                   </div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <button type="button" onClick={() => onResume(item.assessmentId)} style={{ border: "none", borderRadius: 8, background: "#1d4ed8", color: "white", padding: "9px 14px", fontWeight: 700, cursor: "pointer" }}>
-                      Resume
-                    </button>
-                    <button type="button" onClick={() => handleExport(item.assessmentId)} disabled={busyId === item.assessmentId} style={{ border: "1px solid #93c5fd", borderRadius: 8, background: "white", color: "#1d4ed8", padding: "9px 12px", fontWeight: 700, cursor: "pointer" }}>
-                      {busyId === item.assessmentId ? "Exporting…" : "Export Package"}
-                    </button>
-                    <button type="button" onClick={() => handleCreateNewFromPrevious(item.assessmentId)} disabled={busyId === item.assessmentId} style={{ border: "1px solid #cbd5e1", borderRadius: 8, background: "white", color: "#334155", padding: "9px 12px", fontWeight: 700, cursor: "pointer" }}>
-                      New from Previous
-                    </button>
-                    <button type="button" onClick={() => onDelete(item.assessmentId)} style={{ border: "1px solid #fecaca", borderRadius: 8, background: "#fff", color: "#b91c1c", padding: "9px 12px", fontWeight: 700, cursor: "pointer" }}>
-                      Delete
-                    </button>
+                    <button type="button" onClick={() => onResume(item.assessmentId)} style={{ border: "none", borderRadius: 8, background: "#1d4ed8", color: "white", padding: "9px 14px", fontWeight: 700, cursor: "pointer" }}>Resume</button>
+                    <button type="button" onClick={() => handleExport(item.assessmentId)} disabled={busyId === item.assessmentId} style={{ border: "1px solid #93c5fd", borderRadius: 8, background: "white", color: "#1d4ed8", padding: "9px 12px", fontWeight: 700, cursor: "pointer" }}>{busyId === item.assessmentId ? "Exporting…" : "Export Package"}</button>
+                    <button type="button" onClick={() => handleCreateNewFromPrevious(item.assessmentId)} disabled={busyId === item.assessmentId} style={{ border: "1px solid #cbd5e1", borderRadius: 8, background: "white", color: "#334155", padding: "9px 12px", fontWeight: 700, cursor: "pointer" }}>New from Previous</button>
+                    <button type="button" onClick={() => onDelete(item.assessmentId)} style={{ border: "1px solid #fecaca", borderRadius: 8, background: "#fff", color: "#b91c1c", padding: "9px 12px", fontWeight: 700, cursor: "pointer" }}>Delete</button>
                   </div>
                 </div>
               </div>
@@ -245,12 +171,7 @@ export default function AssessmentContinuityPanel({
         </div>
       )}
 
-      <div style={{ marginTop: 16 }}>
-        <button type="button" onClick={onStartNew} style={{ border: "1px solid #93c5fd", borderRadius: 8, background: "white", color: "#1d4ed8", padding: "9px 14px", fontWeight: 700, cursor: "pointer" }}>
-          Start New Assessment
-        </button>
-      </div>
-
+      <div style={{ marginTop: 16 }}><button type="button" onClick={onStartNew} style={{ border: "1px solid #93c5fd", borderRadius: 8, background: "white", color: "#1d4ed8", padding: "9px 14px", fontWeight: 700, cursor: "pointer" }}>Start New Assessment</button></div>
       <PrivacyAssurancePanel />
       <ReportProtectionNotice />
     </section>
