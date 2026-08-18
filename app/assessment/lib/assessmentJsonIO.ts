@@ -5,6 +5,7 @@ import {
   type AssessmentPackage,
   type AssessmentContinuityState,
   validateAssessmentContinuityState,
+  validateAssessmentPackage,
   validateImportedValue,
   validateIdentifier,
   validateIsoTimestamp,
@@ -29,7 +30,6 @@ export function parseAssessmentJson(raw: string): AssessmentPackage {
     throw new Error("The selected JSON file must contain an assessment object.");
   }
 
-  // A standard PrivacyMap package is already covered by the package validator.
   if ("metadata" in value && "assessment" in value) {
     const packageValue = value as Record<string, unknown>;
     const metadata = packageValue.metadata;
@@ -39,9 +39,7 @@ export function parseAssessmentJson(raw: string): AssessmentPackage {
 
     const meta = metadata as Record<string, unknown>;
     if (meta.format === ASSESSMENT_PACKAGE_FORMAT) {
-      // Import lazily to avoid duplicating the package validation rules here.
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      return require("./assessmentContinuity").validateAssessmentPackage(value);
+      return validateAssessmentPackage(value);
     }
   }
 
@@ -69,8 +67,5 @@ export function parseAssessmentJson(raw: string): AssessmentPackage {
     rejectMarkup: true,
   });
 
-  return {
-    metadata,
-    assessment,
-  };
+  return { metadata, assessment };
 }
