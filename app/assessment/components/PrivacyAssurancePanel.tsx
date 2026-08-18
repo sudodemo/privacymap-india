@@ -52,7 +52,7 @@ export default function PrivacyAssurancePanel() {
   }
 
   const attentionChecks = useMemo(
-    () => result?.checks.filter((check) => check.status !== "PASS") ?? [],
+    () => result?.checks.filter((check): check is typeof check & { status: "WARN" | "FAIL" } => check.status !== "PASS") ?? [],
     [result]
   );
   const passedCount = result?.checks.filter((check) => check.status === "PASS").length ?? 0;
