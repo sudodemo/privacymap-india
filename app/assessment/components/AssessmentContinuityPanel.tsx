@@ -18,6 +18,7 @@ import {
 } from "../lib/assessmentPackageIO";
 import DpdpReadinessTicker from "./DpdpReadinessTicker";
 import ReportProtectionNotice from "./ReportProtectionNotice";
+import PrivacyAssurancePanel from "./PrivacyAssurancePanel";
 
 interface AssessmentContinuityPanelProps {
   savedAssessments: SavedAssessmentIndexItem[];
@@ -250,6 +251,7 @@ export default function AssessmentContinuityPanel({
         </button>
       </div>
 
+      <PrivacyAssurancePanel />
       <ReportProtectionNotice />
     </section>
   );
