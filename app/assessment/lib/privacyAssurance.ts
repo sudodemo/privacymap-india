@@ -15,7 +15,7 @@ export interface PrivacyAssuranceResult {
   checks: PrivacyAssuranceCheck[];
 }
 
-const ASSESSMENT_STORAGE_KEY_FALLBACK = "privacymap-india-assessment-store";
+const ASSESSMENT_STORAGE_KEY = "privacymap.assessments.v1";
 
 function bytesFor(value: string): number {
   try {
@@ -26,14 +26,14 @@ function bytesFor(value: string): number {
 }
 
 export function getAssessmentStorageKey(): string {
-  return ASSESSMENT_STORAGE_KEY_FALLBACK;
+  return ASSESSMENT_STORAGE_KEY;
 }
 
 export function getLocalAssessmentStorageUsage(): number {
   if (typeof window === "undefined") return 0;
 
   try {
-    return bytesFor(window.localStorage.getItem(getAssessmentStorageKey()) ?? "");
+    return bytesFor(window.localStorage.getItem(ASSESSMENT_STORAGE_KEY) ?? "");
   } catch {
     return 0;
   }
@@ -43,7 +43,7 @@ export function clearLocalAssessmentData(): void {
   if (typeof window === "undefined") return;
 
   try {
-    window.localStorage.removeItem(getAssessmentStorageKey());
+    window.localStorage.removeItem(ASSESSMENT_STORAGE_KEY);
   } catch (error) {
     throw new Error(
       error instanceof Error
@@ -149,7 +149,9 @@ function checkThirdPartyResources(): PrivacyAssuranceCheck {
   }
 
   const currentOrigin = window.location.origin;
-  const resources = Array.from(document.querySelectorAll("script[src], iframe[src], img[src], link[href]"));
+  const resources = Array.from(
+    document.querySelectorAll("script[src], iframe[src], img[src], link[href]")
+  );
   const externalOrigins = new Set<string>();
 
   for (const element of resources) {
