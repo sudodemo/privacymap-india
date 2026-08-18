@@ -117,11 +117,6 @@ export function validateDateString(value: unknown, fieldName = "Date"): string {
   return text;
 }
 
-/**
- * Validates an ISO-8601 timestamp used by local assessment continuity
- * metadata. Timestamps must carry either UTC (Z) or a numeric timezone
- * offset so that local continuation records are unambiguous.
- */
 export function validateIsoTimestamp(value: unknown, fieldName = "Timestamp"): string {
   const text = validateText(value, {
     fieldName,
@@ -198,7 +193,22 @@ export function validateImportedValue(value: unknown, path = "package", depth = 
   }
 }
 
-export function validateAssessmentProfileSecurity<T extends Record<string, unknown>>(profile: T): T {
+/**
+ * Validates the security-sensitive fields of an assessment profile.
+ *
+ * The explicit structural type intentionally accepts both the concrete
+ * AssessmentProfile domain type and plain records produced by package import.
+ * A generic Record<string, unknown> constraint is not structurally compatible
+ * with TypeScript interfaces that do not declare an index signature.
+ */
+export function validateAssessmentProfileSecurity(profile: {
+  organisationName: string;
+  assessmentName: string;
+  assessmentOwner: string;
+  assessmentId: string;
+  assessmentDate: string;
+  assessmentVersion: string;
+}): typeof profile {
   validateText(profile.organisationName, { fieldName: "Organisation / School Name", maxLength: SECURITY_LIMITS.organisationName, rejectMarkup: true });
   validateText(profile.assessmentName, { fieldName: "Assessment Name", maxLength: SECURITY_LIMITS.assessmentName, rejectMarkup: true });
   validateText(profile.assessmentOwner, { fieldName: "Assessment Owner", maxLength: SECURITY_LIMITS.assessmentOwner, rejectMarkup: true });
