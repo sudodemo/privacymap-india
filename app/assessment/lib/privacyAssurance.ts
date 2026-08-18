@@ -1,7 +1,7 @@
 export const PRIVACY_ASSURANCE_VERSION = "E5.1";
 
 export const PRIVACY_ASSURANCE_STATEMENT =
-  "PrivacyMap processes assessment responses locally in the browser. Assessment data is not intentionally uploaded to PrivacyMap servers.";
+  "PrivacyMap processes your assessment in your browser. Your assessment information is not intentionally uploaded to PrivacyMap servers.";
 
 export interface PrivacyAssuranceCheck {
   id: string;
@@ -16,6 +16,7 @@ export interface PrivacyAssuranceResult {
 }
 
 const ASSESSMENT_STORAGE_KEY = "privacymap.assessments.v1";
+const EXPECTED_EXTERNAL_ORIGINS = new Set(["https://vercel.live"]);
 
 function bytesFor(value: string): number {
   try {
@@ -57,9 +58,9 @@ function checkLocalStorage(): PrivacyAssuranceCheck {
   if (typeof window === "undefined") {
     return {
       id: "local-storage",
-      label: "Assessment storage",
+      label: "Saving your assessment",
       status: "WARN",
-      detail: "Browser storage is only available after the page loads in the browser.",
+      detail: "Your browser's storage can only be checked after the page has loaded.",
     };
   }
 
@@ -72,18 +73,18 @@ function checkLocalStorage(): PrivacyAssuranceCheck {
 
     return {
       id: "local-storage",
-      label: "Assessment storage",
+      label: "Saving your assessment",
       status: readable ? "PASS" : "FAIL",
       detail: readable
-        ? "Browser-local storage is available for the local assessment lifecycle."
-        : "Browser-local storage could not be verified.",
+        ? "Your browser can save your assessment on this device."
+        : "Your browser is currently preventing PrivacyMap from saving your assessment on this device.",
     };
   } catch {
     return {
       id: "local-storage",
-      label: "Assessment storage",
+      label: "Saving your assessment",
       status: "FAIL",
-      detail: "Browser-local storage is unavailable or blocked.",
+      detail: "Your browser is currently preventing PrivacyMap from saving your assessment on this device.",
     };
   }
 }
@@ -92,9 +93,9 @@ function checkSecureContext(): PrivacyAssuranceCheck {
   if (typeof window === "undefined") {
     return {
       id: "secure-context",
-      label: "Secure browser context",
+      label: "Secure connection",
       status: "WARN",
-      detail: "Secure-context status is checked in the browser.",
+      detail: "Your connection can only be checked after the page has loaded.",
     };
   }
 
@@ -107,11 +108,11 @@ function checkSecureContext(): PrivacyAssuranceCheck {
 
   return {
     id: "secure-context",
-    label: "Secure browser context",
+    label: "Secure connection",
     status: secure ? "PASS" : "FAIL",
     detail: secure
-      ? "The assessment is running in a secure browser context."
-      : "The assessment is not running in a secure browser context.",
+      ? "You are using a secure connection to PrivacyMap."
+      : "PrivacyMap cannot confirm that this connection is secure. Please open PrivacyMap using HTTPS.",
   };
 }
 
@@ -119,22 +120,23 @@ function checkUrlDataExposure(): PrivacyAssuranceCheck {
   if (typeof window === "undefined") {
     return {
       id: "url-data",
-      label: "URL data exposure",
+      label: "Assessment privacy",
       status: "WARN",
-      detail: "URL inspection is only available in the browser.",
+      detail: "Your web address can only be checked after the page has loaded.",
     };
   }
 
   const query = window.location.search;
   const suspiciousKeys = /(?:assessment|report|evidence|finding|personal.?data|email|phone|name|token|secret|password)=/i;
+  const exposed = suspiciousKeys.test(query);
 
   return {
     id: "url-data",
-    label: "URL data exposure",
-    status: suspiciousKeys.test(query) ? "WARN" : "PASS",
-    detail: suspiciousKeys.test(query)
-      ? "The current URL contains a parameter that may represent assessment or sensitive data. Do not place assessment responses in URLs."
-      : "No obvious assessment-data parameter was detected in the current URL.",
+    label: "Assessment privacy",
+    status: exposed ? "WARN" : "PASS",
+    detail: exposed
+      ? "Some information in the web address may represent assessment or sensitive data. Please return to the assessment page and do not place assessment responses in the web address."
+      : "Your assessment information is not included in the web address.",
   };
 }
 
@@ -142,9 +144,9 @@ function checkThirdPartyResources(): PrivacyAssuranceCheck {
   if (typeof window === "undefined") {
     return {
       id: "third-party-resources",
-      label: "Third-party resources",
+      label: "Browser connection check",
       status: "WARN",
-      detail: "Resource inspection is only available in the browser.",
+      detail: "Additional browser services can only be checked after the page has loaded.",
     };
   }
 
@@ -166,14 +168,18 @@ function checkThirdPartyResources(): PrivacyAssuranceCheck {
     }
   }
 
+  const unexpectedOrigins = Array.from(externalOrigins).filter(
+    (origin) => !EXPECTED_EXTERNAL_ORIGINS.has(origin)
+  );
+
   return {
     id: "third-party-resources",
-    label: "Third-party resources",
-    status: externalOrigins.size === 0 ? "PASS" : "WARN",
+    label: "Browser connection check",
+    status: unexpectedOrigins.length === 0 ? "PASS" : "WARN",
     detail:
-      externalOrigins.size === 0
-        ? "No external script, iframe, image or stylesheet origins were detected by the browser self-check."
-        : `External browser resources detected: ${Array.from(externalOrigins).join(", ")}. This does not by itself mean assessment data is transmitted.`,
+      unexpectedOrigins.length === 0
+        ? "Your browser is using the expected services for this page."
+        : "PrivacyMap detected an additional website service being used by this page. This does not mean your assessment information has been shared.",
   };
 }
 
