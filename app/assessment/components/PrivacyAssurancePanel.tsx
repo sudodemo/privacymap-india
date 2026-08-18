@@ -6,7 +6,6 @@ import {
   formatStorageUsage,
   getLocalAssessmentStorageUsage,
   PRIVACY_ASSURANCE_STATEMENT,
-  PRIVACY_ASSURANCE_VERSION,
   runPrivacyAssuranceCheck,
   type PrivacyAssuranceResult,
 } from "../lib/privacyAssurance";
@@ -69,17 +68,12 @@ export default function PrivacyAssurancePanel() {
         borderRadius: 12,
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
-        <div>
-          <div style={{ color: "#0f172a", fontWeight: 800, fontSize: 14 }}>
-            Privacy Assurance
-          </div>
-          <div style={{ color: "#475569", fontSize: 12, lineHeight: 1.55, marginTop: 4 }}>
-            {PRIVACY_ASSURANCE_STATEMENT}
-          </div>
+      <div>
+        <div style={{ color: "#0f172a", fontWeight: 800, fontSize: 14 }}>
+          Privacy Assurance
         </div>
-        <div style={{ color: "#64748b", fontSize: 11, fontWeight: 700 }}>
-          {PRIVACY_ASSURANCE_VERSION}
+        <div style={{ color: "#475569", fontSize: 12, lineHeight: 1.55, marginTop: 4 }}>
+          {PRIVACY_ASSURANCE_STATEMENT}
         </div>
       </div>
 
