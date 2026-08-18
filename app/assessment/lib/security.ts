@@ -36,11 +36,6 @@ export function normalizePlainText(value: unknown): string {
     .replace(/\r\n?/g, "\n");
 }
 
-/**
- * Sanitises ordinary assessment text at the browser input boundary.
- * This is deliberately NOT an HTML sanitizer. PrivacyMap fields are plain
- * text, so HTML-like tags are removed rather than interpreted as markup.
- */
 export function sanitizeText(value: unknown, options: TextValidationOptions = {}): string {
   let normalized = normalizePlainText(value);
 
@@ -58,12 +53,7 @@ export function sanitizeText(value: unknown, options: TextValidationOptions = {}
   return collapsed.trim().slice(0, options.maxLength ?? SECURITY_LIMITS.genericText);
 }
 
-/**
- * Browser-boundary normalisation for input/textarea values. It preserves
- * legitimate punctuation such as apostrophes, ampersands and parentheses,
- * while removing control characters and HTML-like tags from plain-text fields.
- */
-export function sanitizeInteractiveText(value: unknown, maxLength = SECURITY_LIMITS.genericText): string {
+export function sanitizeInteractiveText(value: unknown, maxLength: number = SECURITY_LIMITS.genericText): string {
   return sanitizeText(value, {
     maxLength,
     allowNewlines: true,
@@ -110,6 +100,35 @@ export function validateDateString(value: unknown, fieldName = "Date"): string {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) {
     throw new Error(`${fieldName} must use YYYY-MM-DD format.`);
   }
+  return text;
+}
+
+/**
+ * Validates an ISO-8601 timestamp used by local assessment continuity
+ * metadata. Timestamps are accepted only when they are parseable dates and
+ * explicitly carry either UTC (Z) or a numeric timezone offset.
+ */
+export function validateIsoTimestamp(value: unknown, fieldName = "Timestamp"): string {
+  const text = validateText(value, {
+    fieldName,
+    maxLength: 40,
+    rejectMarkup: true,
+  }).trim();
+
+  if (!text) {
+    throw new Error(`${fieldName} is required.`);
+  }
+
+  const isoPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/;
+  if (!isoPattern.test(text)) {
+    throw new Error(`${fieldName} must be a valid ISO-8601 timestamp with a timezone.`);
+  }
+
+  const parsed = Date.parse(text);
+  if (!Number.isFinite(parsed)) {
+    throw new Error(`${fieldName} is not a valid timestamp.`);
+  }
+
   return text;
 }
 
@@ -166,32 +185,15 @@ export function validateImportedValue(value: unknown, path = "package", depth = 
 }
 
 export function validateAssessmentProfileSecurity<T extends Record<string, unknown>>(profile: T): T {
-  validateText(profile.organisationName, {
-    fieldName: "Organisation / School Name",
-    maxLength: SECURITY_LIMITS.organisationName,
-    rejectMarkup: true,
-  });
-  validateText(profile.assessmentName, {
-    fieldName: "Assessment Name",
-    maxLength: SECURITY_LIMITS.assessmentName,
-    rejectMarkup: true,
-  });
-  validateText(profile.assessmentOwner, {
-    fieldName: "Assessment Owner",
-    maxLength: SECURITY_LIMITS.assessmentOwner,
-    rejectMarkup: true,
-  });
+  validateText(profile.organisationName, { fieldName: "Organisation / School Name", maxLength: SECURITY_LIMITS.organisationName, rejectMarkup: true });
+  validateText(profile.assessmentName, { fieldName: "Assessment Name", maxLength: SECURITY_LIMITS.assessmentName, rejectMarkup: true });
+  validateText(profile.assessmentOwner, { fieldName: "Assessment Owner", maxLength: SECURITY_LIMITS.assessmentOwner, rejectMarkup: true });
   validateIdentifier(profile.assessmentId, "Assessment ID");
   validateDateString(profile.assessmentDate, "Assessment Date");
-  validateText(profile.assessmentVersion, {
-    fieldName: "Assessment Version",
-    maxLength: SECURITY_LIMITS.assessmentVersion,
-    rejectMarkup: true,
-  });
+  validateText(profile.assessmentVersion, { fieldName: "Assessment Version", maxLength: SECURITY_LIMITS.assessmentVersion, rejectMarkup: true });
   return profile;
 }
 
-/** Validate the complete Step 1–6 input boundary before risk processing/autosave. */
 export function validateAssessmentInputStateSecurity(value: unknown): void {
   validateImportedValue(value, "assessment.inputs");
 
@@ -202,9 +204,7 @@ export function validateAssessmentInputStateSecurity(value: unknown): void {
   const input = value as Record<string, unknown>;
   const stringKeys = ["industryId", "businessTypeId", "processId"];
   for (const key of stringKeys) {
-    if (typeof input[key] !== "string") {
-      throw new Error(`Assessment input ${key} must be text.`);
-    }
+    if (typeof input[key] !== "string") throw new Error(`Assessment input ${key} must be text.`);
   }
 
   const arrayKeys = [
@@ -217,11 +217,7 @@ export function validateAssessmentInputStateSecurity(value: unknown): void {
   for (const key of arrayKeys) {
     const values = input[key];
     if (!Array.isArray(values)) throw new Error(`Assessment input ${key} must be an array.`);
-    values.forEach((item, index) => validateText(item, {
-      fieldName: `${key}[${index}]`,
-      maxLength: SECURITY_LIMITS.arrayItem,
-      rejectMarkup: true,
-    }));
+    values.forEach((item, index) => validateText(item, { fieldName: `${key}[${index}]`, maxLength: SECURITY_LIMITS.arrayItem, rejectMarkup: true }));
   }
 
   for (const key of ["customEntryPoints", "customFields"]) {
