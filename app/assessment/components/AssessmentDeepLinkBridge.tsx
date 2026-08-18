@@ -15,6 +15,10 @@ function anchorId(step: number, title: string): string {
   return `pm-step${step}-${slugify(title) || "item"}`;
 }
 
+function normalizeTitle(value: string): string {
+  return String(value || "").replace(/\s+/g, " ").trim().toLowerCase();
+}
+
 function ensureAssessmentStepAnchors() {
   const report = document.getElementById("assessment-report");
   const sections = Array.from(document.querySelectorAll<HTMLElement>("section"));
@@ -33,21 +37,6 @@ function ensureAssessmentStepAnchors() {
       target.style.scrollMarginTop = "28px";
     }
   }
-
-  const headings = Array.from(document.querySelectorAll<HTMLElement>("h3, h4"));
-  for (const heading of headings) {
-    if (report?.contains(heading)) continue;
-
-    const title = heading.textContent?.trim();
-    if (!title) continue;
-
-    const sectionText = heading.closest("section")?.textContent || "";
-    const stepMatch = sectionText.match(/\bSTEP\s+(7|8|9|10|11|12|13)\b/i);
-    if (!stepMatch) continue;
-
-    heading.id = heading.id || anchorId(Number(stepMatch[1]), title);
-    heading.style.scrollMarginTop = "28px";
-  }
 }
 
 const REPORT_SECTION_STEPS: Array<{ marker: RegExp; step: number }> = [
@@ -61,31 +50,57 @@ const REPORT_SECTION_STEPS: Array<{ marker: RegExp; step: number }> = [
 ];
 
 function reportStepForSection(section: HTMLElement): number | null {
-  const kicker = section.querySelector<HTMLElement>("div")?.textContent?.trim() || "";
-  const match = REPORT_SECTION_STEPS.find(({ marker }) => marker.test(kicker));
+  const text = section.textContent || "";
+  const match = REPORT_SECTION_STEPS.find(({ marker }) => marker.test(text));
   return match?.step ?? null;
+}
+
+function findExactAssessmentFinding(step: number, title: string): HTMLElement | null {
+  const report = document.getElementById("assessment-report");
+  const stepContainer = document.getElementById(`pm-step${step}`);
+  if (!stepContainer || !title) return null;
+
+  const wanted = normalizeTitle(title);
+  const candidates = Array.from(
+    stepContainer.querySelectorAll<HTMLElement>("h2, h3, h4, h5, button, label, strong, p, div, span")
+  );
+
+  const exact = candidates.find((candidate) => {
+    if (report?.contains(candidate)) return false;
+    return normalizeTitle(candidate.textContent || "") === wanted;
+  });
+
+  return exact ?? null;
+}
+
+function ensureFindingTarget(step: number, title: string): string | null {
+  const targetId = anchorId(step, title);
+  const existing = document.getElementById(targetId);
+  if (existing) return targetId;
+
+  const target = findExactAssessmentFinding(step, title);
+  if (!target) return null;
+
+  target.id = targetId;
+  target.style.scrollMarginTop = "28px";
+  return targetId;
 }
 
 function makeReportTitleClickable(heading: HTMLElement, step: number) {
   const title = heading.textContent?.trim();
   if (!title) return;
 
-  const targetId = anchorId(step, title);
-  const existingTarget = document.getElementById(targetId);
-  const href = existingTarget ? `#${targetId}` : `#pm-step${step}`;
-
-  const existingLink = heading.querySelector<HTMLAnchorElement>("a");
-  if (existingLink) {
-    existingLink.href = href;
-    existingLink.style.color = "#1d4ed8";
-    existingLink.style.textDecoration = "none";
-    existingLink.style.fontWeight = "800";
-    existingLink.style.cursor = "pointer";
-    existingLink.setAttribute("aria-label", `Open ${title} in the assessment`);
+  const targetId = ensureFindingTarget(step, title);
+  if (!targetId) {
+    // Keep the title visible even when the corresponding finding has not
+    // rendered yet. The MutationObserver will retry after rendering changes.
     return;
   }
 
-  const clickable = document.createElement("a");
+  const href = `#${targetId}`;
+  const existingLink = heading.querySelector<HTMLAnchorElement>("a");
+  const clickable = existingLink ?? document.createElement("a");
+
   clickable.href = href;
   clickable.textContent = title;
   clickable.style.color = "#1d4ed8";
@@ -93,36 +108,30 @@ function makeReportTitleClickable(heading: HTMLElement, step: number) {
   clickable.style.fontWeight = "800";
   clickable.style.cursor = "pointer";
   clickable.setAttribute("aria-label", `Open ${title} in the assessment`);
-  heading.replaceChildren(clickable);
+
+  if (!existingLink) heading.replaceChildren(clickable);
 }
 
 function enhanceReportLinks() {
   const report = document.getElementById("assessment-report");
   if (!report) return;
 
-  // Finding titles are the navigation controls. This keeps the report clean
-  // while retaining a direct path back to the corresponding assessment step.
   const reportSections = Array.from(report.querySelectorAll<HTMLElement>("section"));
   for (const section of reportSections) {
     const step = reportStepForSection(section);
     if (!step) continue;
 
-    const headings = Array.from(section.querySelectorAll<HTMLElement>("h4"));
+    const headings = Array.from(section.querySelectorAll<HTMLElement>("h3, h4, h5"));
     for (const heading of headings) {
       makeReportTitleClickable(heading, step);
     }
   }
 
-  // Remove any legacy standalone "Open in Step" controls left by older
-  // report markup. The title itself now provides the navigation affordance.
   const legacyLinks = Array.from(
     report.querySelectorAll<HTMLAnchorElement>('a[href^="#pm-step"]')
   );
-
   for (const link of legacyLinks) {
-    if (/Open in Step/i.test(link.textContent || "")) {
-      link.remove();
-    }
+    if (/Open in Step/i.test(link.textContent || "")) link.remove();
   }
 }
 
