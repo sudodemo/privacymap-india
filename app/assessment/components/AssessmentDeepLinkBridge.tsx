@@ -11,8 +11,8 @@ function slugify(value: string): string {
     .slice(0, 100);
 }
 
-function anchorId(step: number, title: string): string {
-  return `pm-step${step}-${slugify(title) || "item"}`;
+function treatmentAnchorId(title: string): string {
+  return `pm-treatment-${slugify(title) || "item"}`;
 }
 
 function normalizeTitle(value: string): string {
@@ -39,75 +39,63 @@ function ensureAssessmentStepAnchors() {
   }
 }
 
-const REPORT_SECTION_STEPS: Array<{ marker: RegExp; step: number }> = [
-  { marker: /\bRISK\s+ASSESSMENT\b/i, step: 7 },
-  { marker: /\bRISK\s+TREATMENT\b/i, step: 8 },
-  { marker: /\bRESIDUAL\s+RISK\b/i, step: 9 },
-  { marker: /\bDPDP\s+MAPPING\b/i, step: 10 },
-  { marker: /\bRISK\s+GOVERNANCE\b/i, step: 11 },
-  { marker: /\bREMEDIATION\b/i, step: 12 },
-  { marker: /\bEVIDENCE\s+&\s+CLOSURE\b/i, step: 13 },
-];
-
-function reportStepForSection(section: HTMLElement): number | null {
-  const text = section.textContent || "";
-  const match = REPORT_SECTION_STEPS.find(({ marker }) => marker.test(text));
-  return match?.step ?? null;
-}
-
-function findExactAssessmentFinding(step: number, title: string): HTMLElement | null {
+function ensureRecommendedTreatmentTargets(): Map<string, string> {
+  const targets = new Map<string, string>();
   const report = document.getElementById("assessment-report");
-  const stepContainer = document.getElementById(`pm-step${step}`);
-  if (!stepContainer || !title) return null;
+  const sections = Array.from(document.querySelectorAll<HTMLElement>("section"));
 
-  const wanted = normalizeTitle(title);
-  const candidates = Array.from(
-    stepContainer.querySelectorAll<HTMLElement>("h2, h3, h4, h5, button, label, strong, p, div, span")
-  );
-
-  const exact = candidates.find((candidate) => {
-    if (report?.contains(candidate)) return false;
-    return normalizeTitle(candidate.textContent || "") === wanted;
+  const treatmentSection = sections.find((section) => {
+    if (report?.contains(section)) return false;
+    return /\bRECOMMENDED\s+RISK\s+TREATMENTS\b/i.test(section.textContent || "");
   });
 
-  return exact ?? null;
+  if (!treatmentSection) return targets;
+
+  const headings = Array.from(treatmentSection.querySelectorAll<HTMLElement>("h3"));
+  for (const heading of headings) {
+    const title = heading.textContent?.trim();
+    if (!title || /^Recommended Risk Treatments$/i.test(title)) continue;
+
+    const targetId = treatmentAnchorId(title);
+    const existing = document.getElementById(targetId);
+    const target = existing ?? heading;
+    target.id = targetId;
+    target.style.scrollMarginTop = "28px";
+    targets.set(normalizeTitle(title), targetId);
+  }
+
+  return targets;
 }
 
-function ensureFindingTarget(step: number, title: string): string | null {
-  const targetId = anchorId(step, title);
-  const existing = document.getElementById(targetId);
-  if (existing) return targetId;
+const REPORT_SECTION_MARKERS = [
+  /\bRISK\s+ASSESSMENT\b/i,
+  /\bRISK\s+TREATMENT\b/i,
+  /\bRESIDUAL\s+RISK\b/i,
+  /\bDPDP\s+MAPPING\b/i,
+  /\bRISK\s+GOVERNANCE\b/i,
+  /\bREMEDIATION\b/i,
+  /\bEVIDENCE\s+&\s+CLOSURE\b/i,
+];
 
-  const target = findExactAssessmentFinding(step, title);
-  if (!target) return null;
-
-  target.id = targetId;
-  target.style.scrollMarginTop = "28px";
-  return targetId;
+function isReportSection(section: HTMLElement): boolean {
+  const text = section.textContent || "";
+  return REPORT_SECTION_MARKERS.some((marker) => marker.test(text));
 }
 
-function makeReportTitleClickable(heading: HTMLElement, step: number) {
+function makeReportTitleClickable(heading: HTMLElement, targetId: string) {
   const title = heading.textContent?.trim();
   if (!title) return;
 
-  const targetId = ensureFindingTarget(step, title);
-  if (!targetId) {
-    // Keep the title visible even when the corresponding finding has not
-    // rendered yet. The MutationObserver will retry after rendering changes.
-    return;
-  }
-
-  const href = `#${targetId}`;
   const existingLink = heading.querySelector<HTMLAnchorElement>("a");
   const clickable = existingLink ?? document.createElement("a");
 
-  clickable.href = href;
+  clickable.href = `#${targetId}`;
   clickable.textContent = title;
   clickable.style.color = "#1d4ed8";
   clickable.style.textDecoration = "none";
   clickable.style.fontWeight = "800";
   clickable.style.cursor = "pointer";
-  clickable.setAttribute("aria-label", `Open ${title} in the assessment`);
+  clickable.setAttribute("aria-label", `Go to ${title} in Recommended Risk Treatments`);
 
   if (!existingLink) heading.replaceChildren(clickable);
 }
@@ -116,20 +104,22 @@ function enhanceReportLinks() {
   const report = document.getElementById("assessment-report");
   if (!report) return;
 
+  const treatmentTargets = ensureRecommendedTreatmentTargets();
+  if (treatmentTargets.size === 0) return;
+
   const reportSections = Array.from(report.querySelectorAll<HTMLElement>("section"));
   for (const section of reportSections) {
-    const step = reportStepForSection(section);
-    if (!step) continue;
+    if (!isReportSection(section)) continue;
 
-    const headings = Array.from(section.querySelectorAll<HTMLElement>("h3, h4, h5"));
+    const headings = Array.from(section.querySelectorAll<HTMLElement>("h4, h5"));
     for (const heading of headings) {
-      makeReportTitleClickable(heading, step);
+      const title = normalizeTitle(heading.textContent || "");
+      const targetId = treatmentTargets.get(title);
+      if (targetId) makeReportTitleClickable(heading, targetId);
     }
   }
 
-  const legacyLinks = Array.from(
-    report.querySelectorAll<HTMLAnchorElement>('a[href^="#pm-step"]')
-  );
+  const legacyLinks = Array.from(report.querySelectorAll<HTMLAnchorElement>("a"));
   for (const link of legacyLinks) {
     if (/Open in Step/i.test(link.textContent || "")) link.remove();
   }
