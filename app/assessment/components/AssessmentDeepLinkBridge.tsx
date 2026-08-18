@@ -50,49 +50,79 @@ function ensureAssessmentStepAnchors() {
   }
 }
 
+const REPORT_SECTION_STEPS: Array<{ marker: RegExp; step: number }> = [
+  { marker: /\bRISK\s+ASSESSMENT\b/i, step: 7 },
+  { marker: /\bRISK\s+TREATMENT\b/i, step: 8 },
+  { marker: /\bRESIDUAL\s+RISK\b/i, step: 9 },
+  { marker: /\bDPDP\s+MAPPING\b/i, step: 10 },
+  { marker: /\bRISK\s+GOVERNANCE\b/i, step: 11 },
+  { marker: /\bREMEDIATION\b/i, step: 12 },
+  { marker: /\bEVIDENCE\s+&\s+CLOSURE\b/i, step: 13 },
+];
+
+function reportStepForSection(section: HTMLElement): number | null {
+  const kicker = section.querySelector<HTMLElement>("div")?.textContent?.trim() || "";
+  const match = REPORT_SECTION_STEPS.find(({ marker }) => marker.test(kicker));
+  return match?.step ?? null;
+}
+
+function makeReportTitleClickable(heading: HTMLElement, step: number) {
+  const title = heading.textContent?.trim();
+  if (!title) return;
+
+  const targetId = anchorId(step, title);
+  const existingTarget = document.getElementById(targetId);
+  const href = existingTarget ? `#${targetId}` : `#pm-step${step}`;
+
+  const existingLink = heading.querySelector<HTMLAnchorElement>("a");
+  if (existingLink) {
+    existingLink.href = href;
+    existingLink.style.color = "#1d4ed8";
+    existingLink.style.textDecoration = "none";
+    existingLink.style.fontWeight = "800";
+    existingLink.style.cursor = "pointer";
+    existingLink.setAttribute("aria-label", `Open ${title} in the assessment`);
+    return;
+  }
+
+  const clickable = document.createElement("a");
+  clickable.href = href;
+  clickable.textContent = title;
+  clickable.style.color = "#1d4ed8";
+  clickable.style.textDecoration = "none";
+  clickable.style.fontWeight = "800";
+  clickable.style.cursor = "pointer";
+  clickable.setAttribute("aria-label", `Open ${title} in the assessment`);
+  heading.replaceChildren(clickable);
+}
+
 function enhanceReportLinks() {
   const report = document.getElementById("assessment-report");
   if (!report) return;
 
-  const links = Array.from(
+  // Finding titles are the navigation controls. This keeps the report clean
+  // while retaining a direct path back to the corresponding assessment step.
+  const reportSections = Array.from(report.querySelectorAll<HTMLElement>("section"));
+  for (const section of reportSections) {
+    const step = reportStepForSection(section);
+    if (!step) continue;
+
+    const headings = Array.from(section.querySelectorAll<HTMLElement>("h4"));
+    for (const heading of headings) {
+      makeReportTitleClickable(heading, step);
+    }
+  }
+
+  // Remove any legacy standalone "Open in Step" controls left by older
+  // report markup. The title itself now provides the navigation affordance.
+  const legacyLinks = Array.from(
     report.querySelectorAll<HTMLAnchorElement>('a[href^="#pm-step"]')
   );
 
-  for (const link of links) {
-    const href = link.getAttribute("href");
-    if (!href) continue;
-
-    const match = href.match(/^#pm-step(7|8|9|10|11|12|13)(?:-.+)?$/);
-    if (!match) continue;
-
-    const step = Number(match[1]);
-    const stepHref = `#pm-step${step}`;
-    link.setAttribute("href", stepHref);
-
-    const card = link.closest("div");
-    const heading = card?.querySelector<HTMLElement>("h4");
-    if (heading) {
-      const title = heading.textContent?.trim();
-      if (title) {
-        const existing = heading.querySelector<HTMLAnchorElement>(
-          `a[href="${stepHref}"]`
-        );
-
-        if (!existing) {
-          const clickable = document.createElement("a");
-          clickable.href = stepHref;
-          clickable.textContent = title;
-          clickable.style.color = "#1d4ed8";
-          clickable.style.textDecoration = "none";
-          clickable.style.fontWeight = "800";
-          clickable.style.cursor = "pointer";
-          clickable.setAttribute("aria-label", `Open ${title} in the assessment`);
-          heading.replaceChildren(clickable);
-        }
-      }
+  for (const link of legacyLinks) {
+    if (/Open in Step/i.test(link.textContent || "")) {
+      link.remove();
     }
-
-    link.remove();
   }
 }
 
