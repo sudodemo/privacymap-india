@@ -53,9 +53,23 @@ export function sanitizeText(value: unknown, options: TextValidationOptions = {}
   return collapsed.trim().slice(0, options.maxLength ?? SECURITY_LIMITS.genericText);
 }
 
-export function sanitizeInteractiveText(value: unknown, maxLength: number = SECURITY_LIMITS.genericText): string {
+/**
+ * Sanitizes text entered interactively by an assessment user.
+ *
+ * maxLength deliberately accepts any number rather than the literal type of
+ * one SECURITY_LIMITS property. This allows individual fields to pass their
+ * own security limit without TypeScript narrowing the parameter to 5000.
+ */
+export function sanitizeInteractiveText(
+  value: unknown,
+  maxLength: number = SECURITY_LIMITS.genericText
+): string {
+  const safeMaxLength = Number.isFinite(maxLength) && maxLength > 0
+    ? Math.floor(maxLength)
+    : SECURITY_LIMITS.genericText;
+
   return sanitizeText(value, {
-    maxLength,
+    maxLength: safeMaxLength,
     allowNewlines: true,
     rejectMarkup: true,
   });
@@ -105,8 +119,8 @@ export function validateDateString(value: unknown, fieldName = "Date"): string {
 
 /**
  * Validates an ISO-8601 timestamp used by local assessment continuity
- * metadata. Timestamps are accepted only when they are parseable dates and
- * explicitly carry either UTC (Z) or a numeric timezone offset.
+ * metadata. Timestamps must carry either UTC (Z) or a numeric timezone
+ * offset so that local continuation records are unambiguous.
  */
 export function validateIsoTimestamp(value: unknown, fieldName = "Timestamp"): string {
   const text = validateText(value, {
