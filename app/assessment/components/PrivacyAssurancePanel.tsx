@@ -48,7 +48,7 @@ export default function PrivacyAssurancePanel() {
       setStorageUsage(0);
       setResult(runPrivacyAssuranceCheck());
       setMessage("All locally saved PrivacyMap assessment data has been removed from this browser.");
-      window.dispatchEvent(new Event("privacymap-local-data-cleared"));
+      window.setTimeout(() => window.location.reload(), 250);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to clear local assessment data.");
     }
