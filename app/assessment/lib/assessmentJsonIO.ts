@@ -6,11 +6,13 @@ import {
   type AssessmentContinuityState,
   validateAssessmentContinuityState,
   validateAssessmentPackage,
+} from "./assessmentContinuity";
+import {
   validateImportedValue,
   validateIdentifier,
   validateIsoTimestamp,
   validateText,
-} from "./assessmentContinuity";
+} from "./security";
 
 const MAX_JSON_BYTES = 5_000_000;
 
