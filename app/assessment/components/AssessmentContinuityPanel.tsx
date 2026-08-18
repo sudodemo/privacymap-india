@@ -2,187 +2,38 @@
 
 import { useRef, useState } from "react";
 import type { SavedAssessmentIndexItem, AssessmentPackage } from "../lib/assessmentContinuity";
-import {
-  ASSESSMENT_STORAGE_KEY,
-  createEmptyAssessmentStore,
-  createNewAssessmentFromPrevious,
-  parseAssessmentStore,
-  serializeAssessmentStore,
-  buildAssessmentPackage,
-} from "../lib/assessmentContinuity";
-import {
-  buildAssessmentPackageFilename,
-  exportAssessmentPackage,
-  readAssessmentPackageFile,
-} from "../lib/assessmentPackageIO";
+import { ASSESSMENT_STORAGE_KEY, createEmptyAssessmentStore, createNewAssessmentFromPrevious, parseAssessmentStore, serializeAssessmentStore, buildAssessmentPackage } from "../lib/assessmentContinuity";
+import { buildAssessmentPackageFilename, exportAssessmentPackage, readAssessmentPackageFile } from "../lib/assessmentPackageIO";
 import { parseAssessmentJson } from "../lib/assessmentJsonIO";
 import DpdpReadinessTicker from "./DpdpReadinessTicker";
 import ReportProtectionNotice from "./ReportProtectionNotice";
 import PrivacyAssurancePanel from "./PrivacyAssurancePanel";
 
-interface AssessmentContinuityPanelProps {
-  savedAssessments: SavedAssessmentIndexItem[];
-  saving: boolean;
-  lastSavedAt: string | null;
-  onResume: (assessmentId: string) => void;
-  onDelete: (assessmentId: string) => void;
-  onStartNew: () => void;
-}
+interface AssessmentContinuityPanelProps { savedAssessments: SavedAssessmentIndexItem[]; saving: boolean; lastSavedAt: string | null; onResume: (assessmentId: string) => void; onDelete: (assessmentId: string) => void; onStartNew: () => void; }
 
-function formatSavedTime(value: string): string {
-  try {
-    return new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short", hour12: false, timeZone: "Asia/Kolkata", timeZoneName: "short" }).format(new Date(value));
-  } catch {
-    return value;
-  }
-}
-
-function readStore(): ReturnType<typeof createEmptyAssessmentStore> {
-  if (typeof window === "undefined") return createEmptyAssessmentStore();
-  const raw = window.localStorage.getItem(ASSESSMENT_STORAGE_KEY);
-  if (!raw) return createEmptyAssessmentStore();
-  try {
-    return parseAssessmentStore(raw);
-  } catch {
-    return createEmptyAssessmentStore();
-  }
-}
-
-function makeNewAssessmentId(): string {
-  const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-  const suffix = Math.random().toString(36).slice(2, 6).toUpperCase();
-  return `PMI-${stamp}-${suffix}`;
-}
+function formatSavedTime(value: string): string { try { return new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short", hour12: false, timeZone: "Asia/Kolkata", timeZoneName: "short" }).format(new Date(value)); } catch { return value; } }
+function readStore(): ReturnType<typeof createEmptyAssessmentStore> { if (typeof window === "undefined") return createEmptyAssessmentStore(); const raw = window.localStorage.getItem(ASSESSMENT_STORAGE_KEY); if (!raw) return createEmptyAssessmentStore(); try { return parseAssessmentStore(raw); } catch { return createEmptyAssessmentStore(); } }
+function makeNewAssessmentId(): string { const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, ""); const suffix = Math.random().toString(36).slice(2, 6).toUpperCase(); return `PMI-${stamp}-${suffix}`; }
 
 export default function AssessmentContinuityPanel({ savedAssessments, saving, lastSavedAt, onResume, onDelete, onStartNew }: AssessmentContinuityPanelProps) {
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const jsonInputRef = useRef<HTMLInputElement | null>(null);
-  const [busyId, setBusyId] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null); const jsonInputRef = useRef<HTMLInputElement | null>(null); const [busyId, setBusyId] = useState<string | null>(null); const [message, setMessage] = useState<string | null>(null);
+  function handleExport(assessmentId: string) { const store = readStore(); const pkg = store.assessments[assessmentId]; if (!pkg) return; try { setBusyId(assessmentId); exportAssessmentPackage(pkg.assessment); setMessage(`Assessment package exported: ${buildAssessmentPackageFilename(pkg.assessment)}`); } catch (error) { setMessage(error instanceof Error ? error.message : "Assessment package export failed."); } finally { window.setTimeout(() => setBusyId(null), 400); } }
+  function handleCreateNewFromPrevious(assessmentId: string) { const store = readStore(); const previous = store.assessments[assessmentId]; if (!previous) return; try { setBusyId(assessmentId); const nextState = createNewAssessmentFromPrevious(previous.assessment, { assessmentId: makeNewAssessmentId(), assessmentName: `${previous.assessment.assessmentProfile.assessmentName} - New Assessment` }); const nextPackage = buildAssessmentPackage(nextState, { applicationVersion: "Phase-D" }); const nextStore = { ...store, assessments: { ...store.assessments, [nextPackage.metadata.assessmentId]: nextPackage } }; window.localStorage.setItem(ASSESSMENT_STORAGE_KEY, serializeAssessmentStore(nextStore)); setMessage(`New assessment created from ${assessmentId}.`); window.setTimeout(() => window.location.reload(), 250); } catch (error) { setMessage(error instanceof Error ? error.message : "Unable to create the new assessment."); } finally { setBusyId(null); } }
+  async function handleImport(file: File) { try { setBusyId("IMPORT"); const pkg: AssessmentPackage = await readAssessmentPackageFile(file); const store = readStore(); const nextStore = { ...store, assessments: { ...store.assessments, [pkg.metadata.assessmentId]: pkg } }; window.localStorage.setItem(ASSESSMENT_STORAGE_KEY, serializeAssessmentStore(nextStore)); setMessage(`Imported ${pkg.metadata.assessmentId}. Click Resume to continue it.`); window.setTimeout(() => window.location.reload(), 350); } catch (error) { setMessage(error instanceof Error ? error.message : "Unable to import the assessment package."); } finally { window.setTimeout(() => setBusyId(null), 500); } }
+  async function handleImportJson(file: File) { try { setBusyId("JSON_IMPORT"); const pkg = parseAssessmentJson(await file.text()); const store = readStore(); const nextStore = { ...store, assessments: { ...store.assessments, [pkg.metadata.assessmentId]: pkg } }; window.localStorage.setItem(ASSESSMENT_STORAGE_KEY, serializeAssessmentStore(nextStore)); setMessage(`JSON assessment imported and validated: ${pkg.metadata.assessmentId}. Click Resume to continue it.`); window.setTimeout(() => window.location.reload(), 350); } catch (error) { setMessage(error instanceof Error ? error.message : "Unable to import the JSON assessment."); } finally { window.setTimeout(() => setBusyId(null), 500); } }
+  function handleStartNewClick() { onStartNew(); window.setTimeout(() => { const input = document.getElementById("organisation-name") as HTMLInputElement | null; input?.scrollIntoView({ behavior: "smooth", block: "center" }); input?.focus({ preventScroll: true }); }, 120); }
 
-  function handleExport(assessmentId: string) {
-    const store = readStore();
-    const pkg = store.assessments[assessmentId];
-    if (!pkg) return;
-    try {
-      setBusyId(assessmentId);
-      exportAssessmentPackage(pkg.assessment);
-      setMessage(`Assessment package exported: ${buildAssessmentPackageFilename(pkg.assessment)}`);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Assessment package export failed.");
-    } finally {
-      window.setTimeout(() => setBusyId(null), 400);
-    }
-  }
-
-  function handleCreateNewFromPrevious(assessmentId: string) {
-    const store = readStore();
-    const previous = store.assessments[assessmentId];
-    if (!previous) return;
-    try {
-      setBusyId(assessmentId);
-      const nextState = createNewAssessmentFromPrevious(previous.assessment, { assessmentId: makeNewAssessmentId(), assessmentName: `${previous.assessment.assessmentProfile.assessmentName} - New Assessment` });
-      const nextPackage = buildAssessmentPackage(nextState, { applicationVersion: "Phase-D" });
-      const nextStore = { ...store, assessments: { ...store.assessments, [nextPackage.metadata.assessmentId]: nextPackage } };
-      window.localStorage.setItem(ASSESSMENT_STORAGE_KEY, serializeAssessmentStore(nextStore));
-      setMessage(`New assessment created from ${assessmentId}.`);
-      window.setTimeout(() => window.location.reload(), 250);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Unable to create the new assessment.");
-    } finally {
-      setBusyId(null);
-    }
-  }
-
-  async function handleImport(file: File) {
-    try {
-      setBusyId("IMPORT");
-      const pkg: AssessmentPackage = await readAssessmentPackageFile(file);
-      const store = readStore();
-      const nextStore = { ...store, assessments: { ...store.assessments, [pkg.metadata.assessmentId]: pkg } };
-      window.localStorage.setItem(ASSESSMENT_STORAGE_KEY, serializeAssessmentStore(nextStore));
-      setMessage(`Imported ${pkg.metadata.assessmentId}. Click Resume to continue it.`);
-      window.setTimeout(() => window.location.reload(), 350);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Unable to import the assessment package.");
-    } finally {
-      window.setTimeout(() => setBusyId(null), 500);
-    }
-  }
-
-  async function handleImportJson(file: File) {
-    try {
-      setBusyId("JSON_IMPORT");
-      const pkg = parseAssessmentJson(await file.text());
-      const store = readStore();
-      const nextStore = { ...store, assessments: { ...store.assessments, [pkg.metadata.assessmentId]: pkg } };
-      window.localStorage.setItem(ASSESSMENT_STORAGE_KEY, serializeAssessmentStore(nextStore));
-      setMessage(`JSON assessment imported and validated: ${pkg.metadata.assessmentId}. Click Resume to continue it.`);
-      window.setTimeout(() => window.location.reload(), 350);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Unable to import the JSON assessment.");
-    } finally {
-      window.setTimeout(() => setBusyId(null), 500);
-    }
-  }
-
-  function handleStartNewClick() {
-    onStartNew();
-    window.setTimeout(() => {
-      const input = document.getElementById("organisation-name") as HTMLInputElement | null;
-      input?.scrollIntoView({ behavior: "smooth", block: "center" });
-      input?.focus({ preventScroll: true });
-    }, 120);
-  }
-
-  return (
-    <section style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 14, padding: 20, marginBottom: 24 }}>
-      <DpdpReadinessTicker />
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
-        <div>
-          <div style={{ color: "#1e3a8a", fontWeight: 800, fontSize: 17, marginBottom: 5 }}>Assessment Continuity</div>
-          <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.6 }}>Your assessment is saved locally in this browser. No assessment data is uploaded to PrivacyMap.</div>
-        </div>
-        <div style={{ color: saving ? "#b45309" : "#166534", fontWeight: 700, fontSize: 13 }}>{saving ? "Saving locally…" : lastSavedAt ? `Saved locally • ${formatSavedTime(lastSavedAt)}` : "Local autosave ready"}</div>
-      </div>
-
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 16 }}>
-        <button type="button" onClick={() => fileInputRef.current?.click()} disabled={busyId === "IMPORT"} style={{ border: "1px solid #93c5fd", borderRadius: 8, background: "white", color: "#1d4ed8", padding: "9px 14px", fontWeight: 700, cursor: "pointer" }}>{busyId === "IMPORT" ? "Importing…" : "Import Assessment Package"}</button>
-        <button type="button" onClick={() => jsonInputRef.current?.click()} disabled={busyId === "JSON_IMPORT"} style={{ border: "1px solid #93c5fd", borderRadius: 8, background: "white", color: "#1d4ed8", padding: "9px 14px", fontWeight: 700, cursor: "pointer" }}>{busyId === "JSON_IMPORT" ? "Checking JSON…" : "Import JSON Assessment"}</button>
-        <input ref={fileInputRef} type="file" accept=".privacymap,application/zip" style={{ display: "none" }} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; if (file) void handleImport(file); }} />
-        <input ref={jsonInputRef} type="file" accept=".json,application/json" style={{ display: "none" }} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; if (file) void handleImportJson(file); }} />
-      </div>
-      <div style={{ marginTop: 8, color: "#64748b", fontSize: 11, lineHeight: 1.5 }}>Import from this device. JSON files are treated as untrusted input and checked before they are accepted.</div>
-
-      {message && <div style={{ marginTop: 10, padding: "9px 11px", borderRadius: 8, background: "white", border: "1px solid #dbeafe", color: "#334155", fontSize: 12, lineHeight: 1.5 }}>{message}</div>}
-
-      {savedAssessments.length > 0 && (
-        <div style={{ marginTop: 18 }}>
-          <div style={{ fontWeight: 800, color: "#0f172a", marginBottom: 10, fontSize: 14 }}>Saved assessments in this browser</div>
-          <div style={{ display: "grid", gap: 10 }}>
-            {savedAssessments.map((item) => (
-              <div key={item.assessmentId} style={{ background: "white", border: "1px solid #dbeafe", borderRadius: 10, padding: "13px 14px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-                  <div style={{ minWidth: 240 }}>
-                    <div style={{ fontWeight: 800, color: "#0f172a", marginBottom: 3 }}>{item.organisationName || "Unnamed organisation"}</div>
-                    <div style={{ color: "#475569", fontSize: 12, lineHeight: 1.5 }}>{item.assessmentName || "DPDP Privacy Assessment"} • {item.assessmentId}<br />Progress: Step {item.lastCompletedStep} completed • Saved: {formatSavedTime(item.lastSavedAt)}</div>
-                  </div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <button type="button" onClick={() => onResume(item.assessmentId)} style={{ border: "none", borderRadius: 8, background: "#1d4ed8", color: "white", padding: "9px 14px", fontWeight: 700, cursor: "pointer" }}>Resume</button>
-                    <button type="button" onClick={() => handleExport(item.assessmentId)} disabled={busyId === item.assessmentId} style={{ border: "1px solid #93c5fd", borderRadius: 8, background: "white", color: "#1d4ed8", padding: "9px 12px", fontWeight: 700, cursor: "pointer" }}>{busyId === item.assessmentId ? "Exporting…" : "Export Package"}</button>
-                    <button type="button" onClick={() => handleCreateNewFromPrevious(item.assessmentId)} disabled={busyId === item.assessmentId} style={{ border: "1px solid #cbd5e1", borderRadius: 8, background: "white", color: "#334155", padding: "9px 12px", fontWeight: 700, cursor: "pointer" }}>New from Previous</button>
-                    <button type="button" onClick={() => onDelete(item.assessmentId)} style={{ border: "1px solid #fecaca", borderRadius: 8, background: "#fff", color: "#b91c1c", padding: "9px 12px", fontWeight: 700, cursor: "pointer" }}>Delete</button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div style={{ marginTop: 16 }}><button type="button" onClick={handleStartNewClick} style={{ border: "1px solid #93c5fd", borderRadius: 8, background: "white", color: "#1d4ed8", padding: "9px 14px", fontWeight: 700, cursor: "pointer" }}>Start New Assessment</button></div>
-      <PrivacyAssurancePanel />
-      <ReportProtectionNotice />
-    </section>
-  );
+  return <section className="pm-continuity-panel">
+    <DpdpReadinessTicker />
+    <div className="pm-continuity-header"><div className="pm-continuity-intro"><div className="pm-continuity-title">Assessment Continuity</div><div className="pm-continuity-description">Your assessment is saved locally in this browser. No assessment data is uploaded to PrivacyMap.</div></div><div className={`pm-continuity-save-status${saving ? " is-saving" : ""}`}>{saving ? "Saving locally…" : lastSavedAt ? `Saved locally • ${formatSavedTime(lastSavedAt)}` : "Local autosave ready"}</div></div>
+    <div className="pm-continuity-import-actions"><button type="button" onClick={() => fileInputRef.current?.click()} disabled={busyId === "IMPORT"} className="pm-continuity-secondary-button">{busyId === "IMPORT" ? "Importing…" : "Import Assessment Package"}</button><button type="button" onClick={() => jsonInputRef.current?.click()} disabled={busyId === "JSON_IMPORT"} className="pm-continuity-secondary-button">{busyId === "JSON_IMPORT" ? "Checking JSON…" : "Import JSON Assessment"}</button><input ref={fileInputRef} type="file" accept=".privacymap,application/zip" className="pm-continuity-hidden-input" onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; if (file) void handleImport(file); }} /><input ref={jsonInputRef} type="file" accept=".json,application/json" className="pm-continuity-hidden-input" onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; if (file) void handleImportJson(file); }} /></div>
+    <div className="pm-continuity-import-note">Import from this device. JSON files are treated as untrusted input and checked before they are accepted.</div>
+    {message && <div className="pm-continuity-message" role="status">{message}</div>}
+    {savedAssessments.length > 0 && <div className="pm-continuity-saved-list"><div className="pm-continuity-saved-heading">Saved assessments in this browser</div><div className="pm-continuity-assessment-list">{savedAssessments.map((item) => <div key={item.assessmentId} className="pm-continuity-assessment-card"><div className="pm-continuity-assessment-details"><div className="pm-continuity-organisation">{item.organisationName || "Unnamed organisation"}</div><div className="pm-continuity-assessment-meta">{item.assessmentName || "DPDP Privacy Assessment"} • {item.assessmentId}<br />Progress: Step {item.lastCompletedStep} completed • Saved: {formatSavedTime(item.lastSavedAt)}</div></div><div className="pm-continuity-card-actions"><button type="button" onClick={() => onResume(item.assessmentId)} className="pm-continuity-primary-button">Resume</button><button type="button" onClick={() => handleExport(item.assessmentId)} disabled={busyId === item.assessmentId} className="pm-continuity-secondary-button">{busyId === item.assessmentId ? "Exporting…" : "Export Package"}</button><button type="button" onClick={() => handleCreateNewFromPrevious(item.assessmentId)} disabled={busyId === item.assessmentId} className="pm-continuity-secondary-button pm-continuity-neutral-button">New from Previous</button><button type="button" onClick={() => onDelete(item.assessmentId)} className="pm-continuity-delete-button">Delete</button></div></div>)}</div></div>}
+    <div className="pm-continuity-new"><button type="button" onClick={handleStartNewClick} className="pm-continuity-secondary-button">Start New Assessment</button></div>
+    <PrivacyAssurancePanel /><ReportProtectionNotice />
+    <style jsx>{`
+      .pm-continuity-panel{background:#eff6ff;border:1px solid #bfdbfe;border-radius:14px;padding:20px;margin-bottom:24px;box-sizing:border-box;width:100%;min-width:0}.pm-continuity-header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}.pm-continuity-intro{min-width:0;flex:1 1 320px}.pm-continuity-title{color:#1e3a8a;font-weight:800;font-size:17px;margin-bottom:5px}.pm-continuity-description{color:#475569;font-size:13px;line-height:1.6;overflow-wrap:anywhere}.pm-continuity-save-status{color:#166534;font-weight:700;font-size:13px;line-height:1.5;overflow-wrap:anywhere}.pm-continuity-save-status.is-saving{color:#b45309}.pm-continuity-import-actions,.pm-continuity-card-actions{display:flex;gap:8px;flex-wrap:wrap;min-width:0}.pm-continuity-import-actions{margin-top:16px}.pm-continuity-secondary-button,.pm-continuity-primary-button,.pm-continuity-delete-button{min-height:44px;box-sizing:border-box;border-radius:8px;padding:10px 14px;font:inherit;font-weight:700;cursor:pointer;overflow-wrap:anywhere}.pm-continuity-secondary-button{border:1px solid #93c5fd;background:#fff;color:#1d4ed8}.pm-continuity-primary-button{border:1px solid #1d4ed8;background:#1d4ed8;color:#fff}.pm-continuity-neutral-button{border-color:#cbd5e1;color:#334155}.pm-continuity-delete-button{border:1px solid #fecaca;background:#fff;color:#b91c1c}.pm-continuity-secondary-button:disabled,.pm-continuity-primary-button:disabled,.pm-continuity-delete-button:disabled{opacity:.65;cursor:wait}.pm-continuity-hidden-input{display:none}.pm-continuity-import-note{margin-top:8px;color:#64748b;font-size:11px;line-height:1.5;overflow-wrap:anywhere}.pm-continuity-message{margin-top:10px;padding:10px 11px;border-radius:8px;background:#fff;border:1px solid #dbeafe;color:#334155;font-size:12px;line-height:1.5;overflow-wrap:anywhere}.pm-continuity-saved-list{margin-top:18px;min-width:0}.pm-continuity-saved-heading{font-weight:800;color:#0f172a;margin-bottom:10px;font-size:14px}.pm-continuity-assessment-list{display:grid;gap:10px}.pm-continuity-assessment-card{background:#fff;border:1px solid #dbeafe;border-radius:10px;padding:13px 14px;min-width:0;box-sizing:border-box}.pm-continuity-assessment-details{min-width:0}.pm-continuity-organisation{font-weight:800;color:#0f172a;margin-bottom:3px;overflow-wrap:anywhere}.pm-continuity-assessment-meta{color:#475569;font-size:12px;line-height:1.5;overflow-wrap:anywhere;word-break:break-word}.pm-continuity-card-actions{margin-top:12px}.pm-continuity-new{margin-top:16px}@media(max-width:600px){.pm-continuity-panel{padding:14px;border-radius:12px}.pm-continuity-header{gap:10px}.pm-continuity-intro{flex-basis:100%}.pm-continuity-save-status{width:100%;font-size:12px}.pm-continuity-import-actions,.pm-continuity-card-actions{display:grid;grid-template-columns:1fr;width:100%}.pm-continuity-secondary-button,.pm-continuity-primary-button,.pm-continuity-delete-button{width:100%;text-align:center}.pm-continuity-assessment-card{padding:12px}.pm-continuity-new .pm-continuity-secondary-button{width:100%}}
+    `}</style>
+  </section>;
 }
