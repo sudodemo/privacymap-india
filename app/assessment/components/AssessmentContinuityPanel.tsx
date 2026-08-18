@@ -126,6 +126,15 @@ export default function AssessmentContinuityPanel({ savedAssessments, saving, la
     }
   }
 
+  function handleStartNewClick() {
+    onStartNew();
+    window.setTimeout(() => {
+      const input = document.getElementById("organisation-name") as HTMLInputElement | null;
+      input?.scrollIntoView({ behavior: "smooth", block: "center" });
+      input?.focus({ preventScroll: true });
+    }, 120);
+  }
+
   return (
     <section style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 14, padding: 20, marginBottom: 24 }}>
       <DpdpReadinessTicker />
@@ -171,7 +180,7 @@ export default function AssessmentContinuityPanel({ savedAssessments, saving, la
         </div>
       )}
 
-      <div style={{ marginTop: 16 }}><button type="button" onClick={onStartNew} style={{ border: "1px solid #93c5fd", borderRadius: 8, background: "white", color: "#1d4ed8", padding: "9px 14px", fontWeight: 700, cursor: "pointer" }}>Start New Assessment</button></div>
+      <div style={{ marginTop: 16 }}><button type="button" onClick={handleStartNewClick} style={{ border: "1px solid #93c5fd", borderRadius: 8, background: "white", color: "#1d4ed8", padding: "9px 14px", fontWeight: 700, cursor: "pointer" }}>Start New Assessment</button></div>
       <PrivacyAssurancePanel />
       <ReportProtectionNotice />
     </section>
