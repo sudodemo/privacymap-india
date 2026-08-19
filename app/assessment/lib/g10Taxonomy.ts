@@ -30,10 +30,12 @@ export const g10CollectionChannels = collectionChannels.items;
 
 export function getG10Processes(businessTypeId: string) {
   const generic = genericProcesses.items;
-  if (businessTypeId === "EDU-SCH") {
-    return [...schoolProcesses.items, ...generic];
-  }
+  if (businessTypeId === "EDU-SCH") return [...schoolProcesses.items, ...generic];
   return generic;
+}
+
+export function getG10CollectionChannels() {
+  return g10CollectionChannels;
 }
 
 export function createEmptyProcessingActivity(id = "PA-1"): ProcessingActivity {
