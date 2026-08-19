@@ -8,6 +8,8 @@
 import industries from "../../knowledge_base/core/industries.json";
 import businessTypes from "../../knowledge_base/core/business_types.json";
 import processes from "../../knowledge_base/core/processes.json";
+import g10Processes from "../../knowledge_base/core/g10_processes.json";
+import collectionChannels from "../../knowledge_base/core/collection_channels.json";
 import dataSubjects from "../../knowledge_base/core/data_subjects.json";
 import dataCategories from "../../knowledge_base/core/data_categories.json";
 import collectionMethods from "../../knowledge_base/core/collection_methods.json";
@@ -30,6 +32,10 @@ export const kb = {
   industries: industries.items,
   businessTypes: businessTypes.items,
   processes: processes.items,
+  g10: {
+    processes: g10Processes.items,
+    collectionChannels: collectionChannels.items,
+  },
   dataSubjects: dataSubjects.items,
   dataCategories: dataCategories.items,
   collectionMethods: collectionMethods.items,
@@ -71,6 +77,15 @@ export function getKnowledgeBaseMeta(): KnowledgeBaseMeta {
 
 export function getBusinessTypes(industryId: string) {
   return kb.businessTypes.filter((item) => item.industry_id === industryId);
+}
+
+export function getProcesses(businessTypeId: string) {
+  if (businessTypeId === "EDU-SCH") return [...kb.processes, ...kb.g10.processes];
+  return kb.g10.processes;
+}
+
+export function getCollectionChannels() {
+  return kb.g10.collectionChannels;
 }
 
 export function getSchoolEntryPoints(processId?: string) {
