@@ -24,6 +24,7 @@ import dpdpAct from "../../knowledge_base/legal/dpdp_act.json";
 import dpdpRules from "../../knowledge_base/legal/dpdp_rules.json";
 import commencement from "../../knowledge_base/legal/commencement.json";
 import releaseManifest from "../../knowledge_base/RELEASE_MANIFEST.json";
+import knowledgeBaseMeta from "../../knowledge_base/meta.json";
 
 export const kb = {
   industries: industries.items,
@@ -48,8 +49,25 @@ export const kb = {
     rules: dpdpRules.topics,
     commencement,
   },
+  meta: knowledgeBaseMeta,
   release: releaseManifest,
 } as const;
+
+export type KnowledgeBaseRelease = typeof kb.release;
+export type KnowledgeBaseMeta = typeof kb.meta;
+
+/** The release manifest is the authoritative version used by Phase G intelligence. */
+export function getKnowledgeBaseVersion(): string {
+  return kb.release.kb_version;
+}
+
+export function getKnowledgeBaseRelease(): KnowledgeBaseRelease {
+  return kb.release;
+}
+
+export function getKnowledgeBaseMeta(): KnowledgeBaseMeta {
+  return kb.meta;
+}
 
 export function getBusinessTypes(industryId: string) {
   return kb.businessTypes.filter((item) => item.industry_id === industryId);
