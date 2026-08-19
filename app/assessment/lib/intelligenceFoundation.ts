@@ -7,6 +7,8 @@ import {
   type KnowledgeBaseRelease,
 } from "../../../lib/kb";
 
+export { getKnowledgeBaseVersion } from "../../../lib/kb";
+
 export type IntelligenceStatus = "READY" | "INVALID_KNOWLEDGE_BASE";
 
 export interface IntelligenceContext {
