@@ -1,0 +1,22 @@
+{
+  "items": [
+    {"id":"GEN-CUST-01","name":"Customer / User Registration","category":"Customer Management"},
+    {"id":"GEN-CUST-02","name":"Account Management","category":"Customer Management"},
+    {"id":"GEN-EMP-01","name":"Recruitment","category":"People"},
+    {"id":"GEN-EMP-02","name":"Employee Administration & Payroll","category":"People"},
+    {"id":"GEN-SAL-01","name":"Sales & Marketing","category":"Commercial"},
+    {"id":"GEN-SUP-01","name":"Customer Support / Complaints","category":"Service"},
+    {"id":"GEN-PAY-01","name":"Payments & Billing","category":"Finance"},
+    {"id":"GEN-IDV-01","name":"Identity Verification / KYC","category":"Identity"},
+    {"id":"GEN-VEN-01","name":"Vendor / Processor Management","category":"Third Parties"},
+    {"id":"GEN-CON-01","name":"Contracts & Procurement","category":"Operations"},
+    {"id":"GEN-IT-01","name":"IT Administration & Access Management","category":"Technology"},
+    {"id":"GEN-CLD-01","name":"Cloud Hosting / System Operations","category":"Technology"},
+    {"id":"GEN-ANA-01","name":"Analytics & Reporting","category":"Analytics"},
+    {"id":"GEN-FRD-01","name":"Fraud / Abuse Detection","category":"Risk"},
+    {"id":"GEN-SHR-01","name":"Personal Data Sharing","category":"Third Parties"},
+    {"id":"GEN-RET-01","name":"Retention & Deletion","category":"Lifecycle"},
+    {"id":"GEN-INC-01","name":"Incident / Breach Management","category":"Security"},
+    {"id":"GEN-BCP-01","name":"Business Continuity","category":"Resilience"}
+  ]
+}
