@@ -35,10 +35,11 @@ export function validateIntelligencePipeline(findings: CanonicalFinding[]): Inte
   });
 
   const canonicalIds = findings.map((finding) => finding.id);
+  const idsAreUnique = unique(canonicalIds);
   checks.push({
     id: "stable-finding-ids",
-    status: unique(canonicalIds) ? "PASS" : "FAIL",
-    message: unique(canonicalIds) ? "Canonical finding IDs are unique." : "Duplicate canonical finding IDs were detected.",
+    status: idsAreUnique ? "PASS" : "FAIL",
+    message: idsAreUnique ? "Canonical finding IDs are unique." : "Duplicate canonical finding IDs were detected.",
   });
 
   const priorities = prioritiseCanonicalFindings(findings);
@@ -46,9 +47,21 @@ export function validateIntelligencePipeline(findings: CanonicalFinding[]): Inte
   const treatments = generateTreatmentIntelligence(findings);
   const evidence = generateEvidenceIntelligence(findings);
   const governance = generateGovernanceIntelligence(findings);
-  const presentation = buildIntelligencePresentationModel(findings, treatments, evidence, governance, readiness);
+  const presentation = buildIntelligencePresentationModel(
+    findings,
+    treatments,
+    evidence,
+    governance,
+    readiness.controls,
+  );
 
-  const lengthsMatch = [priorities.findings.length, treatments.length, evidence.length, governance.length, presentation.findings.length].every((length) => length === findings.length);
+  const lengthsMatch = [
+    priorities.findings.length,
+    treatments.length,
+    evidence.length,
+    governance.length,
+    presentation.findings.length,
+  ].every((length) => length === findings.length);
   checks.push({
     id: "finding-coverage",
     status: lengthsMatch ? "PASS" : "FAIL",
