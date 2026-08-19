@@ -1,0 +1,17 @@
+{
+  "items": [
+    {"id":"WEB","name":"Web","description":"Website, web form or portal"},
+    {"id":"MOBILE","name":"Mobile","description":"Mobile application"},
+    {"id":"EMAIL","name":"Email","description":"Email messages and attachments"},
+    {"id":"PHONE","name":"Telephone / call centre","description":"Telephone, call centre or recorded calls"},
+    {"id":"MESSAGING","name":"Messaging apps","description":"WhatsApp / Telegram / Signal / similar"},
+    {"id":"SOCIAL","name":"Social media","description":"Instagram / Facebook / LinkedIn / similar"},
+    {"id":"AI","name":"AI prompts / AI assistants","description":"Prompts or conversations with AI assistants"},
+    {"id":"PHYSICAL","name":"Physical","description":"Paper forms and physical documents"},
+    {"id":"FILE","name":"File exchange","description":"Spreadsheets, documents and file uploads"},
+    {"id":"API","name":"API / system integration","description":"System-to-system interfaces and integrations"},
+    {"id":"DEVICE","name":"Device / sensor","description":"CCTV, IoT, biometric and similar devices"},
+    {"id":"INPERSON","name":"In-person","description":"Reception, branch, service desk or similar"},
+    {"id":"OTHER","name":"Other","description":"Organisation-defined collection channel"}
+  ]
+}
