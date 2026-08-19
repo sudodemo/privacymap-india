@@ -1,46 +1,29 @@
 {
   "items": [
-    {
-      "id": "EDU-SCH",
-      "industry_id": "EDU",
-      "name": "School",
-      "status": "active"
-    },
-    {
-      "id": "EDU-COL",
-      "industry_id": "EDU",
-      "name": "College",
-      "status": "pending"
-    },
-    {
-      "id": "EDU-COA",
-      "industry_id": "EDU",
-      "name": "Coaching Institute",
-      "status": "pending"
-    },
-    {
-      "id": "EDU-TUI",
-      "industry_id": "EDU",
-      "name": "Tuition Centre",
-      "status": "pending"
-    },
-    {
-      "id": "EDU-PRE",
-      "industry_id": "EDU",
-      "name": "Preschool",
-      "status": "pending"
-    },
-    {
-      "id": "EDU-SKI",
-      "industry_id": "EDU",
-      "name": "Vocational / Skill Institute",
-      "status": "pending"
-    },
-    {
-      "id": "EDU-EDT",
-      "industry_id": "EDU",
-      "name": "EdTech / Online Education",
-      "status": "pending"
-    }
+    {"id":"EDU-SCH","industry_id":"EDU","name":"School","status":"active"},
+    {"id":"EDU-COL","industry_id":"EDU","name":"College / University","status":"active"},
+    {"id":"EDU-EDT","industry_id":"EDU","name":"EdTech / Online Education","status":"active"},
+    {"id":"HLT-HOS","industry_id":"HLT","name":"Hospital / Clinic","status":"active"},
+    {"id":"HLT-LAB","industry_id":"HLT","name":"Diagnostic / Laboratory Services","status":"active"},
+    {"id":"FIN-BNK","industry_id":"FIN","name":"Bank / Financial Institution","status":"active"},
+    {"id":"FIN-FIN","industry_id":"FIN","name":"FinTech / Digital Finance","status":"active"},
+    {"id":"RET-ECM","industry_id":"RET","name":"E-commerce Business","status":"active"},
+    {"id":"RET-RTL","industry_id":"RET","name":"Retail Business","status":"active"},
+    {"id":"ITS-SAS","industry_id":"ITS","name":"SaaS / Software Company","status":"active"},
+    {"id":"ITS-ITE","industry_id":"ITS","name":"IT / ITES Services","status":"active"},
+    {"id":"PRO-CNS","industry_id":"PRO","name":"Consulting / Advisory","status":"active"},
+    {"id":"PRO-LGL","industry_id":"PRO","name":"Legal / Professional Practice","status":"active"},
+    {"id":"MFG-MAN","industry_id":"MFG","name":"Manufacturing Company","status":"active"},
+    {"id":"MFG-DIS","industry_id":"MFG","name":"Industrial / Distribution Business","status":"active"},
+    {"id":"TEL-TEL","industry_id":"TEL","name":"Telecommunications Provider","status":"active"},
+    {"id":"TEL-ISP","industry_id":"TEL","name":"Internet / Connectivity Provider","status":"active"},
+    {"id":"TRV-HOT","industry_id":"TRV","name":"Hotel / Resort","status":"active"},
+    {"id":"TRV-TRV","industry_id":"TRV","name":"Travel / Tour Operator","status":"active"},
+    {"id":"LOG-3PL","industry_id":"LOG","name":"Logistics / 3PL","status":"active"},
+    {"id":"LOG-DEL","industry_id":"LOG","name":"Delivery / Transportation","status":"active"},
+    {"id":"REA-DEV","industry_id":"REA","name":"Real Estate Developer","status":"active"},
+    {"id":"REA-AGT","industry_id":"REA","name":"Real Estate Agency / Brokerage","status":"active"},
+    {"id":"GOV-DEP","industry_id":"GOV","name":"Government Department / Agency","status":"active"},
+    {"id":"GOV-PSU","industry_id":"GOV","name":"Public Sector Organisation","status":"active"}
   ]
 }
