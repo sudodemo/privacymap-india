@@ -1,205 +1,62 @@
 # Phase G10 — Industry & Processing Intelligence Foundation
 
 ## Status
-Specification approved for implementation. No assessment behaviour is changed by this document alone.
+**Implemented foundation — ready for build verification and UX/regression validation.**
 
-## Objective
+G10 now provides the controlled industry/business-type taxonomy, reusable business-process taxonomy, scalable collection-channel taxonomy, and a derived processing-activity model. Existing assessment answers remain the authoritative state model.
 
-Expand PrivacyMap India with a limited, scalable set of industry, business-process, processing-activity and data-entry/collection-channel contexts before Phase H public launch.
+## Implemented
 
-The design must extend the existing G2–G9 intelligence architecture rather than create parallel finding, risk or scoring models.
+- 12 active initial industries with stable IDs.
+- 24 initial business types spanning the 12 industries.
+- Reusable cross-industry business processes.
+- Existing school-specific processes retained alongside reusable processes.
+- Collection channels covering Web, Mobile, Email, Telephone, Messaging apps, Social media, AI prompts / AI assistants, Physical, File exchange, API / integration, Device / sensor, In-person and Other.
+- WhatsApp / Telegram / Signal are grouped under **Messaging apps** rather than separate top-level fields.
+- **AI prompts / AI assistants** are a first-class collection channel.
+- Optional platform/provider detail is supported through the existing custom-entry-point mechanism without creating vendor-specific assessment fields.
+- A typed processing-activity model and a derivation helper that builds processing-activity context from the existing assessment answers without creating a second state model.
+- G10 taxonomy access is exposed through the knowledge-base layer.
+- Steps 3 and 4 can now use the reusable G10 process/channel taxonomy for all enabled business types while retaining the existing school-specific content where available.
 
-## Initial industry set
+## Architecture
 
-The first controlled taxonomy should cover:
+```text
+Industry
+   ↓
+Business Type
+   ↓
+Business Process
+   ↓
+Processing Activity (derived from existing answers)
+   ↓
+Collection Channels
+   ↓
+Existing assessment answers
+   ↓
+G2–G9 intelligence
+```
 
-1. Healthcare
-2. Education
-3. Financial Services / FinTech
-4. E-commerce / Retail
-5. IT / ITES / SaaS
-6. Professional Services
-7. Manufacturing
-8. Telecommunications
-9. Travel / Hospitality
-10. Logistics / Transportation
-11. Real Estate
-12. Government / Public Sector
+Technology providers are metadata, not assessment logic. New messaging or AI products can therefore be recorded without adding a new top-level assessment field.
 
-The taxonomy must be extensible without changing the core assessment engine.
+## AI-specific UX rule
 
-## Business-process taxonomy
+Selecting **AI prompts / AI assistants** does not itself create a privacy finding. The assessment must establish the relevant processing facts before any risk rule can apply.
 
-Create reusable process categories such as:
+The interface explains that an AI provider/tool can be recorded as optional context and that PrivacyMap does not connect to that service or transmit assessment data to it.
 
-- customer acquisition and registration;
-- account management;
-- employee recruitment and administration;
-- payroll;
-- customer support;
-- marketing and sales;
-- payments;
-- identity verification / KYC;
-- vendor management;
-- procurement and contracts;
-- physical access and CCTV;
-- IT administration;
-- cloud hosting;
-- analytics;
-- fraud detection;
-- complaints and grievances;
-- data sharing;
-- retention and deletion;
-- incident and breach management;
-- business continuity.
+## Remaining G10 validation work
 
-Industry-specific processes should compose these reusable concepts rather than duplicate them.
+The implementation must still pass the normal GitHub/Vercel build and regression checks, including:
 
-## Processing-activity model
+- local autosave/resume;
+- JSON/package export/import/restore;
+- mobile responsive behaviour;
+- existing finding navigation;
+- E5/E6 security controls;
+- G9 intelligence validation.
 
-Represent a processing activity independently from the industry. The model should be capable of capturing:
-
-- purpose;
-- data subjects;
-- data categories;
-- collection channel;
-- systems/platforms;
-- recipients/processors;
-- storage/retention context;
-- cross-border context;
-- children/minor involvement;
-- automated decision-making/AI involvement;
-- optional organisation-defined notes.
-
-The model must remain compatible with local assessment continuity, import validation and existing report/export behaviour.
-
-## Data-entry / collection-channel taxonomy
-
-Technology providers must not become hard-coded assessment fields. Use controlled channel categories with optional platform/provider metadata.
-
-Initial categories:
-
-- Web — website, web form, portal
-- Mobile — mobile application
-- Email
-- Telephone / call centre
-- Messaging apps — WhatsApp / Telegram / Signal / similar
-- Social media — Instagram / Facebook / LinkedIn / similar
-- AI prompts / AI assistants
-- Physical — paper forms and physical documents
-- File exchange — spreadsheets, documents, uploads
-- API / system integration
-- Device / sensor — CCTV, IoT, biometric and similar devices
-- In-person — reception, branch, service desk and similar
-- Other
-
-### Messaging apps
-
-Do not create separate top-level assessment fields for WhatsApp, Telegram, Signal or other individual messaging products. They belong under one **Messaging apps** collection channel. The optional platform field can capture the specific product where useful.
-
-### AI prompts / AI assistants
-
-AI prompts / AI assistants must be a first-class collection channel, not an item hidden under Other.
-
-The model should optionally capture:
-
-- AI provider/tool;
-- purpose of use;
-- whether personal data is entered;
-- data category entered;
-- whether the provider is external/internal;
-- retention/training configuration where known;
-- whether outputs influence a decision;
-- cross-border context where known.
-
-Do not infer that using an AI assistant is itself a violation. The assessment must establish the relevant processing facts first.
-
-## Initial industry/process examples
-
-Healthcare may include patient registration, appointments, clinical records, diagnostics, pharmacy, insurance/TPA and patient communications.
-
-Education may include admissions, student records, parent/guardian information, attendance, examinations, learning platforms, transport and communications.
-
-Financial Services / FinTech may include onboarding, KYC, account management, payments, transaction monitoring, fraud detection, credit assessment, collections and support.
-
-E-commerce / Retail may include registration, ordering, payments, delivery, returns/refunds, marketing and customer analytics.
-
-These are starting mappings, not exhaustive industry compliance rules.
-
-## Intelligence integration
-
-G10 must enrich the existing G2–G9 pipeline through validated context. It must not replace canonical findings, risk prioritisation, DPDP readiness, treatment, evidence, governance, explainability or validation.
-
-Context may improve:
-
-- finding explanations;
-- risk relevance;
-- treatment recommendations;
-- evidence expectations;
-- governance prompts;
-- DPDP control mapping.
-
-A context selection alone must never create a finding without a validated rule/mapping.
-
-## UX principles
-
-- Keep the initial assessment understandable for non-technical users.
-- Prefer category + optional provider/platform detail over a long list of vendor-specific fields.
-- Do not force users to understand legal or technical terminology.
-- Avoid unnecessary questions when a process is not selected.
-- Maintain mobile usability and no horizontal overflow.
-- Preserve existing clickable finding navigation to Key Privacy Findings.
-
-## Security and continuity requirements
-
-- All G10 context must pass the existing import/package validation rules.
-- No external service is required for G10.
-- No assessment response should be transmitted to a G10 service.
-- Provider names are metadata, not executable integrations.
-- G10 must not introduce secrets, credentials or third-party API calls.
-- Existing E5/E6 controls remain authoritative for browser and deployment security.
-
-## Implementation sequence
-
-### G10.1
-Create versioned industry taxonomy.
-
-### G10.2
-Create reusable business-process taxonomy.
-
-### G10.3
-Create validated processing-activity model.
-
-### G10.4
-Create collection-channel taxonomy, including first-class AI prompts / AI assistants and grouped messaging apps.
-
-### G10.5
-Create limited industry/process mappings.
-
-### G10.6
-Add assessment UX with conditional process/channel questions.
-
-### G10.7
-Integrate validated context into G2–G9 intelligence.
-
-### G10.8
-Run regression, continuity, import/export, responsive and security checks.
-
-## Definition of done
-
-G10 is complete when:
-
-- the 12 initial industries are represented by stable IDs;
-- reusable processes and collection channels are represented by stable IDs;
-- messaging apps are grouped rather than vendor-specific top-level fields;
-- AI prompts / AI assistants are a first-class collection channel;
-- processing activities can capture the defined contextual attributes;
-- context survives local autosave, export/import and restore;
-- existing assessment findings and navigation remain stable;
-- G2–G9 consume context without creating a second finding/risk model;
-- mobile UX remains usable;
-- no new external data flow is introduced;
-- regression and security validation passes.
+No new external data flow is introduced.
 
 ## Scope boundary
 
@@ -207,4 +64,4 @@ G10 does not introduce payment, report monetisation, external AI APIs, automated
 
 ## Next phase
 
-After G10 is implemented and validated, proceed to Phase H — Public Launch / Growth.
+After G10 validation passes, proceed to Phase H — Public Launch / Growth.
