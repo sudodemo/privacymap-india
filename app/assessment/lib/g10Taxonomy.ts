@@ -1,6 +1,7 @@
 import industries from "../../../knowledge_base/core/industries.json";
 import businessTypes from "../../../knowledge_base/core/business_types.json";
 import genericProcesses from "../../../knowledge_base/core/g10_processes.json";
+import contextualProcesses from "../../../knowledge_base/core/g10_contextual_processes.json";
 import collectionChannels from "../../../knowledge_base/core/collection_channels.json";
 import schoolProcesses from "../../../knowledge_base/core/processes.json";
 
@@ -20,8 +21,8 @@ export type ProcessingActivity = {
   notes: string;
 };
 
-export const G10_INDUSTRY_TAXONOMY_VERSION = "1.0.0" as const;
-export const G10_PROCESS_TAXONOMY_VERSION = "1.0.0" as const;
+export const G10_INDUSTRY_TAXONOMY_VERSION = "1.1.0" as const;
+export const G10_PROCESS_TAXONOMY_VERSION = "1.1.0" as const;
 export const G10_COLLECTION_CHANNEL_VERSION = "1.0.0" as const;
 
 export const g10Industries = industries.items;
@@ -30,8 +31,12 @@ export const g10CollectionChannels = collectionChannels.items;
 
 export function getG10Processes(businessTypeId: string) {
   const generic = genericProcesses.items;
-  if (businessTypeId === "EDU-SCH") return [...schoolProcesses.items, ...generic];
-  return generic;
+  const contextual = contextualProcesses.items
+    .filter((process) => process.business_type_id === businessTypeId)
+    .map(({ business_type_id: _businessTypeId, ...process }) => process);
+
+  if (businessTypeId === "EDU-SCH") return [...contextual, ...schoolProcesses.items, ...generic];
+  return [...contextual, ...generic];
 }
 
 export function getG10CollectionChannels() {
