@@ -29,14 +29,67 @@ export const g10Industries = industries.items;
 export const g10BusinessTypes = businessTypes.items;
 export const g10CollectionChannels = collectionChannels.items;
 
+const sharedProcessLabels: Record<string, Record<string, string>> = {
+  "HLT-HOS": {
+    "GEN-CUST-01": "Patient Registration",
+    "GEN-CUST-02": "Patient Account / Portal Management",
+    "GEN-SUP-01": "Patient Support / Complaints",
+    "GEN-SAL-01": "Patient Communication & Outreach",
+  },
+  "HLT-LAB": {
+    "GEN-CUST-01": "Patient Registration",
+    "GEN-CUST-02": "Patient Account Management",
+    "GEN-SUP-01": "Patient Support / Complaints",
+  },
+  "HLT-PHM": {
+    "GEN-CUST-01": "Patient / Customer Registration",
+    "GEN-CUST-02": "Customer Account Management",
+    "GEN-SUP-01": "Customer Support / Complaints",
+  },
+  "EDU-SCH": {
+    "GEN-CUST-01": "Student Registration",
+    "GEN-CUST-02": "Student Account Management",
+    "GEN-SUP-01": "Student / Parent Support & Complaints",
+  },
+  "EDU-COL": {
+    "GEN-CUST-01": "Student Registration",
+    "GEN-CUST-02": "Student Account Management",
+    "GEN-SUP-01": "Student Support / Complaints",
+  },
+  "EDU-EDT": {
+    "GEN-CUST-01": "Learner Registration",
+    "GEN-CUST-02": "Learner Account Management",
+    "GEN-SUP-01": "Learner Support / Complaints",
+  },
+  "TRV-HOT": {
+    "GEN-CUST-01": "Guest Registration",
+    "GEN-CUST-02": "Guest Account Management",
+    "GEN-SUP-01": "Guest Support / Complaints",
+  },
+  "TRV-TRV": {
+    "GEN-CUST-01": "Traveller Registration",
+    "GEN-CUST-02": "Traveller Account Management",
+    "GEN-SUP-01": "Traveller Support / Complaints",
+  },
+  "REA-CHS": {
+    "GEN-CUST-01": "Member / Flat Owner Registration",
+    "GEN-CUST-02": "Member / Flat Owner Account Management",
+    "GEN-SUP-01": "Member Grievances / Complaints",
+  },
+};
+
 export function getG10Processes(businessTypeId: string) {
   const generic = genericProcesses.items;
   const contextual = contextualProcesses.items
     .filter((process) => process.business_type_id === businessTypeId)
     .map(({ business_type_id: _businessTypeId, ...process }) => process);
+  const labelledGeneric = generic.map((process) => ({
+    ...process,
+    name: sharedProcessLabels[businessTypeId]?.[process.id] ?? process.name,
+  }));
 
-  if (businessTypeId === "EDU-SCH") return [...contextual, ...schoolProcesses.items, ...generic];
-  return [...contextual, ...generic];
+  if (businessTypeId === "EDU-SCH") return [...contextual, ...schoolProcesses.items, ...labelledGeneric];
+  return [...contextual, ...labelledGeneric];
 }
 
 export function getG10CollectionChannels() {
