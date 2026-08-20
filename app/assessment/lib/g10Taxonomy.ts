@@ -88,8 +88,21 @@ export function getG10Processes(businessTypeId: string) {
     name: sharedProcessLabels[businessTypeId]?.[process.id] ?? process.name,
   }));
 
-  if (businessTypeId === "EDU-SCH") return [...contextual, ...schoolProcesses.items, ...labelledGeneric];
-  return [...contextual, ...labelledGeneric];
+  const combined = businessTypeId === "EDU-SCH"
+    ? [...contextual, ...schoolProcesses.items, ...labelledGeneric]
+    : [...contextual, ...labelledGeneric];
+
+  // Contextual processes take precedence over generic processes. This prevents
+  // the same user-facing process from appearing twice when a business-specific
+  // process intentionally replaces a generic label (for example, a co-operative
+  // housing society's "Member / Flat Owner Registration").
+  const seen = new Set<string>();
+  return combined.filter((process) => {
+    const key = process.name.trim().toLocaleLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 export function getG10CollectionChannels() {
