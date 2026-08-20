@@ -11,6 +11,7 @@
     {"id":"TRV","name":"Travel / Hospitality","status":"active"},
     {"id":"LOG","name":"Logistics / Transportation","status":"active"},
     {"id":"REA","name":"Real Estate","status":"active"},
-    {"id":"GOV","name":"Government / Public Sector","status":"active"}
+    {"id":"GOV","name":"Government / Public Sector","status":"active"},
+    {"id":"WEL","name":"Lifestyle / Wellness","status":"active"}
   ]
 }
