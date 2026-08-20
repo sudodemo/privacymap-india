@@ -5,6 +5,7 @@
     {"id":"EDU-EDT","industry_id":"EDU","name":"EdTech / Online Education","status":"active"},
     {"id":"HLT-HOS","industry_id":"HLT","name":"Hospital / Clinic","status":"active"},
     {"id":"HLT-LAB","industry_id":"HLT","name":"Diagnostic / Laboratory Services","status":"active"},
+    {"id":"HLT-PHM","industry_id":"HLT","name":"Pharmacy / Medical Store","status":"active"},
     {"id":"FIN-BNK","industry_id":"FIN","name":"Bank / Financial Institution","status":"active"},
     {"id":"FIN-FIN","industry_id":"FIN","name":"FinTech / Digital Finance","status":"active"},
     {"id":"RET-ECM","industry_id":"RET","name":"E-commerce Business","status":"active"},
@@ -13,6 +14,8 @@
     {"id":"ITS-ITE","industry_id":"ITS","name":"IT / ITES Services","status":"active"},
     {"id":"PRO-CNS","industry_id":"PRO","name":"Consulting / Advisory","status":"active"},
     {"id":"PRO-LGL","industry_id":"PRO","name":"Legal / Professional Practice","status":"active"},
+    {"id":"PRO-CA","industry_id":"PRO","name":"Chartered Accountant / CA Practice","status":"active"},
+    {"id":"PRO-CFP","industry_id":"PRO","name":"Certified Financial Planner / Financial Advisory","status":"active"},
     {"id":"MFG-MAN","industry_id":"MFG","name":"Manufacturing Company","status":"active"},
     {"id":"MFG-DIS","industry_id":"MFG","name":"Industrial / Distribution Business","status":"active"},
     {"id":"TEL-TEL","industry_id":"TEL","name":"Telecommunications Provider","status":"active"},
@@ -23,7 +26,10 @@
     {"id":"LOG-DEL","industry_id":"LOG","name":"Delivery / Transportation","status":"active"},
     {"id":"REA-DEV","industry_id":"REA","name":"Real Estate Developer","status":"active"},
     {"id":"REA-AGT","industry_id":"REA","name":"Real Estate Agency / Brokerage","status":"active"},
+    {"id":"REA-CHS","industry_id":"REA","name":"Co-operative Housing Society","status":"active"},
     {"id":"GOV-DEP","industry_id":"GOV","name":"Government Department / Agency","status":"active"},
-    {"id":"GOV-PSU","industry_id":"GOV","name":"Public Sector Organisation","status":"active"}
+    {"id":"GOV-PSU","industry_id":"GOV","name":"Public Sector Organisation","status":"active"},
+    {"id":"WEL-GYM","industry_id":"WEL","name":"Gym / Fitness Centre","status":"active"},
+    {"id":"WEL-BEA","industry_id":"WEL","name":"Beauty Parlour / Salon","status":"active"}
   ]
 }
